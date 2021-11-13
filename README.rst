@@ -21,6 +21,16 @@ Tech Stack
 .. _pycomm3: https://github.com/ottowayi/pycomm3
 .. _sqlite: https://www.sqlite.org/index.html
 
+Getting Started
+=============
+.. role:: bash(code)
+    :language: bash
+:bash:`pip3 install -r requirements.txt` 
+
+:bash:`cd ProcessPlot`
+
+:bash:`python3 main.py`
+
 Contributions
 =============
 
