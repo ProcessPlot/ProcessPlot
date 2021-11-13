@@ -35,37 +35,37 @@ settings.set_property("gtk-application-prefer-dark-theme", False)
 
 
 if len(sys.argv) > 1:
-	lvl = {'DEBUG': logging.DEBUG,
-			'INFO': logging.INFO,
-			'WARNING': logging.WARNING,
-			'ERROR': logging.ERROR
-	}
-	if lvl.get(sys.argv[1]):
-		configure_default_logger(level=lvl.get(sys.argv[1]), filename=sys.argv[2] if len(sys.argv) > 2 else None)
-	
+    lvl = {'DEBUG': logging.DEBUG,
+            'INFO': logging.INFO,
+            'WARNING': logging.WARNING,
+            'ERROR': logging.ERROR
+    }
+    if lvl.get(sys.argv[1]):
+        configure_default_logger(level=lvl.get(sys.argv[1]), filename=sys.argv[2] if len(sys.argv) > 2 else None)
+    
 
 class Root(Gtk.Window):
-	def __init__(self):
-		title = 'Process Plot'
-		Gtk.Window.__init__(self, title=title)
-		self.set_size_request(100, 100)
-		self.set_default_size(1920, 1000)
-		self.set_border_width(10)
-		self.big_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		self.add(self.big_box)
-		self.charts = []
-		for x in range(4):
-			v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=10)
-			for y in range(4):
-				c = Chart(y*4+x)
-				box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, border_width=10)
-				box.pack_start(c, 1, 1, 0)
-				self.charts.append(c)
-				v_box.pack_start(box, 1, 1, 0)
-			self.big_box.pack_start(v_box, 1, 1, 0)
+    def __init__(self):
+        title = 'Process Plot'
+        Gtk.Window.__init__(self, title=title)
+        self.set_size_request(100, 100)
+        self.set_default_size(1920, 1000)
+        self.set_border_width(10)
+        self.big_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.add(self.big_box)
+        self.charts = []
+        for x in range(4):
+            v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=10)
+            for y in range(4):
+                c = Chart(y*4+x)
+                box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, border_width=10)
+                box.pack_start(c, 1, 1, 0)
+                self.charts.append(c)
+                v_box.pack_start(box, 1, 1, 0)
+            self.big_box.pack_start(v_box, 1, 1, 0)
 
-	def exit_app(self, *args):
-		Gtk.main_quit()
+    def exit_app(self, *args):
+        Gtk.main_quit()
 
 
 
