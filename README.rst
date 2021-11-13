@@ -23,6 +23,8 @@ Tech Stack
 
 Getting Started
 =============
+.. role:: bash(code)
+    :language: bash
 :bash:`pip3 install -r requirements.txt`
 :bash:`cd ProcessPlot`
 :bash:`python3 main.py`
