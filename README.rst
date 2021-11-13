@@ -23,9 +23,9 @@ Tech Stack
 
 Getting Started
 =============
-pip3 install -r requirements.txt
-cd ProcessPlot
-python3 main.py
+:bash:`pip3 install -r requirements.txt`
+:bash:`cd ProcessPlot`
+:bash:`python3 main.py`
 
 Contributions
 =============
