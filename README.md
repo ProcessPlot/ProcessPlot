@@ -1,6 +1,7 @@
 =======
 ProcessPlot
 =======
+.. <<start>>
 A data collection and visualization application
 
 Introduction
@@ -32,3 +33,4 @@ If you'd like to contribute or are having an issue, please read the `Contributin
 License
 =======
 ``ProcessPlot`` is distributed under the MIT License
+.. <<end>>
