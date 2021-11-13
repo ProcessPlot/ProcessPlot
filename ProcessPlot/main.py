@@ -26,10 +26,10 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-from lib._version import __version__, __version_info__
-from lib.logger import *
-from lib.exceptions import *
-from lib.chart import *
+from classes._version import __version__, __version_info__
+from classes.logger import *
+from classes.exceptions import *
+from classes.chart import *
 settings = Gtk.Settings.get_default()
 settings.set_property("gtk-application-prefer-dark-theme", False)
 
