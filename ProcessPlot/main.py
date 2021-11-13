@@ -35,14 +35,14 @@ settings.set_property("gtk-application-prefer-dark-theme", False)
 
 
 if len(sys.argv) > 1:
-	lvl = {'DEBUG': logging.DEBUG,
-			'INFO': logging.INFO,
-			'WARNING': logging.WARNING,
-			'ERROR': logging.ERROR
-	}
-	if lvl.get(sys.argv[1]):
-		configure_default_logger(level=lvl.get(sys.argv[1]), filename=sys.argv[2] if len(sys.argv) > 2 else None)
-	
+    lvl = {'DEBUG': logging.DEBUG,
+            'INFO': logging.INFO,
+            'WARNING': logging.WARNING,
+            'ERROR': logging.ERROR
+    }
+    if lvl.get(sys.argv[1]):
+        configure_default_logger(level=lvl.get(sys.argv[1]), filename=sys.argv[2] if len(sys.argv) > 2 else None)
+    
 
 class Root(Gtk.Window):
   def __init__(self):
@@ -156,11 +156,6 @@ class Root(Gtk.Window):
 
   def exit_app(self, *args):
     Gtk.main_quit()
-
-
-
-
-
 
 print(sys.argv)
 win = Root()
