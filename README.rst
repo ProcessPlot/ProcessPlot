@@ -6,7 +6,7 @@ A data collection and visualization application
 Introduction
 ============
 
-``ProcessPlot`` is an plotting application used to collect and display data points. The project is inspired by the `matplotlib`_ library but is used in a live point value enviroment.
+``ProcessPlot`` is a plotting application used to collect and display data points. The project is inspired by the `matplotlib`_ library but is used in a live point value enviroment.
 
 .. _matplotlib: https://matplotlib.org/
 
