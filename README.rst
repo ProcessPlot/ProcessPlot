@@ -16,7 +16,6 @@ Tech Stack
 - `sqlalchemy`_
 - `pycomm3`_
 - `sqlite`_
-- 
 .. _PyGObject: https://pygobject.readthedocs.io/en/latest/
 .. _sqlalchemy: https://www.sqlalchemy.org/
 .. _pycomm3: https://github.com/ottowayi/pycomm3
