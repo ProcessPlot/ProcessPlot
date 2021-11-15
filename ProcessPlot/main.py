@@ -50,56 +50,86 @@ class Root(Gtk.Window):
     title = 'Process Plot'
     Gtk.Window.__init__(self, title=title)
     self.set_size_request(100, 100)
-    self.set_default_size(1920, 1000)
+    self.set_default_size(1950, 1050)
     self.set_border_width(10)
-    self.big_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-    self.add(self.big_box)
+    self.set_decorated(False)
+    self.maximize()
     cssProvider = Gtk.CssProvider()
     cssProvider.load_from_path('ProcessPlot/Public/css/style.css')
     screen = Gdk.Screen.get_default()
     styleContext = Gtk.StyleContext()
     styleContext.add_provider_for_screen(screen, cssProvider,
                                         Gtk.STYLE_PROVIDER_PRIORITY_USER)
+    self.window = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    self.big_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    self.titlebar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request = 20)
+    self.add(self.window)
+    self.window.pack_start(self.titlebar,0,0,1)
+    self.window.pack_start(self.big_box,1,1,1)
+    self.build_titlebar()
     self.build_chart()
     self.build_chart_ctrl()
 
+  def build_titlebar(self,*args):
+
+    sc = self.titlebar.get_style_context()
+    sc.add_class('title-bar')
+
+    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button.connect('clicked',self.open_legend_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/legend.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    self.titlebar.pack_start(self.pin_button,0,0,1)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('ctrl-button')
+
+    title = Gtk.Label(label = 'ProcessPlot')
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.titlebar.pack_start(title,1,1,1)
+
+    self.exit_button = Gtk.Button(width_request = 15)
+    self.exit_button.connect('clicked',self.exit_app)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.exit_button.add(image)
+    self.titlebar.pack_start(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
+    sc.add_class('exit-button')
+
   def build_chart(self,*args):
 
-    trend_window = Gtk.Fixed()
-    self.chart_panel = Gtk.Box()
-    sc = self.chart_panel.get_style_context()
+    self.trend_window = Gtk.EventBox()
+    self.trend_window.set_above_child(True)
+    sc = self.trend_window.get_style_context()
     sc.add_class('dialog-border')
-    #self.build_panel.connect("button_release_event",self.build_panel_clicked)
-    trend_window.put(self.chart_panel,0,0)
+    self.trend_window.connect("button_release_event",self.event_window_clicked)
+    
+    self.chart_panel = Gtk.Box()
     self.charts = []
     for x in range(4):
       v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=10)
       for y in range(4):
         c = Chart(y*4+x)
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, border_width=10,width_request = 438, height_request = 225)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, border_width=10)
         box.pack_start(c, 1, 1, 1)
         self.charts.append(c)
         v_box.pack_start(box, 1, 1, 1)
       self.chart_panel.pack_start(v_box, 1, 1, 1)
-
-    self.pin_button = Gtk.Button(width_request = 30)
-    self.pin_button.connect('clicked',self.open_legend_popup)
-    #self.pin_button.set_sensitive(False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/legend.png', 30, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    self.pin_button.add(image)
-    trend_window.put(self.pin_button,0,0)
-    sc = self.pin_button.get_style_context()
-    sc.add_class('ctrl-button')
-
-    self.big_box.pack_start(trend_window,1,1,1)
+    self.trend_window.add(self.chart_panel)
+    
+    self.big_box.pack_start(self.trend_window,1,1,1)
 
   def build_chart_ctrl(self):
 
     trend_control_panel = Gtk.Box(width_request=40,height_request=400,orientation=Gtk.Orientation.VERTICAL)
     self.pan_button = Gtk.Button(width_request = 30)
-    #self.tag_button.connect('clicked',self.setup_tags,None)
-    #self.tag_button.set_sensitive(False)
+    self.pan_button.connect('clicked',self.exit_app,None)
+    #self.pan_button.connect('clicked',self.setup_tags,None)
+    #self.pan_button.set_sensitive(False)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/pan.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.pan_button.add(image)
@@ -136,6 +166,9 @@ class Root(Gtk.Window):
 
   def exit_app(self, *args):
     Gtk.main_quit()
+
+  def event_window_clicked(self,*args):
+    print('You Clicked Me')
 
 print(sys.argv)
 win = Root()
