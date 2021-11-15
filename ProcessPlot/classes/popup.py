@@ -32,11 +32,11 @@ class LegendPopup(Gtk.Dialog):
     #self.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK)
       
 
-    self.set_default_size(300, 1000)
+    self.set_default_size(300, 1050)
     self.move(0,0)
     self.set_decorated(False)
     self.set_border_width(10)
-    self.set_keep_above(True)
+    self.set_keep_above(False)
     sc = self.get_style_context()
     sc.add_class("dialog-border")
     self.content_area = self.get_content_area()
