@@ -48,6 +48,8 @@ if len(sys.argv) > 1:
     
 
 class Root(Gtk.Window):
+
+  __log = logging.getLogger("ProcessPlot.Root")
   def __init__(self):
     title = 'Process Plot'
     Gtk.Window.__init__(self, title=title)
@@ -158,9 +160,10 @@ class Root(Gtk.Window):
     Gtk.main_quit()
 
   def event_window_clicked(self,*args):
-    print('You Clicked Me')
+    self.__log.debug(f"click event recieved {args}")
 
-print(sys.argv)
+__log = logging.getLogger("ProcessPlot.main")
+__log.info(f"CLI arguments - {sys.argv}")
 win = Root()
 win.connect("delete-event", win.exit_app)
 win.show_all()

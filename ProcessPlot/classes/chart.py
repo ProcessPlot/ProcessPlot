@@ -133,6 +133,7 @@ class ChartArea(Gtk.Box):
 
 
         v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+        v_pane.set_property("position", 100)
         v_pane.pack1(top_box,1,1)
         v_pane.pack2(bot_box,1,1)
         self.pack_start(v_pane,1,1,1)
