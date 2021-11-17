@@ -54,6 +54,7 @@ class Root(Gtk.Window):
     self.set_border_width(10)
     self.set_decorated(False)
     self.maximize()
+    self.numCharts = 2
     cssProvider = Gtk.CssProvider()
     cssProvider.load_from_path('ProcessPlot/Public/css/style.css')
     screen = Gdk.Screen.get_default()
@@ -66,6 +67,14 @@ class Root(Gtk.Window):
     self.add(self.window)
     self.window.pack_start(self.titlebar,0,0,1)
     self.window.pack_start(self.big_box,1,1,1)
+    #building trend window 
+    self.trend_window = Gtk.EventBox()
+    self.trend_window.set_above_child(True)
+    sc = self.trend_window.get_style_context()
+    sc.add_class('dialog-border')
+    self.trend_window.connect("button_release_event",self.event_window_clicked)
+    self.big_box.pack_start(self.trend_window,1,1,1)
+    #adding widgets
     self.build_titlebar()
     self.build_chart()
     self.build_chart_ctrl()
@@ -84,6 +93,31 @@ class Root(Gtk.Window):
     sc = self.pin_button.get_style_context()
     sc.add_class('ctrl-button')
 
+    self.settings_button = Gtk.Button(width_request = 20)
+    #self.settings_button.connect('clicked',self.open_legend_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.settings_button.add(image)
+    self.titlebar.pack_start(self.settings_button,0,0,1)
+    sc = self.settings_button.get_style_context()
+    sc.add_class('ctrl-button')
+
+
+    selections = ["1","2","4","8","12","16"]
+    self.number_of_charts = Gtk.ComboBoxText()
+    self.number_of_charts.set_entry_text_column(0)
+    self.number_of_charts.connect("changed", self.update_number_of_charts)
+    found = 0
+    for x in selections:
+        self.number_of_charts.append_text(x)
+    for num in range(len(selections)):
+      if int(selections[num]) == self.numCharts:
+        found = num
+    if found == 0:
+      self.numCharts = 1  #error checking from stored value
+    self.number_of_charts.set_active(found)
+    self.titlebar.pack_start(self.number_of_charts,0,0,1)
+
     title = Gtk.Label(label = 'ProcessPlot')
     sc = title.get_style_context()
     sc.add_class('text-black-color')
@@ -100,19 +134,32 @@ class Root(Gtk.Window):
     sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
 
+  def update_number_of_charts(self,*args):
+    if self.numCharts != int(self.number_of_charts.get_active_text()):
+      self.numCharts = int(self.number_of_charts.get_active_text())
+      c = self.trend_window.get_children()
+      for child in c:
+        self.trend_window.remove(child)
+      self.build_chart()
+
+
+
+
+
   def build_chart(self,*args):
 
-    self.trend_window = Gtk.EventBox()
-    self.trend_window.set_above_child(True)
-    sc = self.trend_window.get_style_context()
-    sc.add_class('dialog-border')
-    self.trend_window.connect("button_release_event",self.event_window_clicked)
-    
     self.chart_panel = Gtk.Box()
     self.charts = []
-    for x in range(4):
+    if self.numCharts > 4:
+      row = int(self.numCharts/4)
+      col = 4
+    else:
+      row = 1
+      col = self.numCharts
+    print(row,col)
+    for x in range(col):
       v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=10)
-      for y in range(4):
+      for y in range(row):
         c = Chart(y*4+x)
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, border_width=10)
         box.pack_start(c, 1, 1, 1)
@@ -121,7 +168,8 @@ class Root(Gtk.Window):
       self.chart_panel.pack_start(v_box, 1, 1, 1)
     self.trend_window.add(self.chart_panel)
     
-    self.big_box.pack_start(self.trend_window,1,1,1)
+    #self.big_box.pack_start(self.trend_window,1,1,1)
+    self.big_box.show_all()
 
   def build_chart_ctrl(self):
 
