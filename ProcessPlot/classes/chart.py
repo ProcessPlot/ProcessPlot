@@ -66,11 +66,11 @@ class Shaders(GObject.Object):
 
 
 class Chart(Gtk.GLArea):
-    __log = logging.getLogger("ProcessPlot.lib.Chart")
+    __log = logging.getLogger("ProcessPlot.classes.Chart")
 
-    def __init__(self, num):
+    def __init__(self):
         super(Chart, self).__init__()
-        self.num = num
+        self.bg_color = (0.1, 0.1, 0.1, 1.0)
         self.context_realized = False
         self.context = None
         self.shaders = None
@@ -104,7 +104,7 @@ class Chart(Gtk.GLArea):
         self.vaos = glGenVertexArrays(1)
 
     def render(self, *args):
-        glClearColor(1.0/16.0 * self.num,0,1.0 - (1.0/16.0 * self.num),1)
+        glClearColor(*self.bg_color)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -113,3 +113,29 @@ class Chart(Gtk.GLArea):
     def trigger_render(self, *args):
         self.queue_render()
         return True
+
+
+class ChartArea(Gtk.Box):
+    __log = logging.getLogger("ProcessPlot.classes.ChartArea")
+    def __init__(self):
+        super(ChartArea, self).__init__(orientation=Gtk.Orientation.VERTICAL, spacing=40)
+        
+        top_pane = Gtk.Paned(wide_handle=True)
+        top_pane.pack1(Chart(),1,1)
+        top_pane.pack2(Chart(),1,1)
+        top_box = Gtk.Box()
+        top_box.pack_start(top_pane,1,1,1)
+        bot_pane = Gtk.Paned(wide_handle=True)
+        bot_pane.pack1(Chart(),1,1)
+        bot_pane.pack2(Chart(),1,1)
+        bot_box = Gtk.Box()
+        bot_box.pack_start(bot_pane,1,1,1)
+
+
+        v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+        v_pane.pack1(top_box,1,1)
+        v_pane.pack2(bot_box,1,1)
+        self.pack_start(v_pane,1,1,1)
+
+
+        self.__log.info(f"ChartArea built - {self}")

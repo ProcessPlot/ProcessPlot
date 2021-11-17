@@ -24,6 +24,8 @@ import logging
 import sys
 import gi
 
+from classes.chart import ChartArea
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 from classes._version import __version__, __version_info__
@@ -103,24 +105,12 @@ class Root(Gtk.Window):
   def build_chart(self,*args):
 
     self.trend_window = Gtk.EventBox()
-    self.trend_window.set_above_child(True)
+    self.trend_window.set_above_child(False) # need below or the panes won't resize
     sc = self.trend_window.get_style_context()
     sc.add_class('dialog-border')
-    self.trend_window.connect("button_release_event",self.event_window_clicked)
-    
-    self.chart_panel = Gtk.Box()
-    self.charts = []
-    for x in range(4):
-      v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, border_width=10)
-      for y in range(4):
-        c = Chart(y*4+x)
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, border_width=10)
-        box.pack_start(c, 1, 1, 1)
-        self.charts.append(c)
-        v_box.pack_start(box, 1, 1, 1)
-      self.chart_panel.pack_start(v_box, 1, 1, 1)
+    self.trend_window.connect("button_release_event",self.event_window_clicked)    
+    self.chart_panel = ChartArea()
     self.trend_window.add(self.chart_panel)
-    
     self.big_box.pack_start(self.trend_window,1,1,1)
 
   def build_chart_ctrl(self):
