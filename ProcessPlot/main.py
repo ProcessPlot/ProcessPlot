@@ -30,6 +30,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 from classes._version import __version__, __version_info__
 from classes.logger import *
+from classes.database import Db
 from classes.exceptions import *
 from classes.chart import *
 from classes.popup import LegendPopup
@@ -58,6 +59,7 @@ class Root(Gtk.Window):
     self.set_border_width(10)
     self.set_decorated(False)
     self.maximize()
+    self.settings_db = Db()
     cssProvider = Gtk.CssProvider()
     cssProvider.load_from_path('ProcessPlot/Public/css/style.css')
     screen = Gdk.Screen.get_default()
