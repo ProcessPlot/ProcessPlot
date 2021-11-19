@@ -187,6 +187,7 @@ class ChartArea(Gtk.Box):
             v_pane.pack1(Chart(self.root, 1),1,1)
             v_pane.pack2(Chart(self.root, 2),1,1)
             self.pack_start(v_pane,1,1,1)
+            self.show_all()
             return
         if self.charts == 4:
             top_pane = Gtk.Paned(wide_handle=True)
@@ -199,6 +200,7 @@ class ChartArea(Gtk.Box):
             v_pane.pack1(top_pane,1,1)
             v_pane.pack2(bot_pane,1,1)
             self.pack_start(v_pane,1,1,1)
+            self.show_all()
             return
         if self.charts == 8:
             topl_pane = Gtk.Paned(wide_handle=True)
@@ -223,6 +225,7 @@ class ChartArea(Gtk.Box):
             v_pane.pack1(top_pane,1,1)
             v_pane.pack2(bot_pane,1,1)
             self.pack_start(v_pane,1,1,1)
+            self.show_all()
             return
         if self.charts == 16:
             r1_left_pane = Gtk.Paned(wide_handle=True)
@@ -268,16 +271,15 @@ class ChartArea(Gtk.Box):
             r3_r4_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
             r3_r4_pane.pack1(r3_pane,1,1)
             r3_r4_pane.pack2(r4_pane,1,1)
-
-
-
             v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
             v_pane.pack1(r1_r2_pane,1,1)
             v_pane.pack2(r3_r4_pane,1,1)
             self.pack_start(v_pane,1,1,1)
+            self.show_all()
             return
         #default
         self.pack_start(Chart(self.root, 1),1,1,1)
+        self.show_all()
         self.__log.info(f"ChartArea built - {self}")
     
     def load_settings(self):
