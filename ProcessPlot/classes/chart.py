@@ -77,7 +77,7 @@ class Chart(Gtk.GLArea):
         self.db_model = root.db.models['chart']
         self.db_session = root.db.session
         #settings
-        self.bg_color = (0.9, 0.1, 0.1, 1.0)
+        self.bg_color = (0.1, 0.1, 0.1, 1.0)
         self.h_grids = 0
         self.v_grids = 0
         #settings
@@ -169,6 +169,7 @@ class ChartArea(Gtk.Box):
         super(ChartArea, self).__init__(orientation=Gtk.Orientation.VERTICAL, spacing=40)
         self.root = root
         #settings
+        self.charts = 1
         self.cols = 1
         self.rows = 1
         self.chart_map = '[1]' # json list(rows) of lists(cols) that map ids of charts to row 
@@ -176,35 +177,122 @@ class ChartArea(Gtk.Box):
         self.db_model = self.root.db.models['chart_layout']
         self.db_session = root.db.session
         self.load_settings()
-        top_pane = Gtk.Paned(wide_handle=True)
-        top_pane.pack1(Chart(root,1),1,1)
-        top_pane.pack2(Chart(root,2),1,1)
-        top_box = Gtk.Box()
-        top_box.pack_start(top_pane,1,1,1)
-        bot_pane = Gtk.Paned(wide_handle=True)
-        bot_pane.pack1(Chart(root,3),1,1)
-        bot_pane.pack2(Chart(root,4),1,1)
-        bot_box = Gtk.Box()
-        bot_box.pack_start(bot_pane,1,1,1)
+        self.save_settings()
+
+    def build_charts(self):
+        for child in self.get_children():
+            self.remove(child)
+        if self.charts == 2:
+            v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+            v_pane.pack1(Chart(self.root, 1),1,1)
+            v_pane.pack2(Chart(self.root, 2),1,1)
+            self.pack_start(v_pane,1,1,1)
+            return
+        if self.charts == 4:
+            top_pane = Gtk.Paned(wide_handle=True)
+            top_pane.pack1(Chart(self.root,1),1,1)
+            top_pane.pack2(Chart(self.root,2),1,1)
+            bot_pane = Gtk.Paned(wide_handle=True)
+            bot_pane.pack1(Chart(self.root,3),1,1)
+            bot_pane.pack2(Chart(self.root,4),1,1)
+            v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+            v_pane.pack1(top_pane,1,1)
+            v_pane.pack2(bot_pane,1,1)
+            self.pack_start(v_pane,1,1,1)
+            return
+        if self.charts == 8:
+            topl_pane = Gtk.Paned(wide_handle=True)
+            topl_pane.pack1(Chart(self.root,1),1,1)
+            topl_pane.pack2(Chart(self.root,2),1,1)
+            topr_pane = Gtk.Paned(wide_handle=True)
+            topr_pane.pack1(Chart(self.root,3),1,1)
+            topr_pane.pack2(Chart(self.root,4),1,1)
+            top_pane = Gtk.Paned(wide_handle=True)
+            top_pane.pack1(topl_pane,1,1)
+            top_pane.pack2(topr_pane,1,1)
+            botl_pane = Gtk.Paned(wide_handle=True)
+            botl_pane.pack1(Chart(self.root,5),1,1)
+            botl_pane.pack2(Chart(self.root,6),1,1)
+            botr_pane = Gtk.Paned(wide_handle=True)
+            botr_pane.pack1(Chart(self.root,7),1,1)
+            botr_pane.pack2(Chart(self.root,8),1,1)
+            bot_pane = Gtk.Paned(wide_handle=True)
+            bot_pane.pack1(botl_pane,1,1)
+            bot_pane.pack2(botr_pane,1,1)
+            v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+            v_pane.pack1(top_pane,1,1)
+            v_pane.pack2(bot_pane,1,1)
+            self.pack_start(v_pane,1,1,1)
+            return
+        if self.charts == 16:
+            r1_left_pane = Gtk.Paned(wide_handle=True)
+            r1_left_pane.pack1(Chart(self.root,1),1,1)
+            r1_left_pane.pack2(Chart(self.root,2),1,1)
+            r1_right_pane = Gtk.Paned(wide_handle=True)
+            r1_right_pane.pack1(Chart(self.root,3),1,1)
+            r1_right_pane.pack2(Chart(self.root,4),1,1)
+            r1_pane = Gtk.Paned(wide_handle=True)
+            r1_pane.pack1(r1_left_pane,1,1)
+            r1_pane.pack2(r1_right_pane,1,1)
+            r2_left_pane = Gtk.Paned(wide_handle=True)
+            r2_left_pane.pack1(Chart(self.root,5),1,1)
+            r2_left_pane.pack2(Chart(self.root,6),1,1)
+            r2_right_pane = Gtk.Paned(wide_handle=True)
+            r2_right_pane.pack1(Chart(self.root,7),1,1)
+            r2_right_pane.pack2(Chart(self.root,8),1,1)
+            r2_pane = Gtk.Paned(wide_handle=True)
+            r2_pane.pack1(r2_left_pane,1,1)
+            r2_pane.pack2(r2_right_pane,1,1)
+            r1_r2_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+            r1_r2_pane.pack1(r1_pane,1,1)
+            r1_r2_pane.pack2(r2_pane,1,1)
+
+            r3_left_pane = Gtk.Paned(wide_handle=True)
+            r3_left_pane.pack1(Chart(self.root,9),1,1)
+            r3_left_pane.pack2(Chart(self.root,10),1,1)
+            r3_right_pane = Gtk.Paned(wide_handle=True)
+            r3_right_pane.pack1(Chart(self.root,11),1,1)
+            r3_right_pane.pack2(Chart(self.root,12),1,1)
+            r3_pane = Gtk.Paned(wide_handle=True)
+            r3_pane.pack1(r3_left_pane,1,1)
+            r3_pane.pack2(r3_right_pane,1,1)
+            r4_left_pane = Gtk.Paned(wide_handle=True)
+            r4_left_pane.pack1(Chart(self.root,13),1,1)
+            r4_left_pane.pack2(Chart(self.root,14),1,1)
+            r4_right_pane = Gtk.Paned(wide_handle=True)
+            r4_right_pane.pack1(Chart(self.root,15),1,1)
+            r4_right_pane.pack2(Chart(self.root,16),1,1)
+            r4_pane = Gtk.Paned(wide_handle=True)
+            r4_pane.pack1(r4_left_pane,1,1)
+            r4_pane.pack2(r4_right_pane,1,1)
+            r3_r4_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+            r3_r4_pane.pack1(r3_pane,1,1)
+            r3_r4_pane.pack2(r4_pane,1,1)
 
 
-        v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
-        v_pane.set_property("position", 100)
-        v_pane.pack1(top_box,1,1)
-        v_pane.pack2(bot_box,1,1)
-        self.pack_start(v_pane,1,1,1)
+
+            v_pane = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, wide_handle=True)
+            v_pane.pack1(r1_r2_pane,1,1)
+            v_pane.pack2(r3_r4_pane,1,1)
+            self.pack_start(v_pane,1,1,1)
+            return
+        #default
+        self.pack_start(Chart(self.root, 1),1,1,1)
         self.__log.info(f"ChartArea built - {self}")
     
     def load_settings(self):
         settings = self.db_session.query(self.db_model).order_by(self.db_model.id.desc()).first() # last one saved?
         if settings:
+            self.charts = settings.charts
             self.rows = settings.rows
             self.cols = settings.cols
             self.chart_map = settings.chart_map
+        self.build_charts()
 
     
     def save_settings(self):
         entry = self.db_model(
+            charts = self.charts,
             cols = self.cols,
             rows = self.rows,
             chart_map = self.chart_map

@@ -27,7 +27,7 @@ class ChartLayoutSettings(Base):
     cols = Column(Integer)
     rows = Column(Integer) 
     chart_map = Column(String) #save a list of the chart ids to place in each spot
-    new_col = Column(String)
+    charts = Column(Integer)
     #other cols
 
 class ChartSettings(Base):
