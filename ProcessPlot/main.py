@@ -59,7 +59,7 @@ class Root(Gtk.Window):
     self.set_border_width(10)
     self.set_decorated(False)
     self.maximize()
-    self.settings_db = Db()
+    self.db = Db()
     cssProvider = Gtk.CssProvider()
     cssProvider.load_from_path('ProcessPlot/Public/css/style.css')
     screen = Gdk.Screen.get_default()
@@ -113,7 +113,7 @@ class Root(Gtk.Window):
     sc = self.trend_window.get_style_context()
     sc.add_class('dialog-border')
     self.trend_window.connect("button_release_event",self.event_window_clicked)    
-    self.chart_panel = ChartArea()
+    self.chart_panel = ChartArea(self)
     self.trend_window.add(self.chart_panel)
     self.big_box.pack_start(self.trend_window,1,1,1)
 
@@ -169,5 +169,10 @@ __log.info(f"CLI arguments - {sys.argv}")
 win = Root()
 win.connect("delete-event", win.exit_app)
 win.show_all()
-Gtk.main()
+try:
+  Gtk.main()
+finally:
+    __log.debug('Closing database session')
+    win.db.session.close()
+
 
