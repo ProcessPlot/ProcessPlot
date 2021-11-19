@@ -28,6 +28,8 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject
 from OpenGL.GL import *
 from OpenGL.GL import shaders
+from sqlalchemy import select as sql_select
+import json
 
 __all__ = ['Chart']
 
@@ -68,9 +70,18 @@ class Shaders(GObject.Object):
 class Chart(Gtk.GLArea):
     __log = logging.getLogger("ProcessPlot.classes.Chart")
 
-    def __init__(self):
+    def __init__(self, root, db_id=None):
         super(Chart, self).__init__()
-        self.bg_color = (0.1, 0.1, 0.1, 1.0)
+        self.root = root
+        self.db_id = db_id # None means it's new and isn't to be looked up in the db, if saved, gets an id.
+        self.db_model = root.db.models['chart']
+        self.db_session = root.db.session
+        #settings
+        self.bg_color = (0.9, 0.1, 0.1, 1.0)
+        self.h_grids = 0
+        self.v_grids = 0
+        #settings
+        self.load_settings()
         self.context_realized = False
         self.context = None
         self.shaders = None
@@ -78,6 +89,7 @@ class Chart(Gtk.GLArea):
         self.connect("realize", self.on_realize)
         self.connect("render", self.on_render)
         GObject.timeout_add(100, self.trigger_render)
+
 
     def on_realize(self, area):
         self.context_realized = True
@@ -98,6 +110,42 @@ class Chart(Gtk.GLArea):
                 self.init_vaos()
         if self.shaders:
             self.render()
+    
+    def load_settings(self):
+        if not self.db_id:
+            return
+        tbl = self.db_model
+        settings = self.db_session.query(tbl).filter(tbl.id == self.db_id).first() # find one with this id
+        if settings:
+            self.bg_color = json.loads(settings.bg_color) #rgb in json
+            self.h_grids = settings.h_grids
+            self.v_grids = settings.v_grids
+
+    
+    def save_settings(self):
+        tbl = self.db_model
+        entry = None
+        if self.db_id:
+            entry = self.db_session.query(tbl).filter(tbl.id==self.db_id).first()
+        if entry: # update it
+            entry.bg_color = json.dumps(self.bg_color)
+            entry.h_grids= self.h_grids
+            entry.v_grids=self.v_grids
+        else: #create it
+            entry = tbl(
+                bg_color = json.dumps(self.bg_color),
+                h_grids= self.h_grids,
+                v_grids=self.v_grids
+            )
+            self.db_session.add(entry)
+        # or 
+        # entry1 = model(bla= "blah")
+        # entry2 = model(bla= "blah, blah")
+        # self.db_session.add_all([entry1, entry2])
+        self.db_session.commit()
+        self.db_id = entry.id
+        
+
 
 
     def init_vaos(self):
@@ -117,17 +165,25 @@ class Chart(Gtk.GLArea):
 
 class ChartArea(Gtk.Box):
     __log = logging.getLogger("ProcessPlot.classes.ChartArea")
-    def __init__(self):
+    def __init__(self, root, db_id=None):
         super(ChartArea, self).__init__(orientation=Gtk.Orientation.VERTICAL, spacing=40)
-        
+        self.root = root
+        #settings
+        self.cols = 1
+        self.rows = 1
+        self.chart_map = '[1]' # json list(rows) of lists(cols) that map ids of charts to row 
+        #settings
+        self.db_model = self.root.db.models['chart_layout']
+        self.db_session = root.db.session
+        self.load_settings()
         top_pane = Gtk.Paned(wide_handle=True)
-        top_pane.pack1(Chart(),1,1)
-        top_pane.pack2(Chart(),1,1)
+        top_pane.pack1(Chart(root,1),1,1)
+        top_pane.pack2(Chart(root,2),1,1)
         top_box = Gtk.Box()
         top_box.pack_start(top_pane,1,1,1)
         bot_pane = Gtk.Paned(wide_handle=True)
-        bot_pane.pack1(Chart(),1,1)
-        bot_pane.pack2(Chart(),1,1)
+        bot_pane.pack1(Chart(root,3),1,1)
+        bot_pane.pack2(Chart(root,4),1,1)
         bot_box = Gtk.Box()
         bot_box.pack_start(bot_pane,1,1,1)
 
@@ -137,6 +193,27 @@ class ChartArea(Gtk.Box):
         v_pane.pack1(top_box,1,1)
         v_pane.pack2(bot_box,1,1)
         self.pack_start(v_pane,1,1,1)
-
-
         self.__log.info(f"ChartArea built - {self}")
+    
+    def load_settings(self):
+        settings = self.db_session.query(self.db_model).order_by(self.db_model.id.desc()).first() # last one saved?
+        if settings:
+            self.rows = settings.rows
+            self.cols = settings.cols
+            self.chart_map = settings.chart_map
+
+    
+    def save_settings(self):
+        entry = self.db_model(
+            cols = self.cols,
+            rows = self.rows,
+            chart_map = self.chart_map
+        )
+        self.db_session.add(entry)
+        # or 
+        # entry1 = model(bla= "blah")
+        # entry2 = model(bla= "blah, blah")
+        # self.db_session.add_all([entry1, entry2])
+        self.db_session.commit()
+
+
