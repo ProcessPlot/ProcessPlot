@@ -50,7 +50,7 @@ class PenSettings(Base):
 
 
 class Db():
-    __log = logging.getLogger("classes.db")
+    __log = logging.getLogger("ProcessPlot.classes.database")
     def __init__(self) -> None:
         super(Db, self).__init__()
         my_dir = os.path.dirname(__file__)
@@ -64,6 +64,10 @@ class Db():
         }
         Session = sessionmaker(bind=engine)
         self.session = Session()
+        self.__log.info('Opening database session')
         Base.metadata.create_all(engine) #creates all the tables above
         self.__log.info(f"Database models created")
 
+    def close(self):
+        self.__log.info('Closing database session')
+        self.session.close()

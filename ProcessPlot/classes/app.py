@@ -71,7 +71,7 @@ class App(Gtk.Window):
     sc.add_class('ctrl-button')
 
 
-    selections = ["1","2","4","8","12","16"]
+    selections = ["1","2","4","8","16"]
     self.number_of_charts = Gtk.ComboBoxText()
     self.number_of_charts.set_entry_text_column(0)
     self.number_of_charts.connect("changed", self.update_number_of_charts)
