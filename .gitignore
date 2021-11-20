@@ -131,6 +131,6 @@ dmypy.json
 # VSCode
 /.vscode
 #logs
-.log
+*/*.log
 #databases
-.db
+*/*.db
