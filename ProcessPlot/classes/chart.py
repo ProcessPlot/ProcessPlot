@@ -74,8 +74,8 @@ class Chart(Gtk.GLArea):
         super(Chart, self).__init__()
         self.app = app
         self.db_id = db_id # None means it's new and isn't to be looked up in the db, if saved, gets an id.
-        self.db_model = app.db.models['chart']
-        self.db_session = app.db.session
+        self.db_model = app.settings_db.models['chart']
+        self.db_session = app.settings_db.session
         #settings
         self.bg_color = (0.1, 0.1, 0.1, 1.0)
         self.h_grids = 0
@@ -174,8 +174,8 @@ class ChartArea(Gtk.Box):
         self.rows = 1
         self.chart_map = '[1]' # json list(rows) of lists(cols) that map ids of charts to row 
         #settings
-        self.db_model = self.app.db.models['chart_layout']
-        self.db_session = app.db.session
+        self.db_model = self.app.settings_db.models['chart_layout']
+        self.db_session = app.settings_db.session
         self.load_settings()
         self.save_settings()
 

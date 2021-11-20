@@ -133,4 +133,6 @@ dmypy.json
 #logs
 */*.log
 #databases
-*/*.db
+ProcessPlot/settings/*
+ProcessPlot/data/*
+

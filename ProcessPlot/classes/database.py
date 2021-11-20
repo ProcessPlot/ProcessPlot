@@ -13,15 +13,15 @@ from sqlalchemy.sql.sqltypes import Numeric
 
 
 
-Base = declarative_base()
-class AppSettings(Base):
+SettingsBase = declarative_base()
+class AppSettings(SettingsBase):
     __tablename__ = 'app_settings'
     id = Column(Integer, primary_key=True)
     last_save = Column(DateTime)
     charts = Column(Integer)
     #other cols
 
-class ChartLayoutSettings(Base):
+class ChartLayoutSettings(SettingsBase):
     __tablename__ = 'chart_layout_settings'
     id = Column(Integer, primary_key=True)
     cols = Column(Integer)
@@ -30,7 +30,7 @@ class ChartLayoutSettings(Base):
     charts = Column(Integer)
     #other cols
 
-class ChartSettings(Base):
+class ChartSettings(SettingsBase):
     __tablename__ = 'chart_settings'
     id = Column(Integer, primary_key=True)
     bg_color = Column(String) #rgb in json
@@ -38,7 +38,7 @@ class ChartSettings(Base):
     v_grids = Column(Integer)
     #other cols
 
-class PenSettings(Base):
+class PenSettings(SettingsBase):
     __tablename__ = 'pen_settings'
     id = Column(Integer, primary_key=True)
     visible = Column(Boolean)
@@ -47,15 +47,22 @@ class PenSettings(Base):
 
     #other cols
 
+DataBase = declarative_base()
+class Values(DataBase):
+    __tablename__ = 'values'
+    id = Column(Integer, primary_key=True)
+    point_id = Column(Integer)
+    timestamp = Column(DateTime)
+    value = Column(Numeric)
 
 
-class Db():
+class SettingsDb():
     __log = logging.getLogger("ProcessPlot.classes.database")
     def __init__(self) -> None:
-        super(Db, self).__init__()
+        super(SettingsDb, self).__init__()
         my_dir = os.path.dirname(__file__)
         main_dir = os.path.dirname(my_dir)
-        engine = create_engine('sqlite:///'+ main_dir + "/settings.db") #should create a .db file next to main.py
+        engine = create_engine('sqlite:///'+ main_dir + "/settings/settings.db") #should create a .db file next to main.py
         self.models = {
             "app": AppSettings,
             "chart_layout": ChartLayoutSettings,
@@ -64,10 +71,30 @@ class Db():
         }
         Session = sessionmaker(bind=engine)
         self.session = Session()
-        self.__log.info('Opening database session')
-        Base.metadata.create_all(engine) #creates all the tables above
-        self.__log.info(f"Database models created")
+        self.__log.debug('Opening database session for settings database')
+        SettingsBase.metadata.create_all(engine) #creates all the tables above
+        self.__log.debug(f"Database models created for settings database")
 
     def close(self):
-        self.__log.info('Closing database session')
+        self.__log.debug('Closing settings database session')
+        self.session.close()
+
+class DataDb():
+    __log = logging.getLogger("ProcessPlot.classes.database")
+    def __init__(self) -> None:
+        super(DataDb, self).__init__()
+        my_dir = os.path.dirname(__file__)
+        main_dir = os.path.dirname(my_dir)
+        engine = create_engine('sqlite:///'+ main_dir + "/data/data.db") #should create a .db file next to main.py
+        self.models = {
+            "values": Values,
+        }
+        Session = sessionmaker(bind=engine)
+        self.session = Session()
+        self.__log.debug('Opening database session for data database')
+        DataBase.metadata.create_all(engine) #creates all the tables above
+        self.__log.debug(f"Database models created for data database")
+
+    def close(self):
+        self.__log.debug('Closing data database session')
         self.session.close()

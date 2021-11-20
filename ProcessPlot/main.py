@@ -49,6 +49,7 @@ win.show_all()
 try:
   Gtk.main()
 finally:
-    win.db.close()
+    win.settings_db.close()
+    win.data_db.close()
 
 
