@@ -4,7 +4,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 from classes.logger import *
 from classes.chart import ChartArea
-from classes.database import Db
+from classes.database import SettingsDb, DataDb
 from classes.exceptions import *
 from classes.chart import *
 from classes.popup import LegendPopup
@@ -14,8 +14,8 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 class App(Gtk.Window):
   __log = logging.getLogger('main.App')
   def __init__(self):
-    
-    self.db = Db()
+    self.data_db = DataDb()
+    self.settings_db = SettingsDb()
     title = 'Process Plot'
     Gtk.Window.__init__(self, title=title)
     self.set_size_request(100, 100)
@@ -71,7 +71,7 @@ class App(Gtk.Window):
     sc.add_class('ctrl-button')
 
 
-    selections = ["1","2","4","8","12","16"]
+    selections = ["1","2","4","8","16"]
     self.number_of_charts = Gtk.ComboBoxText()
     self.number_of_charts.set_entry_text_column(0)
     self.number_of_charts.connect("changed", self.update_number_of_charts)

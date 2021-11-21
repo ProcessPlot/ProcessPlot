@@ -39,12 +39,12 @@ if len(sys.argv) > 1:
     
 
 __log = logging.getLogger("ProcessPlot.main")
-__log.info(f"CLI arguments - {sys.argv}")
+__log.info(f"Starting app with CLI arguments - {sys.argv}")
 win = App()
 win.connect("delete-event", win.exit_app)
 win.show_all()
 try:
   Gtk.main()
 finally:
-    __log.debug('Closing database session')
-    win.db.session.close()
+    win.settings_db.close()
+    win.data_db.close()
