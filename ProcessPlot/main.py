@@ -43,13 +43,15 @@ if len(sys.argv) > 1:
 
 __log = logging.getLogger("ProcessPlot.main")
 __log.info(f"Starting app with CLI arguments - {sys.argv}")
-win = App()
-win.connect("delete-event", win.exit_app)
-win.show_all()
+app = None
 try:
-  Gtk.main()
+  app = App()
+except Exception as e:
+  __log.error(e)
+  raise(e)
 finally:
-    win.settings_db.close()
-    win.data_db.close()
+  if app:
+    app.settings_db.close()
+    app.data_db.close()
 
 
