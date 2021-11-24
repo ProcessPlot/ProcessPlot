@@ -1,4 +1,5 @@
 import logging, os
+from typing import Set
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
@@ -7,7 +8,7 @@ from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
 from classes.chart import *
-from classes.popup import LegendPopup
+from classes.popup import LegendPopup, SettingsPopup
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 
@@ -90,7 +91,7 @@ class MainWindow(Gtk.Window):
     sc.add_class('ctrl-button')
 
     self.settings_button = Gtk.Button(width_request = 20)
-    #self.settings_button.connect('clicked',self.open_legend_popup)
+    self.settings_button.connect('clicked',self.open_settings_popup)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.settings_button.add(image)
@@ -177,6 +178,11 @@ class MainWindow(Gtk.Window):
 
   def open_legend_popup(self, button):
     popup = LegendPopup(self)
+    response = popup.run()
+    popup.destroy()
+
+  def open_settings_popup(self, button):
+    popup = SettingsPopup(self)
     response = popup.run()
     popup.destroy()
 
