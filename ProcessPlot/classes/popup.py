@@ -61,7 +61,11 @@ class LegendPopup(Gtk.Dialog):
     self.legend_window.pack_start(self.legend_title_bar,0,0,1)
 
     #control button bar
-
+    self.popups = {
+      "pen": PenSettingsPopup,
+      "point": PointSettingsPopup,
+      "connection": ConnectionSettingsPopup,
+    }
     self.ctrl_button_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=30,width_request=300)
 
     self.conn_button = Gtk.Button(width_request = 30)
@@ -73,19 +77,22 @@ class LegendPopup(Gtk.Dialog):
     self.ctrl_button_bar.add(self.conn_button)
     sc = self.conn_button.get_style_context()
     sc.add_class('ctrl-button')
+    self.conn_button.connect('clicked',self.open_popup,"connection", self.parent)
 
-    self.tag_button = Gtk.Button(width_request = 30)
-    #self.tag_button.connect('clicked',self.setup_tags,None)
-    #self.tag_button.set_sensitive(False)
+    self.point_button = Gtk.Button(width_request = 30)
+    #self.point_button.connect('clicked',self.setup_tags,None)
+    #self.point_button.set_sensitive(False)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
-    self.tag_button.add(image)
-    self.ctrl_button_bar.add(self.tag_button)
-    sc = self.tag_button.get_style_context()
+    self.point_button.add(image)
+    self.ctrl_button_bar.add(self.point_button)
+    sc = self.point_button.get_style_context()
     sc.add_class('ctrl-button')
+    self.point_button.connect('clicked',self.open_popup,"point", self.parent)
  
     self.pen_settings_button = Gtk.Button(width_request = 30)
-    self.pen_settings_button.connect('clicked',self.open_pen_popup,self.parent)
+
+    self.pen_settings_button.connect('clicked',self.open_popup,"pen", self.parent)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Create.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.pen_settings_button.add(image)
@@ -115,8 +122,8 @@ class LegendPopup(Gtk.Dialog):
   def build_base(self):
     pass
 
-  def open_pen_popup(self, button,parent):
-    popup = PenPopup(self,parent)
+  def open_popup(self, button,popup_key, parent):
+    popup = self.popups[popup_key](self,parent)
     response = popup.run()
     popup.destroy()
 
@@ -164,11 +171,12 @@ class SettingsPopup(Gtk.Dialog):
   def build_base(self):
     pass
 
-class PenPopup(Gtk.Dialog):
 
-  def __init__(self, obj,parent):
-    super().__init__(title="Pen Settings", transient_for = parent,flags=0)
-      
+
+class BaseSettingsPopoup(Gtk.Dialog):
+
+  def __init__(self, obj,parent, title):
+    super().__init__(title=title, transient_for = parent,flags=0)  
     self.set_default_size(1500, 700)
     self.set_decorated(False)
     self.set_border_width(10)
@@ -181,7 +189,7 @@ class PenPopup(Gtk.Dialog):
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
 
     #header
-    title = Gtk.Label(label = 'Pen Settings')
+    title = Gtk.Label(label=title)
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
@@ -209,4 +217,21 @@ class PenPopup(Gtk.Dialog):
     pass
 
 
-    
+
+
+class PenSettingsPopup(BaseSettingsPopoup):
+
+  def __init__(self, obj, parent):
+      super().__init__(obj, parent, "Pen Settings")
+
+
+class PointSettingsPopup(BaseSettingsPopoup):
+
+  def __init__(self, obj, parent):
+      super().__init__(obj, parent, "Point Settings")
+
+
+class ConnectionSettingsPopup(BaseSettingsPopoup):
+
+  def __init__(self, obj, parent):
+      super().__init__(obj, parent, "Connection Settings")
