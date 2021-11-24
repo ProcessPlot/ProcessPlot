@@ -2,8 +2,7 @@ import logging, os
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
-settings = Gtk.Settings.get_default()
-settings.set_property("gtk-application-prefer-dark-theme", False)
+
 from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
@@ -16,6 +15,15 @@ class MainWindow(Gtk.Window):
   __log = logging.getLogger('ProcessPlot.classes.ui')
   def __init__(self, app):
     self.app  = app
+    self.db_session = app.settings_db.session
+    self.db_model = app.settings_db.models['ui']
+    #settings
+    self.numCharts = 1
+    self.dark_mode = False
+    #settings
+    self.load_settings()
+    settings = Gtk.Settings.get_default()
+    settings.set_property("gtk-application-prefer-dark-theme", self.dark_mode)
     title = 'Process Plot'
     Gtk.Window.__init__(self, title=title)
     self.connect("delete-event", self.exit_app)
@@ -24,7 +32,6 @@ class MainWindow(Gtk.Window):
     self.set_border_width(10)
     self.set_decorated(False)
     self.maximize()
-    self.numCharts = 2
     cssProvider = Gtk.CssProvider()
     cssProvider.load_from_path(os.path.join(PUBLIC_DIR, 'css/style.css'))
     screen = Gdk.Screen.get_default()
@@ -50,6 +57,24 @@ class MainWindow(Gtk.Window):
     self.show_all()
     Gtk.main()
 
+  def load_settings(self):
+    Tbl = self.db_model
+    settings = self.db_session.query(Tbl).order_by(Tbl.id.asc()).first() # find the latest id
+    if settings:
+      self.dark_mode = settings.dark_mode
+      self.numCharts = settings.charts
+
+  def save_settings(self):
+    Tbl = self.db_model
+    settings = self.db_session.query(Tbl).order_by(Tbl.id.asc()).first() # find the latest id
+    if settings:
+      settings.dark_mode = self.dark_mode
+      settings.charts = self.numCharts
+    else:
+      self.db_session.add(Tbl(dark_mode=self.dark_mode, charts=self.numCharts))
+    self.db_session.commit()
+
+  
   def build_titlebar(self,*args):
 
     sc = self.titlebar.get_style_context()
@@ -82,10 +107,9 @@ class MainWindow(Gtk.Window):
     for x in selections:
         self.number_of_charts.append_text(x)
     try:
-      idx = selections.index(str(self.chart_panel.charts))
+      idx = selections.index(str(self.numCharts))
     except IndexError:
       idx = 0
-    self.numCharts = int(selections[idx])  #error checking from stored value
     self.number_of_charts.set_active(idx)
     self.titlebar.pack_start(self.number_of_charts,0,0,1)
 
@@ -105,11 +129,10 @@ class MainWindow(Gtk.Window):
     sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
 
-  def update_number_of_charts(self,*args):
-    if self.numCharts != int(self.number_of_charts.get_active_text()):
-      self.numCharts = int(self.number_of_charts.get_active_text())
-      self.chart_panel.charts = self.numCharts
-      self.chart_panel.build_charts()
+  def update_number_of_charts(self,chart_select):
+    self.chart_panel.charts = self.numCharts = int(chart_select.get_active_text())
+    self.chart_panel.build_charts()
+    self.save_settings()
 
   def build_chart(self,*args):
     self.chart_panel = ChartArea(self.app)
