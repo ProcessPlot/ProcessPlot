@@ -27,6 +27,7 @@ import re
 
 class LegendPopup(Gtk.Dialog):
 
+
   def __init__(self, parent):
     super().__init__(title="My Dialog", transient_for=parent, flags=0)
     #self.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK)
@@ -113,3 +114,9 @@ class LegendPopup(Gtk.Dialog):
     #self.page2 = Gtk.Box() 
     #self.page2.set_border_width(50) 
     #self.notebook.append_page(self.page2, Gtk.Label("Advanced"))
+
+
+
+
+
+    
