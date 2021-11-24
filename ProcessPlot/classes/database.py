@@ -18,6 +18,13 @@ class AppSettings(SettingsBase):
     __tablename__ = 'app_settings'
     id = Column(Integer, primary_key=True)
     last_save = Column(DateTime)
+    headless = Column(Boolean)
+    #other cols
+
+class UiSettings(SettingsBase):
+    __tablename__ = 'ui_settings'
+    id = Column(Integer, primary_key=True)
+    dark_mode = Column(Boolean)
     charts = Column(Integer)
     #other cols
 
@@ -65,6 +72,7 @@ class SettingsDb():
         engine = create_engine('sqlite:///'+ main_dir + "/settings/settings.db") #should create a .db file next to main.py
         self.models = {
             "app": AppSettings,
+            "ui": UiSettings,
             "chart_layout": ChartLayoutSettings,
             "chart": ChartSettings,
             "pen": PenSettings,
