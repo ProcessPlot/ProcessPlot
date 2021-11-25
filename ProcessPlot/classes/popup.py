@@ -204,8 +204,8 @@ class BaseSettingsPopoup(Gtk.Dialog):
     sc = self.pin_button.get_style_context()
     sc.add_class('exit-button')
     self.dialog_window.pack_start(self.title_bar,0,0,1)
-
     self.content_area.add(self.dialog_window )
+    self.build_base()
     self.show_all()
 
 
@@ -223,6 +223,11 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
   def __init__(self, obj, parent):
       super().__init__(obj, parent, "Pen Settings")
+
+  def build_base(self):
+    grid = Gtk.Grid()
+    self.content_area.add(grid)
+
 
 
 class PointSettingsPopup(BaseSettingsPopoup):

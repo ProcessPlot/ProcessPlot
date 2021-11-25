@@ -46,11 +46,7 @@ class MainWindow(Gtk.Window):
     self.window.pack_start(self.titlebar,0,0,1)
     self.window.pack_start(self.big_box,1,1,1)
     #building trend window 
-    self.trend_window = Gtk.EventBox()
-    self.trend_window.set_above_child(True)
-    sc = self.trend_window.get_style_context()
-    sc.add_class('dialog-border')
-    self.trend_window.connect("button_release_event",self.event_window_clicked)
+    
     #adding widgets
     self.build_chart()
     self.build_titlebar()
@@ -137,8 +133,7 @@ class MainWindow(Gtk.Window):
 
   def build_chart(self,*args):
     self.chart_panel = ChartArea(self.app)
-    self.trend_window.add(self.chart_panel)
-    self.big_box.pack_start(self.trend_window,1,1,1)
+    self.big_box.pack_start(self.chart_panel,1,1,1)
     self.big_box.show_all()
 
   def build_chart_ctrl(self):
@@ -188,6 +183,3 @@ class MainWindow(Gtk.Window):
 
   def exit_app(self, *args):
     Gtk.main_quit()
-
-  def event_window_clicked(self,*args):
-    self.__log.info(f'Event window clicked')
