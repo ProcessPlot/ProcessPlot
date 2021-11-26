@@ -22,17 +22,17 @@ SOFTWARE.
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-import logging, time
+import logging, os, time
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 from OpenGL.GL import *
 from OpenGL.GL import shaders
 from classes.pen import Pen
 import json
 
 __all__ = ['Chart']
-
+PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 
 FRAG_SHADER ='''#version 150
     in vec4 color;
@@ -170,6 +170,9 @@ class Chart(Gtk.GLArea):
     if self.is_running:
       self.end_time = time.time()
     return True
+  
+  def toggle_running(self, *args):
+    self.is_running = not self.is_running
 
 
 
@@ -191,7 +194,7 @@ class ChartEventBox(Gtk.EventBox):
   def do_button_release_event(self, *args):
     """testing event by setting bg to random color"""
     self.last_event = args
-    self.chart.is_running = not self.chart.is_running # toggle running
+    self.chart.toggle_running()
     #self.__log.info(f'Event window clicked: args: {args}')
     
 
@@ -224,6 +227,48 @@ class ChartDebugBox(Gtk.Fixed):
     return True
 
 
+class ChartControls(Gtk.Box):
+  """holds chart control buttons"""
+  __log = logging.getLogger("ProcessPlot.classes.Chart")
+  
+  def __init__(self, chart) -> None:
+      super().__init__(orientation=Gtk.Orientation.VERTICAL)
+      self.app = chart.app
+      self.chart = chart
+      settings_button = Gtk.Button(width_request = 30)
+      #settings_button.connect('clicked', )
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 20, -1, True)
+      image = Gtk.Image(pixbuf=p_buf)
+      settings_button.add(image)
+      sc = settings_button.get_style_context()
+      sc.add_class('ctrl-button')
+      play_button = Gtk.Button(width_request = 30)
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/play.png'), 30, -1, True)
+      image = Gtk.Image(pixbuf=p_buf)
+      play_button.add(image)
+      sc = play_button.get_style_context()
+      sc.add_class('ctrl-button')
+      play_button.connect('clicked', chart.toggle_running)
+
+
+
+
+
+
+      button_row = Gtk.Box()
+      for widget in [
+        (Gtk.Box(),1,1,1),
+        (settings_button,0,0,1),
+        (play_button,0,0,1),
+        (Gtk.Box(),1,1,1)]:
+        button_row.pack_start(*widget)
+      for widget_row in [
+        (Gtk.Box(),1,1,1),
+        (Gtk.Box(),1,1,1),
+        (Gtk.Box(),1,1,1),
+        (button_row,0,0,1),
+      ]:
+        self.pack_start(*widget_row)
 
 class ChartBox(Gtk.Overlay):
   """Use to put overlay and eventbox on the chart"""
@@ -234,6 +279,7 @@ class ChartBox(Gtk.Overlay):
     self.chart = Chart(self.app, chart_id)
     self.eventbox = ChartEventBox(self.chart)
     self.add(self.eventbox)
+    self.add_overlay(ChartControls(self.chart))
     # if debugging, add debug info to charts
     if logging.getLogger("ProcessPlot.classes.Chart").getEffectiveLevel() <= logging.DEBUG:
       debug = ChartDebugBox(self)
