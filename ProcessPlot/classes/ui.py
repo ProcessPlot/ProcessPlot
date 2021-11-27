@@ -8,7 +8,7 @@ from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
 from classes.chart import *
-from classes.popup import LegendPopup, SettingsPopup
+from classes.popup import PenSettingsPopup, ConnectionSettingsPopup, PointSettingsPopup
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 
@@ -40,13 +40,14 @@ class MainWindow(Gtk.Window):
     styleContext.add_provider_for_screen(screen, cssProvider,
                                         Gtk.STYLE_PROVIDER_PRIORITY_USER)
     self.window = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    self.settings_popout= Gtk.Box(orientation=Gtk.Orientation.VERTICAL, width_request = 0)
     self.big_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     self.titlebar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request = 20)
     self.add(self.window)
     self.window.pack_start(self.titlebar,0,0,1)
     self.window.pack_start(self.big_box,1,1,1)
+    self.big_box.pack_start(self.settings_popout,0,0,1)
     #building trend window 
-    
     #adding widgets
     self.build_chart()
     self.build_titlebar()
@@ -78,23 +79,13 @@ class MainWindow(Gtk.Window):
     sc.add_class('title-bar')
 
     self.pin_button = Gtk.Button(width_request = 20)
-    self.pin_button.connect('clicked',self.open_legend_popup)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/legend.png'), 20, -1, True)
+    self.pin_button.connect('clicked',self.build_settings_popout)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/settings.png'), 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.pin_button.add(image)
     self.titlebar.pack_start(self.pin_button,0,0,1)
     sc = self.pin_button.get_style_context()
     sc.add_class('ctrl-button')
-
-    self.settings_button = Gtk.Button(width_request = 20)
-    self.settings_button.connect('clicked',self.open_settings_popup)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    self.settings_button.add(image)
-    self.titlebar.pack_start(self.settings_button,0,0,1)
-    sc = self.settings_button.get_style_context()
-    sc.add_class('ctrl-button')
-
 
     selections = ["1","2","4","8","16"]
     self.number_of_charts = Gtk.ComboBoxText()
@@ -131,6 +122,86 @@ class MainWindow(Gtk.Window):
     self.chart_panel.build_charts()
     self.save_settings()
 
+  def build_settings_popout(self,*args):
+
+    self.settings_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.settings_title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+
+    self.popups = {
+      "pen": PenSettingsPopup,
+      "point": PointSettingsPopup,
+      "connection": ConnectionSettingsPopup,
+    }
+
+    #header
+    title = Gtk.Label(label = 'Settings')
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.settings_title_bar.pack_start(title,1,1,1)
+    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button.connect('clicked',self.remove_settings_popout)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/pin.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    self.settings_title_bar.pack_start(self.pin_button,0,0,1)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.settings_window.pack_start(self.settings_title_bar,0,0,1)
+
+    self.ctrl_button_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=30,width_request=300)
+
+    self.conn_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Connection.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.conn_button.add(image)
+    self.ctrl_button_bar.add(self.conn_button)
+    sc = self.conn_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.conn_button.connect('clicked',self.open_popup,"connection")
+
+    self.point_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.point_button.add(image)
+    self.ctrl_button_bar.add(self.point_button)
+    sc = self.point_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.point_button.connect('clicked',self.open_popup,"point")
+ 
+    self.pen_settings_button = Gtk.Button(width_request = 30)
+
+    self.pen_settings_button.connect('clicked',self.open_popup,"pen")
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Create.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pen_settings_button.add(image)
+    self.ctrl_button_bar.add(self.pen_settings_button)
+    sc = self.pen_settings_button.get_style_context()
+    sc.add_class('ctrl-button')
+
+    self.settings_window.pack_start(self.ctrl_button_bar,0,0,1)
+
+    #Settings Data
+
+    self.settings_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,width_request=300,height_request = 800)
+    scroll = Gtk.ScrolledWindow()
+    lbl = Gtk.Label(label = 'Settings')
+    self.settings_data = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.settings_data.pack_start(lbl,1,1,1)
+    scroll.add(self.settings_data)
+    self.settings_box.add(scroll)
+    self.settings_window.pack_start(self.settings_box,1,1,1)
+    
+    self.settings_popout.pack_start(self.settings_window,1,1,1)
+    self.big_box.show_all()
+  
+  def remove_settings_popout(self,*args):
+    wid = self.settings_popout.get_children()
+    for item in wid:
+      self.settings_popout.remove(item)
+    self.big_box.show_all()
+  
   def build_chart(self,*args):
     self.chart_panel = ChartArea(self.app)
     self.big_box.pack_start(self.chart_panel,1,1,1)
@@ -170,14 +241,9 @@ class MainWindow(Gtk.Window):
     sc.add_class('ctrl-button')
     
     self.big_box.pack_start(trend_control_panel,0,0,1)
-
-  def open_legend_popup(self, button):
-    popup = LegendPopup(self)
-    response = popup.run()
-    popup.destroy()
-
-  def open_settings_popup(self, button):
-    popup = SettingsPopup(self)
+ 
+  def open_popup(self, button,popup_key):
+    popup = self.popups[popup_key](self)
     response = popup.run()
     popup.destroy()
 
