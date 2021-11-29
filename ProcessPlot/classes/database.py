@@ -7,7 +7,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.sql.sqltypes import Numeric
 
 
-# see videosbelow for help:
+# see videos below for help:
 # https://www.youtube.com/watch?v=jaKMm9njcJc&list=PL4iRawDSyRvVd1V7A45YtAGzDk6ljVPm1
 
 

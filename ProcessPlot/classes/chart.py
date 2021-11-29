@@ -270,6 +270,7 @@ class ChartControls(Gtk.Box):
       ]:
         self.pack_start(*widget_row)
 
+
 class ChartBox(Gtk.Overlay):
   """Use to put overlay and eventbox on the chart"""
   __log = logging.getLogger("ProcessPlot.classes.Chart")
