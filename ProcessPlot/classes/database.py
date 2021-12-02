@@ -26,6 +26,9 @@ class UiSettings(SettingsBase):
     id = Column(Integer, primary_key=True)
     dark_mode = Column(Boolean)
     charts = Column(Integer)
+    headless = Column(Boolean)
+    screen_width = Column(Integer)
+    screen_height = Column(Integer)
     #other cols
 
 class ChartLayoutSettings(SettingsBase):

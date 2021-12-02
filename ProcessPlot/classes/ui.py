@@ -22,6 +22,9 @@ class MainWindow(Gtk.Window):
     #settings
     self.numCharts = 1
     self.dark_mode = False
+    self.headless_mode = False
+    self.screen_width = 1950
+    self.screen_height = 1050
     #settings
     self.application_settings = Gtk.Settings.get_default()
     self.application_settings.set_property("gtk-application-prefer-dark-theme", self.dark_mode)
@@ -60,10 +63,13 @@ class MainWindow(Gtk.Window):
 
   def load_settings(self):
     Tbl = self.db_model
-    settings = self.db_session.query(Tbl).order_by(Tbl.id.asc()).first() # load the last saved settomgs
+    settings = self.db_session.query(Tbl).order_by(Tbl.id.asc()).first() # load the last saved settings
     if settings:
       self.dark_mode = settings.dark_mode
       self.numCharts = settings.charts
+      self.headless_mode = settings.headless
+      self.screen_width = settings.screen_width
+      self.screen_height = settings.screen_height
 
   def update_settings(self):
     #this method is for updating settings after app has built
@@ -77,6 +83,7 @@ class MainWindow(Gtk.Window):
     if settings:
       settings.dark_mode = self.dark_mode
       settings.charts = self.numCharts
+      settings.headless = self.headless_mode
     else:
       self.db_session.add(Tbl(dark_mode=self.dark_mode, charts=self.numCharts))
     self.db_session.commit()
@@ -228,7 +235,6 @@ class MainWindow(Gtk.Window):
     sc = lbl.get_style_context()
     sc.add_class('settings-description')
     settings2.pack_start(lbl,1,1,1)
-    #t_button =Gtk.ToggleButton(width_request=40, height_request=40)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     wid =CheckBoxWidget(40,40,image,self.dark_mode)
@@ -236,6 +242,19 @@ class MainWindow(Gtk.Window):
     t_button.connect("toggled", self.get_dark_toggle)
     settings2.pack_start(t_button,0,0,1)
     self.settings_data.pack_start(settings2,0,0,1)
+
+    settings3 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,width_request=settings_popout_width)
+    lbl = Gtk.Label('Run App Headless')
+    sc = lbl.get_style_context()
+    sc.add_class('settings-description')
+    settings3.pack_start(lbl,1,1,1)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    wid =CheckBoxWidget(40,40,image,self.headless_mode)
+    t_button = wid.return_self()
+    #t_button.connect("toggled", self.get_dark_toggle)
+    settings3.pack_start(t_button,0,0,1)
+    self.settings_data.pack_start(settings3,0,0,1)
     
     self.settings_popout.pack_start(self.settings_window,1,1,1)
     self.big_box.show_all()
