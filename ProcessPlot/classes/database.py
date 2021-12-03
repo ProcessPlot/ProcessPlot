@@ -54,6 +54,10 @@ class PenSettings(SettingsBase):
     visible = Column(Boolean)
     color = Column(String) #rgb in json
     weight = Column(Numeric) # width
+    scale_lock = Column(Boolean)
+    scale_minimum = Column(Numeric)
+    scale_maximum = Column(Numeric)
+    scale_auto = Column(Boolean)
 
     #other cols
 

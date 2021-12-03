@@ -42,5 +42,4 @@ class CheckBoxWidget(object):
     return self.widget.get_active()
   
   def return_self(self):
-    print(self.widget)
     return self.widget
