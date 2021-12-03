@@ -26,6 +26,9 @@ class UiSettings(SettingsBase):
     id = Column(Integer, primary_key=True)
     dark_mode = Column(Boolean)
     charts = Column(Integer)
+    headless = Column(Boolean)
+    screen_width = Column(Integer)
+    screen_height = Column(Integer)
     #other cols
 
 class ChartLayoutSettings(SettingsBase):
@@ -51,6 +54,10 @@ class PenSettings(SettingsBase):
     visible = Column(Boolean)
     color = Column(String) #rgb in json
     weight = Column(Numeric) # width
+    scale_lock = Column(Boolean)
+    scale_minimum = Column(Numeric)
+    scale_maximum = Column(Numeric)
+    scale_auto = Column(Boolean)
 
     #other cols
 

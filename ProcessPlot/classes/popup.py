@@ -20,10 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import gi
+import gi, os
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import re
+PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 
 
 class BaseSettingsPopoup(Gtk.Dialog):
@@ -57,6 +58,10 @@ class BaseSettingsPopoup(Gtk.Dialog):
     sc = self.pin_button.get_style_context()
     sc.add_class('exit-button')
     self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
     self.content_area.add(self.dialog_window )
     self.build_base()
     self.show_all()
@@ -77,8 +82,28 @@ class PenSettingsPopup(BaseSettingsPopoup):
       super().__init__(parent, "Pen Settings")
 
   def build_base(self):
-    grid = Gtk.Grid()
-    self.content_area.add(grid)
+    self.pen_grid = Gtk.Grid(column_homogeneous=True,column_spacing=10,row_spacing=10)
+    self.content_area.add(self.pen_grid)
+    labels = ['Chart Number', 'Connection', 'Tag', 'Visible', 'Lock Scale', 'Color',
+          'Width', 'Scale Min', 'Scale Max', 'Auto Scale', 'Save'] # may want to create a table in the db for column names
+    for l_idx in range(len(labels)):
+        l = Gtk.Label(labels[l_idx])
+        sc = l.get_style_context()
+        sc.add_class('text-black-color')
+        sc.add_class('font-14')
+        sc.add_class('font-bold')
+        self.pen_grid.attach(l, l_idx, 0, 1, 1)
+    self.add_row('Add Data')
+
+  def add_row(self,data,*args):
+
+    self.pin_button = Gtk.Button(width_request = 20)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/settings.png'), 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.pen_grid.attach(self.pin_button,0,1,1,1)
 
 
 
