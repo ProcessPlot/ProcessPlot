@@ -10,15 +10,16 @@ class DataManager(object):
     self.db = app.data_db
     self.db_session = self.db.session
     self.values_orm = self.db.models["values"]
-    self.get_data("3cbb1b41-0b52-495b-83da-26232d692d81", start_time=1638149396.066287, end_time=1638151580.236583)
+    #self.get_data("3cbb1b41-0b52-495b-83da-26232d692d81", start_time=1638149396.066287, end_time=1638151580.236583)
+    #self.add_fake_data()
 
 
 
   def add_fake_data(self):
     """get some USGS river flow data"""
     USGS_url = "https://nwis.waterservices.usgs.gov/nwis/iv/?site=05398000&format=json,1.1"
-    start_tm = "&startDT=2020-11-01T00:00"
-    end_tm = "&endDT=2020-11-02T00:00"
+    start_tm = "&startDT=2021-11-02T00:00"
+    end_tm = "&endDT=2021-12-06T00:00"
     r = requests.get(f'{USGS_url}{start_tm}{end_tm}').json()
     samples = r["value"]["timeSeries"][0]["values"][0]["value"]
     data = []
@@ -32,7 +33,7 @@ class DataManager(object):
   def add_data(self, point_id, data=[]):
     """data comes in a list of tuples (time, val)"""
     for ts, val in data:
-      row = self.values_orm(point_id=point_id, timestamp=datetime.fromtimestamp(ts), value=val)
+      row = self.values_orm(point_id=point_id, timestamp=ts, value=val)
       self.db_session.add(row)
     self.db_session.commit()
 
@@ -41,14 +42,15 @@ class DataManager(object):
     tbl = self.values_orm
     samples = self.db_session.query(tbl)\
       .filter(tbl.point_id==point_id)\
-      .filter(tbl.timestamp > datetime.fromtimestamp(start_time))\
-      .filter(tbl.timestamp <= datetime.fromtimestamp(end_time))\
+      .filter(tbl.timestamp > start_time)\
+      .filter(tbl.timestamp <= end_time)\
       .order_by(tbl.timestamp)\
       .all()
     if samples:
       for sample in samples:
-        ret_vals.append((datetime.timestamp(sample.timestamp), float(sample.value)))
-    self.__log.debug(f"{ret_vals}")
+        ret_vals.append((float(sample.timestamp), float(sample.value)))
+    #self.__log.debug(f"{ret_vals}")
+    return ret_vals
 
 
 

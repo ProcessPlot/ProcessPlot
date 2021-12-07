@@ -77,14 +77,15 @@ class Chart(Gtk.GLArea):
     self.db_model = app.settings_db.models['chart']
     self.db_session = app.settings_db.session
     #settings
-    self.pens = {}
+    self.pens = {1: Pen(self, 1,point_id="3cbb1b41-0b52-495b-83da-26232d692d81")}
     self.is_running = True
     self.end_time = time.time()
-    self.span = 100.0
+    self.span = 200000.0
     self.bg_color = (0.1, 0.1, 0.1, 1.0)
     self.h_grids = 0
     self.v_grids = 0
     #settings
+    self.time_base_point = self.end_time # all OpenGL X vals (time) reference this point, move this on any buffer flushing (zoom, or big time move)
     self.load_settings()
     self.context_realized = False
     self.context = None
@@ -93,6 +94,7 @@ class Chart(Gtk.GLArea):
     self.connect("realize", self.on_realize)
     self.connect("render", self.on_render)
     GObject.timeout_add(100, self.trigger_render)
+    GObject.timeout_add(1000, self.get_data)
 
 
   def on_realize(self, area):
@@ -127,8 +129,6 @@ class Chart(Gtk.GLArea):
     # add fake pen for testing, this should be looked up in db
     self.pens["pen_id"] = Pen(self, "pen_id", point_id="data_point_id")
     
-
-  
   def save_settings(self):
     tbl = self.db_model
     entry = None
@@ -152,9 +152,6 @@ class Chart(Gtk.GLArea):
     self.db_session.commit()
     self.db_id = entry.id
     
-
-
-
   def init_vaos(self):
     self.vaos = glGenVertexArrays(1)
 
@@ -174,7 +171,12 @@ class Chart(Gtk.GLArea):
   def toggle_running(self, *args):
     self.is_running = not self.is_running
 
-
+  def get_data(self, *args):
+    if self.vaos:
+      for p in self.pens:
+        self.pens[p].get_data()
+    return True
+    
 
 
 

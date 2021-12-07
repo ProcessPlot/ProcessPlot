@@ -31,9 +31,35 @@ class Pen(object):
     super().__init__()
     self.chart = chart
     self.app = chart.app
+    self.data_manager = self.app.data_manager
     self.id = pen_id
     self.point_id = point_id
-    self.buffer = np.ndarray(shape=(2,0xFFFFF), dtype=float)
     self.color = (1.0,1.0,1.0,1.0)
     self.width = 1
+    self.initialize() 
     #self.__log.debug(f"Pen {self.id} created on chart {self.chart} for point {self.point_id}")
+  
+  def initialize(self):
+    """wipes all pen data and sets time pointer back to zero"""
+    self.buffer = np.ndarray(shape=(2,0xFFFFF), dtype=float)
+    self.time_ptr = 0.0
+
+
+  def get_data(self):
+    """
+    uses chart time and span to ask data_manager
+    for data and 
+    adds data to the pen buffer. Also moves time pointer fwd
+    """
+    end = self.chart.end_time + (0.5* self.chart.span)
+    start = max(self.time_ptr, end - (2* self.chart.span))
+    data = self.data_manager.get_data(self.point_id, start_time=start, end_time=end)
+    for sample in data:
+      #add to buffer
+      pass
+    if len(data):
+      self.time_ptr = data[-1][0]
+    print(data)
+
+
+

@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.sql.sqltypes import Numeric
+from sqlalchemy.sql.sqltypes import Float, Numeric
 
 
 # see videos below for help:
@@ -66,7 +66,7 @@ class Values(DataBase):
     __tablename__ = 'values'
     id = Column(Integer, primary_key=True)
     point_id = Column(Integer)
-    timestamp = Column(DateTime)
+    timestamp = Column(Numeric)
     value = Column(Numeric)
 
 
