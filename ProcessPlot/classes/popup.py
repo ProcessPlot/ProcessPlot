@@ -68,14 +68,16 @@ class BaseSettingsPopoup(Gtk.Dialog):
     self.build_base()
     self.show_all()
 
-
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
 
   def close_popup(self, button):
     self.destroy()
 
   def build_base(self):
     pass
-
 
 
 class PenSettingsPopup(BaseSettingsPopoup):
@@ -113,6 +115,8 @@ class PenSettingsPopup(BaseSettingsPopoup):
       idx = selections.index(str(db_chart_number))
     except IndexError:
       idx = 0
+    sc = chart_number.get_style_context()
+    sc.add_class('ctrl-combo')
     chart_number.set_active(idx)
     self.pen_grid.attach(chart_number,0,1,1,1)
 
@@ -128,6 +132,8 @@ class PenSettingsPopup(BaseSettingsPopoup):
       idx = selections.index(str(db_conn_select))
     except IndexError:
       idx = 0
+    sc = conn_select.get_style_context()
+    sc.add_class('ctrl-combo')
     conn_select.set_active(idx)
     self.pen_grid.attach(conn_select,1,1,1,1)
 
@@ -144,6 +150,8 @@ class PenSettingsPopup(BaseSettingsPopoup):
     except IndexError:
       idx = 0
     tag_select.set_active(idx)
+    sc = tag_select.get_style_context()
+    sc.add_class('ctrl-combo')
     self.pen_grid.attach(tag_select,2,1,1,1)
 
     #Display Status
@@ -153,23 +161,101 @@ class PenSettingsPopup(BaseSettingsPopoup):
     image = Gtk.Image(pixbuf=p_buf)
     wid =CheckBoxWidget(30,30,image,db_display_status)
     t_button = wid.return_self()
+    sc = t_button.get_style_context()
+    sc.add_class('check-box')
     #t_button.connect("toggled", self.get_dark_toggle)
     box.set_center_widget(t_button)
     #box.pack_start(t_button,0,0,0)
     self.pen_grid.attach(box,3,1,1,1)
 
     #color
-    color_button = Gtk.Button(width_request = 20)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/settings.png'), 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    color_button.add(image)
+    color="#0000FF" #this will get filled in by database value
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.parse(color)
+    rgbcolor.to_string()
+    color_button = Gtk.ColorButton(width_request = 20)
+    color_button.set_rgba (rgbcolor)
     sc = color_button.get_style_context()
     sc.add_class('ctrl-button')
-    color_button.connect('clicked',self.open_numpad,conn_select)
+    #color_button.connect('clicked',self.open_numpad,conn_select)
     self.pen_grid.attach(color_button,4,1,1,1)
+
+    #line width
+    db_line_width = '1' #this will get filled in by database value
+    line_width = Gtk.Button(width_request = 20)
+    lbl = Gtk.Label()
+    lbl.set_label(db_line_width)
+    self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
+    line_width.add(lbl)
+    sc = line_width.get_style_context()
+    sc.add_class('ctrl-button')
+    line_width.connect('clicked',self.open_numpad,lbl,{'min':0,'max':16,'type':int,'polarity':False})
+    self.pen_grid.attach(line_width,5,1,1,1)
+
+    #scale minimum
+    db_scale_minimum = '-32768' #this will get filled in by database value
+    scale_minimum = Gtk.Button(width_request = 20)
+    lbl = Gtk.Label()
+    lbl.set_label(db_scale_minimum)
+    self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
+    scale_minimum.add(lbl)
+    sc = scale_minimum.get_style_context()
+    sc.add_class('ctrl-button')
+    scale_minimum.connect('clicked',self.open_numpad,lbl,{'min':-32768,'max':32768,'type':float,'polarity':True})
+    self.pen_grid.attach(scale_minimum,6,1,1,1)
+
+    #scale maximum
+    db_scale_maximum = '32768' #this will get filled in by database value
+    scale_maximum = Gtk.Button(width_request = 20)
+    lbl = Gtk.Label()
+    lbl.set_label(db_scale_maximum)
+    self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
+    scale_maximum.add(lbl)
+    sc = scale_maximum.get_style_context()
+    sc.add_class('ctrl-button')
+    scale_maximum.connect('clicked',self.open_numpad,lbl,{'min':-32768,'max':32768,'type':float,'polarity':True})
+    self.pen_grid.attach(scale_maximum,7,1,1,1)
+
+    #Autoscale Status
+    db_autoscale_status = 1 #this will get filled in by database value
+    box= Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    wid =CheckBoxWidget(30,30,image,db_autoscale_status)
+    t_button = wid.return_self()
+    sc = t_button.get_style_context()
+    sc.add_class('check-box')
+    #t_button.connect("toggled", self.get_dark_toggle)
+    box.set_center_widget(t_button)
+    #box.pack_start(t_button,0,0,0)
+    self.pen_grid.attach(box,8,1,1,1)
+
+    #Lockscale Status
+    db_lockscale_status = 1 #this will get filled in by database value
+    box= Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    wid =CheckBoxWidget(30,30,image,db_lockscale_status)
+    t_button = wid.return_self()
+    sc = t_button.get_style_context()
+    sc.add_class('check-box')
+    #t_button.connect("toggled", self.get_dark_toggle)
+    box.set_center_widget(t_button)
+    #box.pack_start(t_button,0,0,0)
+    self.pen_grid.attach(box,9,1,1,1)
+
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    #self.pin_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.pen_grid.attach(self.save_button,10,1,1,1)
     
-  def open_numpad(self,widget_obj,*args):
-    numpad = ValueEnter(self)
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
     response = numpad.run()
     if response == Gtk.ResponseType.NO:
       pass
@@ -190,16 +276,19 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
   def __init__(self, parent):
       super().__init__(parent, "Connection Settings")
 
+
 class ValueEnter(Gtk.Dialog):
   #Need to add check for value exceeding min,max range based on type
-  def __init__(self, parent):
-    super().__init__(title='Enter Value', transient_for = parent,flags=0)  
+  def __init__(self, parent,obj,params):
+    super().__init__(transient_for = parent,flags=0) 
 
-    #self.widget = callback_widget
+    self.widget_obj = obj
     self.first_key_pressed = False #the user hasn't typed anything yet
-    self.lbl = "Enter Value"
-    self.min = 0
-    self.max = 16
+    self.lbl = "Numpad"
+    self.min = params['min']  #minimum value acceptable
+    self.max = params['max']  #maximum value acceptable
+    self.num_polarity = params['polarity']#whether value can be +/-
+    self.num_type = params['type']  #whether number is int or float
     self.set_default_size(600, 400)
     self.set_border_width(10)
     sc = self.get_style_context()
@@ -230,28 +319,29 @@ class ValueEnter(Gtk.Dialog):
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
-    self.dialog_window.pack_start(divider,0,0,1)
+    #self.dialog_window.pack_start(divider,0,0,1)
     self.content_area.add(self.dialog_window )
-    #self.build_base()
+    self.build_base()
     self.show_all()
 
-    grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True)
+  def build_base(self,*args):
+    grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
     pop_lbl = Gtk.Label("{}".format(self.lbl))
     self.add_style(pop_lbl,['borderless-num-display','font-14','text-black-color'])
     grid.attach(pop_lbl,0,0,2,1)
-    #c = self.get_content_area()
     self.dialog_window.pack_start(grid,1,1,1)
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
 
-
-    '''
     try:
-      value = float(self.widget.get_text())
+      if isinstance(self.widget_obj, Gtk.Label):
+        value = self.num_type(self.widget_obj.get_label())
+      if isinstance(self.widget_obj, Gtk.Entry):
+        value = self.num_type(self.widget_obj.get_text())
     except ValueError:
       value = 0
-    '''
-    value = 0
+
+    #value = 0
     self.val_label = Gtk.Label(str(value))
     self.add_style(self.val_label,['numpad-display','font-16'])
     grid.attach(self.val_label,2,0,1,1)
@@ -284,12 +374,14 @@ class ValueEnter(Gtk.Dialog):
     period_key = Gtk.Button(".", can_focus=False, can_default=False)
     period_key.connect("clicked", self.add_period)
     self.add_style(period_key,['numpad-bg','keypad_key'])
-    grid.attach(period_key,2,5,1,1)
+    if self.num_type == float:
+      grid.attach(period_key,2,5,1,1)
 
     PM_key = Gtk.Button("+/-")
     PM_key.connect("clicked", self.add_plus_minus)
     self.add_style(PM_key,['numpad-bg','keypad_key'])
-    grid.attach(PM_key,3,5,1,1)
+    if self.num_polarity:
+      grid.attach(PM_key,3,5,1,1)
     
     clear_key = Gtk.Button("CLEAR", can_focus=False, can_default=False)
     clear_key.connect("clicked", self.init_val)
@@ -401,8 +493,14 @@ class ValueEnter(Gtk.Dialog):
 
   def accept_val(self, key):
     self.cleanup()
-    #self.widget.set_value(self.val_label.get_text())
+    try:
+      if isinstance(self.widget_obj, Gtk.Label):
+        self.widget_obj.set_label((self.val_label.get_text()))
+      if isinstance(self.widget_obj, Gtk.Entry):
+        self.widget_obj.set_text(str(self.val_label.get_text()))
+    except ValueError:
+      pass
     self.destroy()
-    
+
   def close_popup(self, button):
     self.destroy()
