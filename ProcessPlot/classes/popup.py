@@ -86,7 +86,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
       super().__init__(parent, "Pen Settings")
 
   def build_base(self):
-    self.pen_grid = Gtk.Grid(column_homogeneous=True,column_spacing=10,row_spacing=10)
+    self.pen_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
     self.content_area.add(self.pen_grid)
     labels = ['Chart Number', 'Connection', 'Tag', 'Hide', 'Color',
           'Width', 'Scale Min', 'Scale Max', 'Auto Scale','Lock Scale','Save'] # may want to create a table in the db for column names
@@ -123,7 +123,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     #Connection Select
     db_conn_select = "Modbus" #this will get filled in by database value
     selections = ["Modbus"]
-    conn_select = Gtk.ComboBoxText(width_request = 20)
+    conn_select = Gtk.ComboBoxText(width_request = 300)
     conn_select.set_entry_text_column(0)
     #self.number_of_charts.connect("changed", self.get_number_of_charts)
     for x in selections:
@@ -140,7 +140,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     #Tag Select
     db_tag_select = "Field Current" #this will get filled in by database value
     selections = ["Field Current"]
-    tag_select = Gtk.ComboBoxText(width_request = 20)
+    tag_select = Gtk.ComboBoxText(hexpand = True)
     tag_select.set_entry_text_column(0)
     #self.number_of_charts.connect("changed", self.get_number_of_charts)
     for x in selections:
@@ -194,7 +194,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
     #scale minimum
     db_scale_minimum = '-32768' #this will get filled in by database value
-    scale_minimum = Gtk.Button(width_request = 20)
+    scale_minimum = Gtk.Button(width_request = 100)
     lbl = Gtk.Label()
     lbl.set_label(db_scale_minimum)
     self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
@@ -206,7 +206,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
     #scale maximum
     db_scale_maximum = '32768' #this will get filled in by database value
-    scale_maximum = Gtk.Button(width_request = 20)
+    scale_maximum = Gtk.Button(width_request = 100)
     lbl = Gtk.Label()
     lbl.set_label(db_scale_maximum)
     self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
