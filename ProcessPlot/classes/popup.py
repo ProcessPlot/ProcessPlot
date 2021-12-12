@@ -31,8 +31,9 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 
 class BaseSettingsPopoup(Gtk.Dialog):
 
-  def __init__(self, parent, title):
-    super().__init__(title=title, transient_for = parent,flags=0)  
+  def __init__(self, parent, title,app):
+    super().__init__(title=title, transient_for = parent,flags=0) 
+    self.app = app
     self.set_default_size(1500, 700)
     self.set_decorated(False)
     self.set_border_width(10)
@@ -82,10 +83,13 @@ class BaseSettingsPopoup(Gtk.Dialog):
 
 class PenSettingsPopup(BaseSettingsPopoup):
 
-  def __init__(self, parent):
-      super().__init__(parent, "Pen Settings")
+  def __init__(self, parent,app):
+    super().__init__(parent,"Pen Settings",app)
 
   def build_base(self):
+    self.db_session = self.app.settings_db.session
+    self.db_model = self.app.settings_db.models['pen']
+    Tbl = self.db_model
     self.pen_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
     self.content_area.add(self.pen_grid)
     labels = ['Chart Number', 'Connection', 'Tag', 'Hide', 'Color',
@@ -97,6 +101,21 @@ class PenSettingsPopup(BaseSettingsPopoup):
         sc.add_class('font-14')
         sc.add_class('font-bold')
         self.pen_grid.attach(l, l_idx, 0, 1, 1)
+    settings = self.db_session.query(Tbl).order_by(Tbl.id)
+    column_names = self.db_session.query(Tbl).first()
+    k2 = column_names.__table__.columns
+    params = {}
+    for i in k2:
+      key = str(i).split('.')[1]
+      params[key] = 1
+      for pen in settings:
+        #print(pen.connection_id)
+        params[key] = getattr(pen, key)
+
+##########################THis will not work with multiple rows read back
+
+ 
+    print(params)
     self.add_row('Add Data')
 
   def add_row(self,data,*args):
