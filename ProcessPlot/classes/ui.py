@@ -171,7 +171,7 @@ class MainWindow(Gtk.Window):
     self.ctrl_button_bar.add(self.conn_button)
     sc = self.conn_button.get_style_context()
     sc.add_class('ctrl-button')
-    self.conn_button.connect('clicked',self.open_popup,"connection")
+    self.conn_button.connect('clicked',self.open_popup,"connection",self.app)
 
     self.point_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Tag.png'), 30, -1, True)
@@ -180,11 +180,11 @@ class MainWindow(Gtk.Window):
     self.ctrl_button_bar.add(self.point_button)
     sc = self.point_button.get_style_context()
     sc.add_class('ctrl-button')
-    self.point_button.connect('clicked',self.open_popup,"point")
+    self.point_button.connect('clicked',self.open_popup,"point",self.app)
  
     self.pen_settings_button = Gtk.Button(width_request = 30)
 
-    self.pen_settings_button.connect('clicked',self.open_popup,"pen")
+    self.pen_settings_button.connect('clicked',self.open_popup,"pen",self.app)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Create.png'), 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.pen_settings_button.add(image)
@@ -315,8 +315,8 @@ class MainWindow(Gtk.Window):
     
     self.big_box.pack_start(trend_control_panel,0,0,1)
  
-  def open_popup(self, button,popup_key):
-    popup = self.popups[popup_key](self)
+  def open_popup(self, button,popup_key,app):
+    popup = self.popups[popup_key](self,app)
     response = popup.run()
     popup.destroy()
 
