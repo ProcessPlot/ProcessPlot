@@ -51,12 +51,15 @@ class ChartSettings(SettingsBase):
 class PenSettings(SettingsBase):
     __tablename__ = 'pen_settings'
     id = Column(Integer, primary_key=True)
+    chart_id = Column(Integer)
+    tag_id = Column(Integer)
+    connection_id = Column(Integer)
     visible = Column(Boolean)
     color = Column(String) #rgb in json
     weight = Column(Numeric) # width
-    scale_lock = Column(Boolean)
     scale_minimum = Column(Numeric)
     scale_maximum = Column(Numeric)
+    scale_lock = Column(Boolean)
     scale_auto = Column(Boolean)
 
     #other cols

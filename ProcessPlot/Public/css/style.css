@@ -10,6 +10,24 @@
   border-radius: 10px;
   transition: all 0.3s ease 0s;
 }
+.ctrl-combo {
+  padding: 5px;
+  text-decoration: none;
+  background-color: #555555;
+  border: 4px solid #24252A;
+  border-radius: 10px;
+  transition: all 0.3s ease 0s;
+}
+
+.check-box{
+  /*background-color: blue;  background of box color*/
+  padding: 5px;
+  text-decoration: none;
+  border: 4px solid #24252A;
+  border-radius: 10px;
+  transition: all 0.3s ease 0s;
+}
+
 .exit-button {
   padding: 5px;
   text-decoration: none;
