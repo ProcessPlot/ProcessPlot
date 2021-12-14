@@ -26,6 +26,7 @@ class CheckBoxWidget(object):
   def set_initial_val(self,i_val,*args):
     if i_val:
       self.widget.add(self.img_checked)
+      self.widget.set_active(True)
   
   def update_img(self,*args):
     temp = self.widget.get_children()

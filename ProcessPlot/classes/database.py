@@ -56,9 +56,9 @@ class PenSettings(SettingsBase):
     connection_id = Column(Integer)
     visible = Column(Boolean)
     color = Column(String) #rgb in json
-    weight = Column(Numeric) # width
-    scale_minimum = Column(Numeric)
-    scale_maximum = Column(Numeric)
+    weight = Column(String) # width
+    scale_minimum = Column(String)
+    scale_maximum = Column(String)
     scale_lock = Column(Boolean)
     scale_auto = Column(Boolean)
 
