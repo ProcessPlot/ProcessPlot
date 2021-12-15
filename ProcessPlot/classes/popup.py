@@ -116,6 +116,23 @@ class PenSettingsPopup(BaseSettingsPopoup):
       row = Pen_row(params,self.pen_grid,self.pen_row)
       params.clear()
       self.pen_row += 1
+    self.add_button_row()
+
+  def add_button_row(self,*args):
+    #new row button
+    but_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    lbl = Gtk.Label('Add New Tag')
+    self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
+    self.add_button = Gtk.Button(width_request = 100)
+    ##but.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    but_box.pack_start(lbl,1,1,1)
+    but_box.pack_start(image,0,0,0)
+    self.add_button.add(but_box)
+    sc = self.add_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.pen_grid.attach(self.add_button,2,self.pen_row+1,5,2)
 
 ################## Need to move Pen Row to widgets section
 #################  Need to get save working
@@ -128,11 +145,11 @@ class Pen_row(object):
     self.row_data = data
     self.pen_grid = pen_grid
     self.pen_row = row
-    self.build()
+    self.build_row()
     #Rows start at 1 because row 0 is titles
     #Grid : Left,Top,Width,Height
 
-  def build(self,*args):
+  def build_row(self,*args):
     #Chart Select
     db_chart_number = str(self.row_data['chart_id'])
     selections = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"]
