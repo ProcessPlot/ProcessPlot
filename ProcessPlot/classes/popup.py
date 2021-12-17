@@ -44,7 +44,21 @@ class BaseSettingsPopoup(Gtk.Dialog):
 
     self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.content_area.add(self.dialog_window)
 
+    self.build_header(title)
+    self.build_base()
+    self.show_all()
+
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
+  def close_popup(self, button):
+    self.destroy()
+
+  def build_header(self,title):
     #header
     title = Gtk.Label(label=title)
     sc = title.get_style_context()
@@ -65,17 +79,6 @@ class BaseSettingsPopoup(Gtk.Dialog):
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
-    self.content_area.add(self.dialog_window )
-    self.build_base()
-    self.show_all()
-
-  def add_style(self, item,style):
-    sc = item.get_style_context()
-    for sty in style:
-      sc.add_class(sty)
-
-  def close_popup(self, button):
-    self.destroy()
 
   def build_base(self):
     pass
@@ -86,18 +89,17 @@ class PenSettingsPopup(BaseSettingsPopoup):
   def __init__(self, parent,app):
     super().__init__(parent,"Pen Settings",app)
 
+
   def build_base(self):
     self.db_session = self.app.settings_db.session
     self.db_model = self.app.settings_db.models['pen']
     self.Tbl = self.db_model
     self.pen_settings = []
     self.pen_row = 1
+    header = self.db_session.query(self.Tbl).first()
+    self.pen_column_names = header.__table__.columns
     self.pen_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
     self.content_area.add(self.pen_grid)
-    self.add_pen_rows()
-    self.add_button_row()
-
-  def add_pen_rows(self,*args):
     #header
     labels = ['Chart Number', 'Connection', 'Tag', 'Hide', 'Color',
       'Width', 'Scale Min', 'Scale Max', 'Auto Scale','Lock Scale','Save'] # may want to create a table in the db for column names
@@ -108,13 +110,14 @@ class PenSettingsPopup(BaseSettingsPopoup):
         sc.add_class('font-14')
         sc.add_class('font-bold')
         self.pen_grid.attach(l, l_idx, 0, 1, 1)
+    self.add_pen_rows()
+
+  def add_pen_rows(self,*args):
     #pen row
     settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id)
-    header = self.db_session.query(self.Tbl).first()
-    c_name = header.__table__.columns
     params = {}
     column_names = []
-    for col in c_name:
+    for col in self.pen_column_names:
       column_names.append(str(col).split('.')[1])
     for pen in settings:
       for c in column_names:
@@ -123,12 +126,13 @@ class PenSettingsPopup(BaseSettingsPopoup):
       params.clear()
       self.pen_row += 1
       self.pen_settings.append(row)
+    self.add_button_row()
+    self.show_all()
 
   def remove_pen_rows(self,*args):
     rows = self.pen_grid.get_children()
     for items in rows:
       self.pen_grid.remove(items)
-
 
   def add_button_row(self,*args):
     #new row button
@@ -147,17 +151,31 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.add_button.connect('clicked',self.create_new_pen)
   
   def create_new_pen(self,*args):
-    self.pen_grid.remove(self.add_button)
-    self.pen_row -= 1
+    #self.pen_grid.remove(self.add_button)
+    #self.pen_row -= 1
     #create new pen
-    self.db_session.add(self.Tbl(chart_id = 1))
-    self.db_session.commit()
-    self.remove_pen_rows()
+    self.db_session.add(self.Tbl())
+    self.db_session.commit()    
+    self.insert_pen_row()
 
+  def insert_pen_row(self,*args):
+    self.pen_grid.insert_row(1)
+    last_pen = self.db_session.query(self.Tbl).order_by(self.Tbl.id.desc()).first()
+    params = {}
+    column_names = []
+    for col in self.pen_column_names:
+      column_names.append(str(col).split('.')[1])
+    #for pen in settings:
+    for c in column_names:
+      params[c] = getattr(last_pen, c)
+    row = Pen_row(params,self.pen_grid,1,self.app)
+    params.clear()
+    self.pen_row += 1
+    self.pen_settings.append(row)
+    self.show_all()
 ################## Need to move Pen Row to widgets section
 ################   Need to add a chart filter drop down 
 ################   Need to get tags and connections list from database to fill drop downs
-###############    Need an add pen row button
 
 class Pen_row(object):
   def __init__(self,data,pen_grid,row,app,*args):
