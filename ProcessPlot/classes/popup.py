@@ -88,6 +88,37 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
   def __init__(self, parent,app):
     super().__init__(parent,"Pen Settings",app)
+  
+  def build_header(self,title):
+    #header
+    self.add_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddPen.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.add_button.add(image)
+    sc = self.add_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.title_bar.pack_start(self.add_button,0,0,0)
+    self.add_button.connect('clicked',self.create_new_pen)
+
+    title = Gtk.Label(label=title)
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.title_bar.pack_start(title,1,1,1)
+    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    self.title_bar.pack_end(self.pin_button,0,0,1)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('exit-button')
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
 
 
   def build_base(self):
@@ -102,7 +133,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.content_area.add(self.pen_grid)
     #header
     labels = ['Chart Number', 'Connection', 'Tag', 'Hide', 'Color',
-      'Width', 'Scale Min', 'Scale Max', 'Auto Scale','Lock Scale','Save'] # may want to create a table in the db for column names
+      'Width', 'Scale Min', 'Scale Max', 'Auto Scale','Lock Scale','Save',''] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
         l = Gtk.Label(labels[l_idx])
         sc = l.get_style_context()
@@ -110,6 +141,22 @@ class PenSettingsPopup(BaseSettingsPopoup):
         sc.add_class('font-14')
         sc.add_class('font-bold')
         self.pen_grid.attach(l, l_idx, 0, 1, 1)
+    self.add_pen_rows()
+
+  def add_delete_button(self,pen_id,*args):
+    self.delete_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.delete_button.add(image)
+    sc = self.delete_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.pen_grid.attach(self.delete_button,11,self.pen_row,1,1)
+    self.delete_button.connect('clicked',self.delete_row,pen_id)
+  
+  def delete_row(self,button,row_id,*args):
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == row_id).delete()
+    self.db_session.commit()
+    self.remove_pen_rows()
     self.add_pen_rows()
 
   def add_pen_rows(self,*args):
@@ -123,37 +170,18 @@ class PenSettingsPopup(BaseSettingsPopoup):
       for c in column_names:
         params[c] = getattr(pen, c)
       row = Pen_row(params,self.pen_grid,self.pen_row,self.app)
+      self.add_delete_button(params['id'])
       params.clear()
       self.pen_row += 1
       self.pen_settings.append(row)
-    self.add_button_row()
     self.show_all()
 
   def remove_pen_rows(self,*args):
     rows = self.pen_grid.get_children()
     for items in rows:
       self.pen_grid.remove(items)
-
-  def add_button_row(self,*args):
-    #new row button
-    but_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-    lbl = Gtk.Label('Add New Tag')
-    self.add_style(lbl,['borderless-num-display','font-14','text-black-color'])
-    self.add_button = Gtk.Button(width_request = 100)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Create.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    but_box.pack_start(lbl,1,1,1)
-    but_box.pack_start(image,0,0,0)
-    self.add_button.add(but_box)
-    sc = self.add_button.get_style_context()
-    sc.add_class('ctrl-button')
-    self.pen_grid.attach(self.add_button,2,self.pen_row+1,5,2)
-    self.add_button.connect('clicked',self.create_new_pen)
   
   def create_new_pen(self,*args):
-    #self.pen_grid.remove(self.add_button)
-    #self.pen_row -= 1
-    #create new pen
     self.db_session.add(self.Tbl())
     self.db_session.commit()    
     self.insert_pen_row()
@@ -176,6 +204,8 @@ class PenSettingsPopup(BaseSettingsPopoup):
 ################## Need to move Pen Row to widgets section
 ################   Need to add a chart filter drop down 
 ################   Need to get tags and connections list from database to fill drop downs
+################  Figure out why adding row doesn't add a delete button
+################  Add confirm to delete button
 
 class Pen_row(object):
   def __init__(self,data,pen_grid,row,app,*args):
@@ -186,6 +216,7 @@ class Pen_row(object):
     self.row_data = data
     self.pen_grid = pen_grid
     self.pen_row = row
+    self.id = self.row_data['id']
     self.build_row()
     #Rows start at 1 because row 0 is titles
     #Grid : Left,Top,Width,Height
