@@ -52,8 +52,8 @@ class PenSettings(SettingsBase):
     __tablename__ = 'pen_settings'
     id = Column(Integer, primary_key=True)
     chart_id = Column(Integer,default=1)
-    tag_id = Column(Integer,default='Speed')
-    connection_id = Column(Integer,default='Modbus')
+    tag_id = Column(String,default='Speed')
+    connection_id = Column(String,default='Modbus')
     visible = Column(Boolean)
     color = Column(String) #rgb in json
     weight = Column(String) # width

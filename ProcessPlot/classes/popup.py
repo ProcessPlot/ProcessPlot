@@ -87,10 +87,28 @@ class BaseSettingsPopoup(Gtk.Dialog):
 class PenSettingsPopup(BaseSettingsPopoup):
 
   def __init__(self, parent,app):
+    self.chart_filter = 'All'
     super().__init__(parent,"Pen Settings",app)
   
   def build_header(self,title):
     #header
+    db_c_num = 'All'
+    selections = ['All',"Chart 1",'Chart 2','Chart 3',"Chart 4",'Chart 5','Chart 6',"Chart 7",'Chart 8','Chart 9',
+                  "Chart 10",'Chart 11','Chart 12',"Chart 13",'Chart 14','Chart 15','Chart 16']
+    self.c_num = Gtk.ComboBoxText()
+    self.c_num.set_entry_text_column(0)
+    for x in selections:
+        self.c_num.append_text(x)
+    try:
+      idx = selections.index(str(db_c_num))
+    except IndexError:
+      idx = 0
+    self.c_num.set_active(idx)
+    sc = self.c_num.get_style_context()
+    sc.add_class('ctrl-combo')
+    self.c_num.connect("changed", self.filter_disp_chart)
+    self.title_bar.pack_start(self.c_num,0,0,1)
+
     self.add_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddPen.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -100,7 +118,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.title_bar.pack_start(self.add_button,0,0,0)
     self.add_button.connect('clicked',self.create_new_pen)
 
-    title = Gtk.Label(label=title)
+    title = Gtk.Label(label=title,width_request = 1000)
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
@@ -120,6 +138,13 @@ class PenSettingsPopup(BaseSettingsPopoup):
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
 
+  def filter_disp_chart(self,chart_filter,*args):
+    temp = chart_filter.get_active_text()
+    val = temp.strip('Chart ')
+    self.chart_filter = val
+    self.remove_pen_rows()
+    self.add_column_names()
+    self.add_pen_rows(self.chart_filter)
 
   def build_base(self):
     self.db_session = self.app.settings_db.session
@@ -132,7 +157,11 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.pen_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
     self.content_area.add(self.pen_grid)
     #header
-    labels = ['Chart Number', 'Connection', 'Tag', 'Hide', 'Color',
+    self.add_column_names()
+    self.add_pen_rows(self.chart_filter)
+  
+  def add_column_names(self,*args):
+    labels = ['Chart','Connection', 'Tag', 'Hide', 'Color',
       'Width', 'Scale Min', 'Scale Max', 'Auto Scale','Lock Scale','Save',''] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
         l = Gtk.Label(labels[l_idx])
@@ -141,36 +170,44 @@ class PenSettingsPopup(BaseSettingsPopoup):
         sc.add_class('font-14')
         sc.add_class('font-bold')
         self.pen_grid.attach(l, l_idx, 0, 1, 1)
-    self.add_pen_rows()
 
-  def add_delete_button(self,pen_id,*args):
+  def add_delete_button(self,pen_id,row,*args):
     self.delete_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.delete_button.add(image)
     sc = self.delete_button.get_style_context()
     sc.add_class('ctrl-button')
-    self.pen_grid.attach(self.delete_button,11,self.pen_row,1,1)
+    self.pen_grid.attach(self.delete_button,11,row,1,1)
     self.delete_button.connect('clicked',self.delete_row,pen_id)
   
   def delete_row(self,button,row_id,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == row_id).delete()
     self.db_session.commit()
     self.remove_pen_rows()
-    self.add_pen_rows()
+    self.add_column_names()
+    self.add_pen_rows(self.chart_filter)
 
-  def add_pen_rows(self,*args):
+  def add_pen_rows(self,chart_filter,*args):
     #pen row
-    settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id)
+    if chart_filter == 'All':
+      settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id)
+    else:
+      settings = self.db_session.query(self.Tbl).filter(self.Tbl.chart_id == int(chart_filter)).order_by(self.Tbl.id) 
     params = {}
     column_names = []
     for col in self.pen_column_names:
       column_names.append(str(col).split('.')[1])
+    if len(settings.all()) == 0:
+      print('True')
+      self.pen_grid.set_column_homogeneous(True)
+    else:
+      self.pen_grid.set_column_homogeneous(False)      
     for pen in settings:
       for c in column_names:
         params[c] = getattr(pen, c)
       row = Pen_row(params,self.pen_grid,self.pen_row,self.app)
-      self.add_delete_button(params['id'])
+      self.add_delete_button(params['id'],self.pen_row)
       params.clear()
       self.pen_row += 1
       self.pen_settings.append(row)
@@ -182,11 +219,16 @@ class PenSettingsPopup(BaseSettingsPopoup):
       self.pen_grid.remove(items)
   
   def create_new_pen(self,*args):
-    self.db_session.add(self.Tbl())
+    if self.chart_filter == 'All':
+      c_id = 1
+    else:
+      c_id = int(self.chart_filter)
+    self.db_session.add(self.Tbl(chart_id = c_id))
     self.db_session.commit()    
     self.insert_pen_row()
 
   def insert_pen_row(self,*args):
+    self.pen_grid.set_column_homogeneous(False) 
     self.pen_grid.insert_row(1)
     last_pen = self.db_session.query(self.Tbl).order_by(self.Tbl.id.desc()).first()
     params = {}
@@ -197,14 +239,14 @@ class PenSettingsPopup(BaseSettingsPopoup):
     for c in column_names:
       params[c] = getattr(last_pen, c)
     row = Pen_row(params,self.pen_grid,1,self.app)
+    self.add_delete_button(params['id'],1)
     params.clear()
     self.pen_row += 1
     self.pen_settings.append(row)
     self.show_all()
 ################## Need to move Pen Row to widgets section
-################   Need to add a chart filter drop down 
+################   fix pen settings save
 ################   Need to get tags and connections list from database to fill drop downs
-################  Figure out why adding row doesn't add a delete button
 ################  Add confirm to delete button
 
 class Pen_row(object):
@@ -394,10 +436,9 @@ class Pen_row(object):
     self.add_style(self.save_button,['ctrl-button'])
   
   def save_settings(self,*args):
-
     settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id.asc()).first() # save the current settings
     if settings:
-      settings.chart_id = self.chart_number.get_active_text()
+      settings.chart_id = int(self.chart_number.get_active_text())
       settings.tag_id = self.tag_select.get_active_text()
       settings.connection_id = self.conn_select.get_active_text()
       settings.visible = int(self.display_status.get_active())
@@ -409,11 +450,12 @@ class Pen_row(object):
       blue = int(rgba_color.blue*255)
       hex_color =  '0x{r:02x}{g:02x}{b:02x}'.format(r=red,g=green,b=blue)
       
-      settings.color_button = hex_color
+      settings.color = hex_color
       settings.scale_minimum = self.scale_minimum.get_label()
       settings.scale_maximum = self.scale_maximum.get_label()
       settings.scale_lock = int(self.lockscale_status.get_active())
       settings.scale_auto = int(self.autoscale_status.get_active())
+
     self.db_session.commit()
     self.row_updated()
   

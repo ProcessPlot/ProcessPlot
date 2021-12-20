@@ -13,7 +13,7 @@ class CheckBoxWidget(object):
     self.width = width
     self.img_checked = image
     self.initial_val = initial_val
-    self.widget =Gtk.ToggleButton(width_request=self.width, height_request=self.height)
+    self.widget =Gtk.ToggleButton(width_request=self.width+15, height_request=self.height)
     self.build()
 
   def build(self):
