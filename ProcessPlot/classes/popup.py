@@ -179,9 +179,9 @@ class PenSettingsPopup(BaseSettingsPopoup):
     sc = self.delete_button.get_style_context()
     sc.add_class('ctrl-button')
     self.pen_grid.attach(self.delete_button,11,row,1,1)
-    self.delete_button.connect('clicked',self.delete_row,pen_id)
+    self.delete_button.connect('clicked',self.confirm,None,pen_id)
   
-  def delete_row(self,button,row_id,*args):
+  def delete_row(self,row_id,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == row_id).delete()
     self.db_session.commit()
     self.remove_pen_rows()
@@ -244,10 +244,22 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.pen_row += 1
     self.pen_settings.append(row)
     self.show_all()
+
+  def confirm(self, button,runnable, pen_id,msg="Are you sure you want to delete this pen?", args=[]):
+    popup = PopupConfirm(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      self.delete_row(pen_id)
+      if not runnable==None:
+        runnable(*args)
+      return True
+    else:
+      return False
+
+
 ################## Need to move Pen Row to widgets section
-################   fix pen settings save
 ################   Need to get tags and connections list from database to fill drop downs
-################  Add confirm to delete button
 
 class Pen_row(object):
   def __init__(self,data,pen_grid,row,app,*args):
@@ -436,7 +448,8 @@ class Pen_row(object):
     self.add_style(self.save_button,['ctrl-button'])
   
   def save_settings(self,*args):
-    settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id.asc()).first() # save the current settings
+    print(self.id,type(self.id),self.Tbl.id)
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == self.id).first()  # save the current settings
     if settings:
       settings.chart_id = int(self.chart_number.get_active_text())
       settings.tag_id = self.tag_select.get_active_text()
@@ -448,9 +461,9 @@ class Pen_row(object):
       red = int(rgba_color.red*255)
       green = int(rgba_color.green*255)
       blue = int(rgba_color.blue*255)
-      hex_color =  '0x{r:02x}{g:02x}{b:02x}'.format(r=red,g=green,b=blue)
-      
+      hex_color =  '#{r:02x}{g:02x}{b:02x}'.format(r=red,g=green,b=blue)
       settings.color = hex_color
+      
       settings.scale_minimum = self.scale_minimum.get_label()
       settings.scale_maximum = self.scale_maximum.get_label()
       settings.scale_lock = int(self.lockscale_status.get_active())
@@ -719,3 +732,39 @@ class ValueEnter(Gtk.Dialog):
 
   def close_popup(self, button):
     self.destroy()
+
+
+class PopupConfirm(Gtk.Dialog):
+  def __init__(self, parent, msg='Do you really want to do this?'):
+      Gtk.Dialog.__init__(self, "Confirm?", parent, Gtk.DialogFlags.MODAL,
+                          (Gtk.STOCK_YES, Gtk.ResponseType.YES,
+                            Gtk.STOCK_NO, Gtk.ResponseType.NO)
+                          )
+      self.set_default_size(300, 200)
+      self.set_border_width(10)
+      sc = self.get_style_context()
+      sc.add_class("dialog-border")
+      self.set_keep_above(True)
+      self.set_decorated(False)
+      box = Gtk.Box()
+      box.set_spacing(10)
+      box.set_orientation(Gtk.Orientation.VERTICAL)
+      c = self.get_content_area()
+      c.add(box)
+      box.pack_start(Gtk.Image(stock=Gtk.STOCK_DIALOG_WARNING), 0, 0, 0)
+      confirm_msg = Gtk.Label(msg + '\n\n')
+      sc = confirm_msg.get_style_context()
+      sc.add_class('borderless-num-display')
+      sc.add_class('text-black-color')
+      sc.add_class('font-20')
+      box.pack_start(confirm_msg, 0, 0, 0)
+      sep = Gtk.Label(height_request=3)
+      c.pack_start(sep,1,1,1)
+      self.show_all()
+      #Add style to dialog buttons
+      a = self.get_action_area()
+      b = a.get_children()
+      for but in b:
+        sc = but.get_style_context()
+        sc.add_class("dialog-buttons")
+        sc.add_class("font-16")
