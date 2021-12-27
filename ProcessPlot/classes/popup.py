@@ -171,7 +171,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
         sc.add_class('font-bold')
         self.pen_grid.attach(l, l_idx, 0, 1, 1)
 
-  def add_delete_button(self,pen_id,row,*args):
+  def create_delete_button(self,pen_id,row,*args):
     self.delete_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -199,7 +199,6 @@ class PenSettingsPopup(BaseSettingsPopoup):
     for col in self.pen_column_names:
       column_names.append(str(col).split('.')[1])
     if len(settings.all()) == 0:
-      print('True')
       self.pen_grid.set_column_homogeneous(True)
     else:
       self.pen_grid.set_column_homogeneous(False)      
@@ -207,7 +206,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
       for c in column_names:
         params[c] = getattr(pen, c)
       row = Pen_row(params,self.pen_grid,self.pen_row,self.app)
-      self.add_delete_button(params['id'],self.pen_row)
+      self.create_delete_button(params['id'],self.pen_row)
       params.clear()
       self.pen_row += 1
       self.pen_settings.append(row)
@@ -239,7 +238,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     for c in column_names:
       params[c] = getattr(last_pen, c)
     row = Pen_row(params,self.pen_grid,1,self.app)
-    self.add_delete_button(params['id'],1)
+    self.create_delete_button(params['id'],1)
     params.clear()
     self.pen_row += 1
     self.pen_settings.append(row)
@@ -264,9 +263,14 @@ class PenSettingsPopup(BaseSettingsPopoup):
 class Pen_row(object):
   def __init__(self,data,pen_grid,row,app,*args):
     self.app = app
-    self.db_session = self.app.settings_db.session
-    self.db_model = self.app.settings_db.models['pen']
-    self.Tbl = self.db_model
+    self.db_settings_session = self.app.settings_db.session
+    self.db_settings_model = self.app.settings_db.models['pen']
+    self.Pen_Settings_Tbl = self.db_settings_model
+
+    self.db_conn_session = self.app.connections_db.session
+    self.db_conn_model = self.app.connections_db.models['connections']
+    self.Connections_Tbl = self.db_conn_model
+
     self.row_data = data
     self.pen_grid = pen_grid
     self.pen_row = row
@@ -294,20 +298,29 @@ class Pen_row(object):
     self.chart_number.connect("changed", self.row_changed)
 
     #Connection Select
-    db_conn_select = str(self.row_data['connection_id'])
+    db_conn_id = int(self.row_data['connection_id'])
+    connections = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
+    params = {0:""}
+    for con in connections:
+        #params['id'] = con.id
+        #params['connection_type'] = con.connection_type
+        params[int(con.id)] = con.description
+
     selections = ["Modbus"]
     self.conn_select = Gtk.ComboBoxText(width_request = 300)
-    self.conn_select.set_entry_text_column(0)
-    #self.number_of_charts.connect("changed", self.get_number_of_charts)
-    for x in selections:
-        self.conn_select.append_text(x)
-    try:
-      idx = selections.index(str(db_conn_select))
-    except IndexError:
-      idx = 0
+    #self.conn_select.set_entry_text_column(0)
+    temp = ''
+    for key, val in params.items():
+      self.conn_select.append_text(val)
+      if db_conn_id == key:
+        temp = db_conn_id
+    if temp:
+      self.conn_select.set_active(temp)
+    else:
+      self.conn_select.set_active(0)
     sc = self.conn_select.get_style_context()
     sc.add_class('ctrl-combo')
-    self.conn_select.set_active(idx)
+
     self.pen_grid.attach(self.conn_select,1,self.pen_row,1,1)
     self.conn_select.connect("changed", self.row_changed)
 
@@ -448,8 +461,7 @@ class Pen_row(object):
     self.add_style(self.save_button,['ctrl-button'])
   
   def save_settings(self,*args):
-    print(self.id,type(self.id),self.Tbl.id)
-    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == self.id).first()  # save the current settings
+    settings = self.db_settings_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.id == self.id).first()  # save the current settings
     if settings:
       settings.chart_id = int(self.chart_number.get_active_text())
       settings.tag_id = self.tag_select.get_active_text()
@@ -469,7 +481,7 @@ class Pen_row(object):
       settings.scale_lock = int(self.lockscale_status.get_active())
       settings.scale_auto = int(self.autoscale_status.get_active())
 
-    self.db_session.commit()
+    self.db_settings_session.commit()
     self.row_updated()
   
   def add_style(self, item,style):
