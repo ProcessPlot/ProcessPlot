@@ -19,7 +19,7 @@ class DataManager(object):
     """get some USGS river flow data"""
     USGS_url = "https://nwis.waterservices.usgs.gov/nwis/iv/?site=05398000&format=json,1.1"
     start_tm = "&startDT=2021-11-02T00:00"
-    end_tm = "&endDT=2021-12-06T00:00"
+    end_tm = "&endDT=2021-12-08T00:00"
     r = requests.get(f'{USGS_url}{start_tm}{end_tm}').json()
     samples = r["value"]["timeSeries"][0]["values"][0]["value"]
     data = []

@@ -28,28 +28,14 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 from OpenGL.GL import *
 from OpenGL.GL import shaders
+from classes.shaders import BasicVertShader, BasicFragShader, PenVertShader
 from classes.pen import Pen
 import json
 
 __all__ = ['Chart']
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 
-FRAG_SHADER ='''#version 150
-    in vec4 color;
-    out vec4 fColor;
 
-    void main () {
-      fColor = color;
-    }'''
-
-VERT_SHADER='''#version  150
-in vec2 vert;
-in vec4 in_color;
-out vec4 color;
-void main () {
-  color = in_color;
-  gl_Position = vec4(vert, -.99f, 1.0f);
-}'''
 
 
 class Shaders(GObject.Object):
@@ -61,9 +47,11 @@ class Shaders(GObject.Object):
 
 
   def compile_shaders(self):
-    vert_shader = shaders.compileShader(VERT_SHADER, GL_VERTEX_SHADER)
-    frag_shader = shaders.compileShader(FRAG_SHADER, GL_FRAGMENT_SHADER)
+    vert_shader = shaders.compileShader(BasicVertShader, GL_VERTEX_SHADER)
+    frag_shader = shaders.compileShader(BasicFragShader, GL_FRAGMENT_SHADER)
     self.overlay_shader_prog = shaders.compileProgram(vert_shader, frag_shader)
+    pen_vert_shader = shaders.compileShader(PenVertShader, GL_VERTEX_SHADER)
+    self.pen_shader = shaders.compileProgram(pen_vert_shader, frag_shader)
     
 
 
@@ -80,12 +68,12 @@ class Chart(Gtk.GLArea):
     self.pens = {1: Pen(self, 1,point_id="3cbb1b41-0b52-495b-83da-26232d692d81")}
     self.is_running = True
     self.end_time = time.time()
-    self.span = 200000.0
+    self.span = 1000000.0
     self.bg_color = (0.1, 0.1, 0.1, 1.0)
     self.h_grids = 0
     self.v_grids = 0
     #settings
-    self.time_base_point = self.end_time # all OpenGL X vals (time) reference this point, move this on any buffer flushing (zoom, or big time move)
+    self.init_time_base()
     self.load_settings()
     self.context_realized = False
     self.context = None
@@ -96,6 +84,8 @@ class Chart(Gtk.GLArea):
     GObject.timeout_add(100, self.trigger_render)
     GObject.timeout_add(1000, self.get_data)
 
+  def init_time_base(self):
+    self.time_base_point = self.end_time - (0.5*self.span) # all OpenGL X vals (time) reference this point, move this on any buffer flushing (zoom, or big time move)
 
   def on_realize(self, area):
     self.context_realized = True
@@ -109,8 +99,8 @@ class Chart(Gtk.GLArea):
       self.context = ctx
       try:
         self.shaders = Shaders()
-      except RuntimeError:
-        print('OpenGL Error - Data logging only')
+      except RuntimeError as e:
+        self.__log.error(f'OpenGL Error - {e}')
         self.shaders = None
       if self.shaders:
         self.init_vaos()
@@ -160,6 +150,8 @@ class Chart(Gtk.GLArea):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    for p in self.pens:
+      self.pens[p].render()
     glFlush()
 
   def trigger_render(self, *args):
