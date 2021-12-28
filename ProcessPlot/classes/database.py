@@ -177,6 +177,52 @@ class ConnectionParamsGrbl(ConnectionsBase):
   status = Column(Integer) #what is this?
   port = Column(String, default='/dev/ttyACM0')
 
+class ConnectionParamsLocal(ConnectionsBase):
+  __tablename__= 'connection-params-local'
+  relationship('ConnectionTable', backref=backref('children', passive_deletes=True))
+  id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
+
+class TagTable(ConnectionsBase): # this table holds all tag values being subscribed to
+  __tablename__ = 'tags'
+  id = Column(String, primary_key=True)
+  connection_id = Column(String, ForeignKey(ConnectionTable.id))
+  description = Column(String)
+  datatype = Column(String)
+  value = Column(String) # used for retenitive tags
+
+class TagParamsLocal(ConnectionsBase):
+  __tablename__= 'tag-params-local'
+  relationship('TagTable', backref=backref('children', passive_deletes=True))
+  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  address = Column(String, nullable=False)
+
+class TagParamsEthernetIP(ConnectionsBase):
+  __tablename__= 'tag-params-ethernetIP'
+  relationship('TagTable', backref=backref('children', passive_deletes=True))
+  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  address = Column(String, nullable=False)
+
+class TagParamsModbus(ConnectionsBase):
+  __tablename__= 'tag-params-modbus'
+  relationship('TagTable', backref=backref('children', passive_deletes=True))
+  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  address = Column(Integer, nullable=False)
+  bit = Column(Integer, default=0)
+  word_swapped = Column(Boolean, default=False)
+  byte_swapped = Column(Boolean, default=False)
+
+class TagParamsOPC(ConnectionsBase):
+  __tablename__= 'tag-params-opc'
+  relationship('TagTable', backref=backref('children', passive_deletes=True))
+  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  node_id = Column(String, nullable=False)
+
+class TagParamsGrbl(ConnectionsBase):
+  __tablename__= 'tag-params-grbl'
+  relationship('TagTable', backref=backref('children', passive_deletes=True))
+  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  address = Column(String, nullable=False)
+
 class ConnectionsDb():
     __log = logging.getLogger("ProcessPlot.classes.database")
     def __init__(self) -> None:
@@ -191,6 +237,13 @@ class ConnectionsDb():
                 "connection-params-modbusTCP": ConnectionParamsModbusTCP,
                 "connection-params-opc": ConnectionParamsOPC,
                 "connection-params-grbl": ConnectionParamsGrbl,
+                "connection-params-local": ConnectionParamsLocal,
+                "tags": TagTable,
+                "tag-params-local":  TagParamsLocal,
+                "tag-params-ethernetIP":  TagParamsEthernetIP,
+                "tag-params-modbus": TagParamsModbus,
+                "tag-params-opc": TagParamsOPC,
+                "tag-params-grbl": TagParamsGrbl
         }
         Session = sessionmaker(bind=engine)
         self.session = Session()
