@@ -43,8 +43,20 @@ class BaseSettingsPopoup(Gtk.Dialog):
     self.content_area = self.get_content_area()
 
     self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
     self.content_area.add(self.dialog_window)
+    #add title bar
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    #add base
+    self.base_area = Gtk.Box(spacing = 10,orientation=Gtk.Orientation.VERTICAL,margin = 20)
+    self.scroll = Gtk.ScrolledWindow(width_request = 1400,height_request = 600)
+    self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+    self.scroll.add(self.base_area)
+    self.dialog_window.pack_start(self.scroll,1,1,1)
 
     self.build_header(title)
     self.build_base()
@@ -74,11 +86,7 @@ class BaseSettingsPopoup(Gtk.Dialog):
     self.title_bar.pack_end(self.pin_button,0,0,1)
     sc = self.pin_button.get_style_context()
     sc.add_class('exit-button')
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    self.dialog_window.pack_start(divider,0,0,1)
+
 
   def build_base(self):
     pass
@@ -133,19 +141,6 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.title_bar.pack_end(self.pin_button,0,0,1)
     sc = self.pin_button.get_style_context()
     sc.add_class('exit-button')
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    self.dialog_window.pack_start(divider,0,0,1)
-
-  def filter_disp_chart(self,chart_filter,*args):
-    temp = chart_filter.get_active_text()
-    val = temp.strip('Chart ')
-    self.chart_filter = val
-    self.remove_pen_rows()
-    self.add_column_names()
-    self.add_pen_rows(self.chart_filter)
 
   def build_base(self):
     self.db_session = self.app.settings_db.session
@@ -156,11 +151,21 @@ class PenSettingsPopup(BaseSettingsPopoup):
     header = self.db_session.query(self.Tbl).first()
     self.pen_column_names = header.__table__.columns
     self.pen_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
-    self.content_area.add(self.pen_grid)
+    #self.content_area.add(self.pen_grid)
+    self.base_area.add(self.pen_grid)
     #header
     self.add_column_names()
     self.add_pen_rows(self.chart_filter)
-  
+    self.show_all()
+
+  def filter_disp_chart(self,chart_filter,*args):
+    temp = chart_filter.get_active_text()
+    val = temp.strip('Chart ')
+    self.chart_filter = val
+    self.remove_pen_rows()
+    self.add_column_names()
+    self.add_pen_rows(self.chart_filter)
+
   def add_column_names(self,*args):
     labels = ['Chart','Enabled','Connection', 'Tag', 'Color',
       'Width', 'Scale Min', 'Scale Max', 'Auto Scale','Lock Scale','Save',''] # may want to create a table in the db for column names
@@ -257,13 +262,10 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
   def unsaved_changes(self,status,*args):
     self.unsaved_changes_present = status
-################## Need to move Pen Row to widgets section
-################   Need to get tags and connections list from database to fill drop downs
-################    How to notify pen popup that unsaved row changes
 
-  def close_popup(self, button):
+  def close_popup(self, button,msg="Abandon Pen Settings Changes?"):
     if self.unsaved_changes_present:
-      popup = PopupConfirm(self, msg="You have unsaved changes do you still want to close pen settings?")
+      popup = PopupConfirm(self, msg=msg)
       response = popup.run()
       popup.destroy()
       if response == Gtk.ResponseType.YES:
@@ -273,6 +275,9 @@ class PenSettingsPopup(BaseSettingsPopoup):
         return False
     else:
       self.destroy()
+
+################## Need to move Pen Row to widgets section
+################    Need to add OK button to popup and have it saveall
 
 class Pen_row(object):
   def __init__(self,data,pen_grid,row,app,parent,*args):
@@ -286,13 +291,27 @@ class Pen_row(object):
     self.db_conn_model = self.app.connections_db.models['connections']
     self.Connections_Tbl = self.db_conn_model
 
+    self.db_conn_session = self.app.connections_db.session
+    self.db_conn_model = self.app.connections_db.models['tags']
+    self.Tags_Tbl = self.db_conn_model
+
     self.row_data = data
     self.pen_grid = pen_grid
     self.pen_row = row
     self.id = self.row_data['id']
+    if self.row_data['connection_id'] == None:
+      self.db_conn_id = 0
+    else:
+      self.db_conn_id = self.row_data['connection_id']
+    if self.row_data['tag_id'] == None:
+      self.db_tag_id = 0
+    else:
+      self.db_tag_id = self.row_data['tag_id']
     self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
     self.connections_available = {}
+    self.tags_available = {}
     self.get_available_connections()
+    self.get_available_tags(self.db_conn_id)
     self.build_row()
     #Rows start at 1 because row 0 is titles
     #Grid : Left,Top,Width,Height
@@ -302,7 +321,6 @@ class Pen_row(object):
     db_chart_number = str(self.row_data['chart_id'])
     selections = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"]
     self.chart_number = Gtk.ComboBoxText(width_request = 20)
-    self.chart_number.set_entry_text_column(0)
     for x in selections:
         self.chart_number.append_text(x)
     try:
@@ -329,33 +347,30 @@ class Pen_row(object):
     self.display_status.connect("toggled", self.row_changed)
 
     #Connection Select
-    db_conn_id = int(self.row_data['connection_id'])
-    if db_conn_id in self.connections_available.keys():
-      params = self.connections_available[db_conn_id]
+    if self.db_conn_id in self.connections_available.keys():
+      params = self.connections_available[self.db_conn_id]
     else:
       params = self.connections_available[0]
     self.conn_select = Gtk.ComboBoxText(width_request = 300)
     for key, val in self.connections_available.items():
       self.conn_select.append_text(val['desc'])
-    self.conn_select.set_active(int(params['id']))
+    self.conn_select.set_active(int(params['count']))
     sc = self.conn_select.get_style_context()
     sc.add_class('ctrl-combo')
     self.pen_grid.attach(self.conn_select,2,self.pen_row,1,1)
     self.conn_select.connect("changed", self.row_changed)
+    self.conn_select.connect("changed",self.new_connection_selelcted)
 
 
     #Tag Select
-    db_tag_select = str(self.row_data['tag_id'])
-    selections = ["","Field Current",'Speed','Voltage']
+    if self.db_tag_id in self.tags_available.keys():
+      params = self.tags_available[self.db_tag_id]
+    else:
+      params = self.tags_available[0]
     self.tag_select = Gtk.ComboBoxText(hexpand = True)
-    #self.tag_select.set_entry_text_column(0)
-    for x in selections:
-        self.tag_select.append_text(x)
-    try:
-      idx = selections.index(str(db_tag_select))
-    except IndexError:
-      idx = 0
-    self.tag_select.set_active(idx)
+    for key, val in self.tags_available.items():
+      self.tag_select.append_text(val['desc'])
+    self.tag_select.set_active(int(params['count']))
     sc = self.tag_select.get_style_context()
     sc.add_class('ctrl-combo')
     self.pen_grid.attach(self.tag_select,3,self.pen_row,1,1)
@@ -466,18 +481,42 @@ class Pen_row(object):
   def row_updated(self,*args):
     self.add_style(self.save_button,['ctrl-button'])
     self.parent.unsaved_changes(False)
+
+  def new_connection_selelcted(self, *args):
+    pass
+    c_temp = self.conn_select.get_active_text()
+    id = 0
+    for key, val in self.connections_available.items():
+      if val['desc'] == c_temp:
+        id = int(val['id'])
+    self.db_conn_id = id
+    self.get_available_tags(self.db_conn_id)
+    self.tag_select.remove_all()
+    for key, val in self.tags_available.items():
+      self.tag_select.append_text(val['desc'])
+    self.tag_select.set_active(0)
   
   def save_settings(self,*args):
     settings = self.db_settings_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.id == self.id).first()  # save the current settings
     if settings:
       settings.chart_id = int(self.chart_number.get_active_text())
-      settings.tag_id = self.tag_select.get_active_text()
-      temp = self.conn_select.get_active_text()
-      id = 0
+
+      #search list to match tag name with id number
+      t_temp = self.tag_select.get_active_text()
+      t_id = 0
+      for key, val in self.tags_available.items():
+        if val['desc'] == t_temp:
+          t_id = int(val['id'])
+      settings.tag_id = t_id
+
+      #search list to match connection name with id number
+      c_temp = self.conn_select.get_active_text()
+      c_id = 0
       for key, val in self.connections_available.items():
-        if val['desc'] == temp:
-          id = int(val['id'])
-      settings.connection_id = id
+        if val['desc'] == c_temp:
+          c_id = int(val['id'])
+      settings.connection_id = c_id
+
       settings.visible = int(self.display_status.get_active())
       settings.weight = self.line_width.get_label()
       
@@ -507,14 +546,32 @@ class Pen_row(object):
 
   def get_available_connections(self,*args):
     connections = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
-    self.connections_available = {0:{'id':0,'type':0,'desc':""}}
+    self.connections_available = {0:{'id':0,'type':0,'desc':"","count":0}}
     d = {}
+    count = 1
     for con in connections:
         d['id'] = con.id
         d['type'] = con.connection_type
         d['desc'] = con.description
+        d['count'] = count
         self.connections_available[int(con.id)] = d
         d = {}
+        count += 1
+
+  def get_available_tags(self,c_id,*args):
+    tags = self.db_conn_session.query(self.Tags_Tbl).filter(self.Tags_Tbl.connection_id == int(c_id)).order_by(self.Tags_Tbl.id)
+    self.tags_available = {0:{'id':0,'type':0,'desc':"","count":0}}
+    d = {}
+    count = 1
+    for tag in tags:
+        d['id'] = tag.id
+        d['c_id'] = tag.connection_id
+        d['desc'] = tag.description
+        d['datatype'] = tag.datatype
+        d['count'] = count
+        self.tags_available[int(tag.id)] = d
+        d = {}
+        count += 1
         
 
 class PointSettingsPopup(BaseSettingsPopoup):

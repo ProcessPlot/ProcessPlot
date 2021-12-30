@@ -53,11 +53,11 @@ class PenSettings(SettingsBase):
     __tablename__ = 'pen_settings'
     id = Column(Integer, primary_key=True)
     chart_id = Column(Integer,default=1)
-    tag_id = Column(String,default='Speed')
-    connection_id = Column(Integer,default=1)
-    visible = Column(Boolean)
-    color = Column(String) #rgb in json
-    weight = Column(String) # width
+    tag_id = Column(Integer)
+    connection_id = Column(Integer)
+    visible = Column(Boolean,default=1)
+    color = Column(String, default = '#0000ff') #rgb in json
+    weight = Column(String, default='1') # width
     scale_minimum = Column(String,default='0')
     scale_maximum = Column(String,default='100')
     scale_lock = Column(Boolean,default=0)

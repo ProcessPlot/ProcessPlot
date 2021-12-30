@@ -15,14 +15,13 @@ class App(object):
     self.connections_db = ConnectionsDb()
     has_ui = True
     self.connection_type_enum ={
-      1: "HMI_Connection",
+      1: "Local",
       2: "ModbusTCP_Connection",
       3: "ModbusRTU_Connection",
       4: "EthernetIP_Connection",
       5: "ADS_Connection",
       6: "Grbl_Connection",
       7: "OPCUA_Connection",
-      8: "Local"
     }
     if has_ui:
       # build the UI and run the Gtk main loop
