@@ -76,6 +76,11 @@ class Chart(Gtk.GLArea):
     self.db_id = db_id # None means it's new and isn't to be looked up in the db, if saved, gets an id.
     self.db_model = app.settings_db.models['chart']
     self.db_session = app.settings_db.session
+
+    self.db_pen_session = app.settings_db.session
+    self.db_pen_model = app.settings_db.models['pen']
+    self.Pen_Settings_Tbl = self.db_pen_model
+
     #settings
     self.pens = {}
     self.is_running = True
@@ -86,6 +91,7 @@ class Chart(Gtk.GLArea):
     self.v_grids = 0
     #settings
     self.load_settings()
+    self.load_pen_settings()
     self.context_realized = False
     self.context = None
     self.shaders = None
@@ -116,6 +122,7 @@ class Chart(Gtk.GLArea):
       self.render()
   
   def load_settings(self):
+    #loading chart settings
     if not self.db_id:
       return
     tbl = self.db_model
@@ -124,10 +131,18 @@ class Chart(Gtk.GLArea):
       self.bg_color = json.loads(settings.bg_color) #rgb in json
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
-    # add fake pen for testing, this should be looked up in db
-    self.pens["pen_id"] = Pen(self, "pen_id", point_id="data_point_id")
     
-
+  def load_pen_settings(self):
+    ##### chart number ----- self.db_id
+    #loading pen settings
+    if not self.db_id:
+      return
+    #separate pen settings based on chart number
+    settings = self.db_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.chart_id == self.db_id).order_by(self.Pen_Settings_Tbl.id) # find one with this id
+    if settings:
+      #print(settings.color)
+      for params in settings:
+        self.pens[params.id] = Pen(self,params)
   
   def save_settings(self):
     tbl = self.db_model
