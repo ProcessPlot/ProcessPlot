@@ -144,6 +144,5 @@ class Pen(object):
       self._scale_maximum = self.params.scale_maximum
       self._scale_lock = self.params.scale_lock
       self._scale_auto = self.params.scale_auto
-      print('success')
     except:
-      print('fail')
+      pass

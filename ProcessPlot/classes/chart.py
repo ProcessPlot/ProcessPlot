@@ -140,7 +140,6 @@ class Chart(Gtk.GLArea):
     #separate pen settings based on chart number
     settings = self.db_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.chart_id == self.db_id).order_by(self.Pen_Settings_Tbl.id) # find one with this id
     if settings:
-      #print(settings.color)
       for params in settings:
         self.pens[params.id] = Pen(self,params)
   
@@ -292,6 +291,7 @@ class ChartBox(Gtk.Overlay):
     super().__init__()
     self.app = app
     self.chart = Chart(self.app, chart_id)
+    self.app.charts[chart_id] = self.chart  #As charts are created add reference to them up on APP
     self.eventbox = ChartEventBox(self.chart)
     self.add(self.eventbox)
     self.add_overlay(ChartControls(self.chart))
@@ -319,6 +319,7 @@ class ChartArea(Gtk.Box):
     self.save_settings()
 
   def build_charts(self):
+    self.app.charts = {} # When charts are rebuilt then clear dictionary holding reference
     for child in self.get_children():
       self.remove(child)
     if self.charts == 2:

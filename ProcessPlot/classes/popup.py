@@ -97,7 +97,11 @@ class PenSettingsPopup(BaseSettingsPopoup):
   def __init__(self, parent,app):
     self.chart_filter = 'All'
     self.unsaved_changes_present = False
+    self.pen_column_names = ['id', 'chart_id', 'tag_id', 'connection_id', 'visible', 
+                      'color', 'weight','scale_minimum','scale_maximum', 
+                      'scale_lock', 'scale_auto']
     super().__init__(parent,"Pen Settings",app)
+    self.app = app
   
   def build_header(self,title):
     #header
@@ -147,11 +151,10 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.db_model = self.app.settings_db.models['pen']
     self.Tbl = self.db_model
     self.pen_settings = []
-    self.pen_row = 1
-    header = self.db_session.query(self.Tbl).first()
-    self.pen_column_names = header.__table__.columns
+    self.pen_row_num = 1
+    #header = self.db_session.query(self.Tbl).first()
+    #self.pen_column_names = header.__table__.columns
     self.pen_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
-    #self.content_area.add(self.pen_grid)
     self.base_area.add(self.pen_grid)
     #header
     self.add_column_names()
@@ -201,20 +204,17 @@ class PenSettingsPopup(BaseSettingsPopoup):
     else:
       settings = self.db_session.query(self.Tbl).filter(self.Tbl.chart_id == int(chart_filter)).order_by(self.Tbl.id) 
     params = {}
-    column_names = []
-    for col in self.pen_column_names:
-      column_names.append(str(col).split('.')[1])
     if len(settings.all()) == 0:
       self.pen_grid.set_column_homogeneous(True)
     else:
       self.pen_grid.set_column_homogeneous(False)      
     for pen in settings:
-      for c in column_names:
+      for c in self.pen_column_names:
         params[c] = getattr(pen, c)
-      row = Pen_row(params,self.pen_grid,self.pen_row,self.app,self)
-      self.create_delete_button(params['id'],self.pen_row)
+      row = Pen_row(params,self.pen_grid,self.pen_row_num,self.app,self)
+      self.create_delete_button(params['id'],self.pen_row_num)
       params.clear()
-      self.pen_row += 1
+      self.pen_row_num += 1
       self.pen_settings.append(row)
     self.show_all()
 
@@ -237,16 +237,12 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.pen_grid.insert_row(1)
     last_pen = self.db_session.query(self.Tbl).order_by(self.Tbl.id.desc()).first()
     params = {}
-    column_names = []
-    for col in self.pen_column_names:
-      column_names.append(str(col).split('.')[1])
-    #for pen in settings:
-    for c in column_names:
+    for c in self.pen_column_names:
       params[c] = getattr(last_pen, c)
     row = Pen_row(params,self.pen_grid,1,self.app,self)
     self.create_delete_button(params['id'],1)
     params.clear()
-    self.pen_row += 1
+    self.pen_row_num += 1
     self.pen_settings.append(row)
     self.show_all()
 
@@ -278,9 +274,12 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
 ################## Need to move Pen Row to widgets section
 ################    Need to add OK button to popup and have it saveall
+################  Need to be able to add new pen to database and proper chart
+################ delete pen from chart and move to new chart
+################ save settings to database and pen object
 
 class Pen_row(object):
-  def __init__(self,data,pen_grid,row,app,parent,*args):
+  def __init__(self,params,pen_grid,row_num,app,parent,*args):
     self.app = app
     self.parent = parent
     self.db_settings_session = self.app.settings_db.session
@@ -295,18 +294,24 @@ class Pen_row(object):
     self.db_conn_model = self.app.connections_db.models['tags']
     self.Tags_Tbl = self.db_conn_model
 
-    self.row_data = data
+    self.params = params
+    try:
+      print(self.app.charts[params['chart_id']].pens[params['id']].color)
+    except:
+      print('Need to create new pen cause it doesnot exist in the chart')
+      ####  Add function to add pen to chart here
+      ####
     self.pen_grid = pen_grid
-    self.pen_row = row
-    self.id = self.row_data['id']
-    if self.row_data['connection_id'] == None:
+    self.pen_row_num = row_num
+    self.id = self.params['id']
+    if self.params['connection_id'] == None:
       self.db_conn_id = 0
     else:
-      self.db_conn_id = self.row_data['connection_id']
-    if self.row_data['tag_id'] == None:
+      self.db_conn_id = self.params['connection_id']
+    if self.params['tag_id'] == None:
       self.db_tag_id = 0
     else:
-      self.db_tag_id = self.row_data['tag_id']
+      self.db_tag_id = self.params['tag_id']
     self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
     self.connections_available = {}
     self.tags_available = {}
@@ -318,7 +323,7 @@ class Pen_row(object):
 
   def build_row(self,*args):
     #Chart Select
-    db_chart_number = str(self.row_data['chart_id'])
+    db_chart_number = str(self.params['chart_id'])
     selections = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"]
     self.chart_number = Gtk.ComboBoxText(width_request = 20)
     for x in selections:
@@ -330,11 +335,11 @@ class Pen_row(object):
     sc = self.chart_number.get_style_context()
     sc.add_class('ctrl-combo')
     self.chart_number.set_active(idx)
-    self.pen_grid.attach(self.chart_number,0,self.pen_row,1,1)
+    self.pen_grid.attach(self.chart_number,0,self.pen_row_num,1,1)
     self.chart_number.connect("changed", self.row_changed)
 
     #Display Status
-    db_display_status = bool(self.row_data['visible'])
+    db_display_status = bool(self.params['visible'])
     box= Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -343,7 +348,7 @@ class Pen_row(object):
     sc = self.display_status.get_style_context()
     sc.add_class('check-box')
     box.set_center_widget(self.display_status)
-    self.pen_grid.attach(box,1,self.pen_row,1,1)
+    self.pen_grid.attach(box,1,self.pen_row_num,1,1)
     self.display_status.connect("toggled", self.row_changed)
 
     #Connection Select
@@ -357,7 +362,7 @@ class Pen_row(object):
     self.conn_select.set_active(int(params['count']))
     sc = self.conn_select.get_style_context()
     sc.add_class('ctrl-combo')
-    self.pen_grid.attach(self.conn_select,2,self.pen_row,1,1)
+    self.pen_grid.attach(self.conn_select,2,self.pen_row_num,1,1)
     self.conn_select.connect("changed", self.row_changed)
     self.conn_select.connect("changed",self.new_connection_selelcted)
 
@@ -373,11 +378,11 @@ class Pen_row(object):
     self.tag_select.set_active(int(params['count']))
     sc = self.tag_select.get_style_context()
     sc.add_class('ctrl-combo')
-    self.pen_grid.attach(self.tag_select,3,self.pen_row,1,1)
+    self.pen_grid.attach(self.tag_select,3,self.pen_row_num,1,1)
     self.tag_select.connect("changed", self.row_changed)
 
     #color
-    db_color = str(self.row_data['color']) #example:#0000FF
+    db_color = str(self.params['color']) #example:#0000FF
     rgbcolor = Gdk.RGBA()
     rgbcolor.parse(db_color)
     rgbcolor.to_string()
@@ -385,11 +390,11 @@ class Pen_row(object):
     self.color_button.set_rgba (rgbcolor)
     sc = self.color_button.get_style_context()
     sc.add_class('ctrl-button')
-    self.pen_grid.attach(self.color_button,4,self.pen_row,1,1)
+    self.pen_grid.attach(self.color_button,4,self.pen_row_num,1,1)
     self.color_button.connect('color-set',self.row_changed)
 
     #line width
-    db_line_width = str(self.row_data['weight']) 
+    db_line_width = str(self.params['weight']) 
     but = Gtk.Button(width_request = 20)
     self.line_width = Gtk.Label()
     self.line_width.set_label(db_line_width)
@@ -398,11 +403,11 @@ class Pen_row(object):
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
     but.connect('clicked',self.open_numpad,self.line_width,{'min':0,'max':16,'type':int,'polarity':False})
-    self.pen_grid.attach(but,5,self.pen_row,1,1)
+    self.pen_grid.attach(but,5,self.pen_row_num,1,1)
     but.connect('clicked',self.row_changed)
 
     #scale minimum
-    db_scale_minimum = str(self.row_data['scale_minimum']) 
+    db_scale_minimum = str(self.params['scale_minimum']) 
     but = Gtk.Button(width_request = 100)
     self.scale_minimum = Gtk.Label()
     self.scale_minimum.set_label(db_scale_minimum)
@@ -411,12 +416,12 @@ class Pen_row(object):
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
     but.connect('clicked',self.open_numpad,self.scale_minimum,{'min':-32768,'max':32768,'type':float,'polarity':True})
-    self.pen_grid.attach(but,6,self.pen_row,1,1)
+    self.pen_grid.attach(but,6,self.pen_row_num,1,1)
     but.connect('clicked',self.row_changed)
 
 
     #scale maximum
-    db_scale_maximum = str(self.row_data['scale_maximum']) 
+    db_scale_maximum = str(self.params['scale_maximum']) 
     but = Gtk.Button(width_request = 100)
     self.scale_maximum = Gtk.Label()
     self.scale_maximum.set_label(db_scale_maximum)
@@ -425,11 +430,11 @@ class Pen_row(object):
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
     but.connect('clicked',self.open_numpad,self.scale_maximum,{'min':-32768,'max':32768,'type':float,'polarity':True})
-    self.pen_grid.attach(but,7,self.pen_row,1,1)
+    self.pen_grid.attach(but,7,self.pen_row_num,1,1)
     but.connect('clicked',self.row_changed)
 
     #Autoscale Status
-    db_autoscale_status = bool(self.row_data['scale_auto'])
+    db_autoscale_status = bool(self.params['scale_auto'])
     box= Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -438,11 +443,11 @@ class Pen_row(object):
     sc = self.autoscale_status.get_style_context()
     sc.add_class('check-box')
     box.set_center_widget(self.autoscale_status)
-    self.pen_grid.attach(box,8,self.pen_row,1,1)
+    self.pen_grid.attach(box,8,self.pen_row_num,1,1)
     self.autoscale_status.connect("toggled", self.row_changed)
 
     #Lockscale Status
-    db_lockscale_status = bool(self.row_data['scale_lock'])
+    db_lockscale_status = bool(self.params['scale_lock'])
     box= Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -451,7 +456,7 @@ class Pen_row(object):
     sc = self.lockscale_status.get_style_context()
     sc.add_class('check-box')
     box.set_center_widget(self.lockscale_status)
-    self.pen_grid.attach(box,9,self.pen_row,1,1)
+    self.pen_grid.attach(box,9,self.pen_row_num,1,1)
     self.lockscale_status.connect("toggled", self.row_changed)
 
     #Save Button
@@ -461,7 +466,7 @@ class Pen_row(object):
     self.save_button.add(image)
     sc = self.save_button.get_style_context()
     sc.add_class('ctrl-button')
-    self.pen_grid.attach(self.save_button,10,self.pen_row,1,1)
+    self.pen_grid.attach(self.save_button,10,self.pen_row_num,1,1)
     self.save_button.connect('clicked',self.save_settings)
     
   def open_numpad(self,button,widget_obj,params,*args):
