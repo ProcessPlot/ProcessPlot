@@ -240,7 +240,6 @@ class ChartDebugBox(Gtk.Fixed):
     self.labels["last_event"].set_property("label", f"Last Event: {self.eventbox.last_event}")
     return True
 
-
 class ChartControls(Gtk.Box):
   """holds chart control buttons"""
   __log = logging.getLogger("ProcessPlot.classes.Chart")
@@ -300,7 +299,6 @@ class ChartBox(Gtk.Overlay):
       debug = ChartDebugBox(self)
       self.add_overlay(debug)
       self.set_overlay_pass_through(debug, True) # allow inputs to pass through this widget
-
 
 class ChartArea(Gtk.Box):
   __log = logging.getLogger("ProcessPlot.classes.ChartArea")

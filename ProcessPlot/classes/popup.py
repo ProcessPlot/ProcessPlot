@@ -21,6 +21,8 @@ SOFTWARE.
 """
 
 import gi, os
+
+from numpy import maximum
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import re
@@ -277,6 +279,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
 ################  Need to be able to add new pen to database and proper chart
 ################ delete pen from chart and move to new chart
 ################ save settings to database and pen object
+################  Need to create all chart objects even only displaying 1
 
 class Pen_row(object):
   def __init__(self,params,pen_grid,row_num,app,parent,*args):
@@ -295,15 +298,10 @@ class Pen_row(object):
     self.Tags_Tbl = self.db_conn_model
 
     self.params = params
-    try:
-      print(self.app.charts[params['chart_id']].pens[params['id']].color)
-    except:
-      print('Need to create new pen cause it doesnot exist in the chart')
-      ####  Add function to add pen to chart here
-      ####
     self.pen_grid = pen_grid
     self.pen_row_num = row_num
     self.id = self.params['id']
+    self.chart_id = self.params['chart_id']
     if self.params['connection_id'] == None:
       self.db_conn_id = 0
     else:
@@ -501,10 +499,14 @@ class Pen_row(object):
       self.tag_select.append_text(val['desc'])
     self.tag_select.set_active(0)
   
-  def save_settings(self,*args):
+  def save_settings(self,button,*args):
+    p_settings = {}
+    p_settings['id'] = self.id
     settings = self.db_settings_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.id == self.id).first()  # save the current settings
     if settings:
-      settings.chart_id = int(self.chart_number.get_active_text())
+      chart_id= int(self.chart_number.get_active_text())
+      settings.chart_id = chart_id
+      p_settings['chart_id'] = chart_id
 
       #search list to match tag name with id number
       t_temp = self.tag_select.get_active_text()
@@ -513,6 +515,7 @@ class Pen_row(object):
         if val['desc'] == t_temp:
           t_id = int(val['id'])
       settings.tag_id = t_id
+      p_settings['tag_id'] = t_id
 
       #search list to match connection name with id number
       c_temp = self.conn_select.get_active_text()
@@ -521,24 +524,74 @@ class Pen_row(object):
         if val['desc'] == c_temp:
           c_id = int(val['id'])
       settings.connection_id = c_id
+      p_settings['connection_id'] = c_id
 
-      settings.visible = int(self.display_status.get_active())
-      settings.weight = self.line_width.get_label()
-      
+      visible = int(self.display_status.get_active())
+      settings.visible = visible
+      p_settings['visible'] = visible
+
+      weight = self.line_width.get_label()
+      settings.weight = weight
+      p_settings['weight'] = weight
+
       rgba_color = self.color_button.get_rgba()
       red = int(rgba_color.red*255)
       green = int(rgba_color.green*255)
       blue = int(rgba_color.blue*255)
       hex_color =  '#{r:02x}{g:02x}{b:02x}'.format(r=red,g=green,b=blue)
       settings.color = hex_color
+      p_settings['color'] = hex_color
       
-      settings.scale_minimum = self.scale_minimum.get_label()
-      settings.scale_maximum = self.scale_maximum.get_label()
-      settings.scale_lock = int(self.lockscale_status.get_active())
-      settings.scale_auto = int(self.autoscale_status.get_active())
+      minimum = self.scale_minimum.get_label()
+      settings.scale_minimum = minimum
+      p_settings['scale_minimum'] = minimum
+
+      maximum = self.scale_maximum.get_label()
+      settings.scale_maximum = maximum
+      p_settings['scale_maximum'] = maximum
+
+      lock = int(self.lockscale_status.get_active())
+      settings.scale_lock = lock
+      p_settings['scale_lock'] = lock
+
+      auto = int(self.autoscale_status.get_active())
+      settings.scale_auto = auto
+      p_settings['scale_auto'] = auto
+
 
     self.db_settings_session.commit()
     self.row_updated()
+    self.update_pen_object(p_settings)
+
+  def update_pen_object(self,p_settings,*args):
+    #try:
+
+    self.app.charts[self.chart_id].pens[self.id]._chart_id = p_settings['chart_id']
+    self.app.charts[self.chart_id].pens[self.id]._tag_id = p_settings['tag_id']
+    self.app.charts[self.chart_id].pens[self.id]._connection_id = p_settings['connection_id']
+    self.app.charts[self.chart_id].pens[self.id]._visible = p_settings['visible']
+    self.app.charts[self.chart_id].pens[self.id]._weight = p_settings['weight']
+    self.app.charts[self.chart_id].pens[self.id]._color = p_settings['color']
+    self.app.charts[self.chart_id].pens[self.id]._scale_minimum = p_settings['scale_minimum']
+    self.app.charts[self.chart_id].pens[self.id]._scale_maximum = p_settings['scale_maximum']
+    self.app.charts[self.chart_id].pens[self.id]._scale_lock = p_settings['scale_lock']
+    self.app.charts[self.chart_id].pens[self.id]._scale_auto = p_settings['scale_auto']
+    p_obj = self.app.charts[self.chart_id].pens[self.id]
+    print(p_obj)
+    print(self.app.charts[self.chart_id].pens)
+    print(self.app.charts[p_settings['chart_id']].pens)
+
+    if p_settings['chart_id'] != self.chart_id:
+      pass
+      #chart ID was changed so need to move pen object into other chart object
+      self.app.charts[p_settings['chart_id']].pens[self.id] = p_obj
+      del self.app.charts[self.chart_id].pens[self.id]
+      print(self.app.charts[self.chart_id].pens)
+      print(self.app.charts[p_settings['chart_id']].pens)
+    #except:
+      #print('Need to create new pen cause it doesnot exist in the chart')
+      ####  Add function to add pen to chart here
+      ####
   
   def add_style(self, item,style):
     sc = item.get_style_context()
