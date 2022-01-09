@@ -15,6 +15,7 @@ class App(object):
     self.connections_db = ConnectionsDb()
     has_ui = True
     self.charts = {}
+    self.charts_number = 0
     self.connection_type_enum ={
       1: "Local",
       2: "ModbusTCP_Connection",

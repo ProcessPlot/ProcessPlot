@@ -46,22 +46,30 @@ class BaseSettingsPopoup(Gtk.Dialog):
 
     self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
-    #add title bar
+    ### -title bar- ####
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
     self.dialog_window.pack_start(self.title_bar,0,0,1)
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
-    #add base
+    ### -content area- ####
     self.base_area = Gtk.Box(spacing = 10,orientation=Gtk.Orientation.VERTICAL,margin = 20)
     self.scroll = Gtk.ScrolledWindow(width_request = 1400,height_request = 600)
     self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     self.scroll.add(self.base_area)
     self.dialog_window.pack_start(self.scroll,1,1,1)
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
 
     self.build_header(title)
     self.build_base()
+    self.build_footer()
     self.show_all()
 
   def add_style(self, item,style):
@@ -89,8 +97,10 @@ class BaseSettingsPopoup(Gtk.Dialog):
     sc = self.pin_button.get_style_context()
     sc.add_class('exit-button')
 
-
   def build_base(self):
+    pass
+
+  def build_footer(self):
     pass
 
 
@@ -139,6 +149,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     sc.add_class('font-18')
     sc.add_class('font-bold')
     self.title_bar.pack_start(title,1,1,1)
+
     self.pin_button = Gtk.Button(width_request = 20)
     self.pin_button.connect('clicked',self.close_popup)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
@@ -162,6 +173,24 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.add_column_names()
     self.add_pen_rows(self.chart_filter)
     self.show_all()
+  
+  def build_footer(self):
+    self.ok_button = Gtk.Button(width_request = 100)
+    self.ok_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-14')
+    sc.add_class('font-bold')
+    box.pack_start(lbl,1,1,1)
+    box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button')
+    ###########create function to save all unsaved rows, need to make a list of all of the unsaved rows
 
   def filter_disp_chart(self,chart_filter,*args):
     temp = chart_filter.get_active_text()
@@ -193,11 +222,13 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.delete_button.connect('clicked',self.confirm,pen_id)
   
   def delete_row(self,row_id,*args):
-    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == row_id).delete()
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == row_id).first()
+    self.db_session.query(self.Tbl).filter(self.Tbl.id == row_id).delete()
     self.db_session.commit()
     self.remove_pen_rows()
     self.add_column_names()
     self.add_pen_rows(self.chart_filter)
+    self.delete_pen_object(row_id,settings.chart_id)
 
   def add_pen_rows(self,chart_filter,*args):
     #pen row
@@ -230,9 +261,18 @@ class PenSettingsPopup(BaseSettingsPopoup):
       c_id = 1
     else:
       c_id = int(self.chart_filter)
-    self.db_session.add(self.Tbl(chart_id = c_id))
+    new = self.Tbl(chart_id = c_id)
+    self.db_session.add(new)
     self.db_session.commit()    
+    self.db_session.refresh(new)  #Retrieves newly created pen id from the database (new.id)
     self.insert_pen_row()
+    self.create_pen_object(new.id,c_id)
+
+  def create_pen_object(self,id,chart_id,*args):
+    self.app.charts[chart_id].add_pen(id)
+  
+  def delete_pen_object(self,id,chart_id,*args):
+    self.app.charts[chart_id].delete_pen(id)
 
   def insert_pen_row(self,*args):
     self.pen_grid.set_column_homogeneous(False) 
@@ -276,10 +316,6 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
 ################## Need to move Pen Row to widgets section
 ################    Need to add OK button to popup and have it saveall
-################  Need to be able to add new pen to database and proper chart
-################ delete pen from chart and move to new chart
-################ save settings to database and pen object
-################  Need to create all chart objects even only displaying 1
 
 class Pen_row(object):
   def __init__(self,params,pen_grid,row_num,app,parent,*args):
@@ -322,7 +358,9 @@ class Pen_row(object):
   def build_row(self,*args):
     #Chart Select
     db_chart_number = str(self.params['chart_id'])
-    selections = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"]
+    selections = []
+    for num in range(self.app.charts_number):
+      selections.append(str(num+1))
     self.chart_number = Gtk.ComboBoxText(width_request = 20)
     for x in selections:
         self.chart_number.append_text(x)
@@ -564,8 +602,6 @@ class Pen_row(object):
     self.update_pen_object(p_settings)
 
   def update_pen_object(self,p_settings,*args):
-    #try:
-
     self.app.charts[self.chart_id].pens[self.id]._chart_id = p_settings['chart_id']
     self.app.charts[self.chart_id].pens[self.id]._tag_id = p_settings['tag_id']
     self.app.charts[self.chart_id].pens[self.id]._connection_id = p_settings['connection_id']
@@ -577,21 +613,16 @@ class Pen_row(object):
     self.app.charts[self.chart_id].pens[self.id]._scale_lock = p_settings['scale_lock']
     self.app.charts[self.chart_id].pens[self.id]._scale_auto = p_settings['scale_auto']
     p_obj = self.app.charts[self.chart_id].pens[self.id]
-    print(p_obj)
-    print(self.app.charts[self.chart_id].pens)
-    print(self.app.charts[p_settings['chart_id']].pens)
+    #print(p_obj)
+    #print(self.app.charts[self.chart_id].pens)
+    #print(self.app.charts[p_settings['chart_id']].pens)
 
     if p_settings['chart_id'] != self.chart_id:
-      pass
       #chart ID was changed so need to move pen object into other chart object
       self.app.charts[p_settings['chart_id']].pens[self.id] = p_obj
       del self.app.charts[self.chart_id].pens[self.id]
-      print(self.app.charts[self.chart_id].pens)
-      print(self.app.charts[p_settings['chart_id']].pens)
-    #except:
-      #print('Need to create new pen cause it doesnot exist in the chart')
-      ####  Add function to add pen to chart here
-      ####
+      #print(self.app.charts[self.chart_id].pens)
+      #print(self.app.charts[p_settings['chart_id']].pens)
   
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -630,7 +661,7 @@ class Pen_row(object):
         self.tags_available[int(tag.id)] = d
         d = {}
         count += 1
-        
+  
 
 class PointSettingsPopup(BaseSettingsPopoup):
 

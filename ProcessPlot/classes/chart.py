@@ -166,9 +166,6 @@ class Chart(Gtk.GLArea):
     self.db_session.commit()
     self.db_id = entry.id
     
-
-
-
   def init_vaos(self):
     self.vaos = glGenVertexArrays(1)
 
@@ -188,7 +185,12 @@ class Chart(Gtk.GLArea):
   def toggle_running(self, *args):
     self.is_running = not self.is_running
 
+  def add_pen(self,pen_id,*args):
+    params = self.db_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.id == pen_id).first # find one with this id
+    self.pens[pen_id] = Pen(self,params)
 
+  def delete_pen(self,pen_id,*args):
+    del self.pens[pen_id]
 
 
 
@@ -262,12 +264,6 @@ class ChartControls(Gtk.Box):
       sc = play_button.get_style_context()
       sc.add_class('ctrl-button')
       play_button.connect('clicked', chart.toggle_running)
-
-
-
-
-
-
       button_row = Gtk.Box()
       for widget in [
         (Gtk.Box(),1,1,1),
@@ -291,6 +287,7 @@ class ChartBox(Gtk.Overlay):
     self.app = app
     self.chart = Chart(self.app, chart_id)
     self.app.charts[chart_id] = self.chart  #As charts are created add reference to them up on APP
+    self.app.charts_number +=1
     self.eventbox = ChartEventBox(self.chart)
     self.add(self.eventbox)
     self.add_overlay(ChartControls(self.chart))
@@ -315,9 +312,14 @@ class ChartArea(Gtk.Box):
     self.db_session = app.settings_db.session
     self.load_settings()
     self.save_settings()
+  
+  def build_hidden_charts(self):
+    #This allows pens to be saved to hidden charts
+    for chrt in range(self.charts,16):
+      ChartBox(self.app, chrt+1)
 
   def build_charts(self):
-    self.app.charts = {} # When charts are rebuilt then clear dictionary holding reference
+    #self.app.charts = {} # When charts are rebuilt then clear dictionary holding reference
     for child in self.get_children():
       self.remove(child)
     if self.charts == 2:
@@ -339,6 +341,7 @@ class ChartArea(Gtk.Box):
       v_pane.pack2(bot_pane,1,1)
       self.pack_start(v_pane,1,1,1)
       self.show_all()
+      self.build_hidden_charts()
       return
     if self.charts == 8:
       topl_pane = Gtk.Paned(wide_handle=True)
@@ -364,6 +367,7 @@ class ChartArea(Gtk.Box):
       v_pane.pack2(bot_pane,1,1)
       self.pack_start(v_pane,1,1,1)
       self.show_all()
+      self.build_hidden_charts()
       return
     if self.charts == 16:
       r1_left_pane = Gtk.Paned(wide_handle=True)
@@ -414,10 +418,12 @@ class ChartArea(Gtk.Box):
       v_pane.pack2(r3_r4_pane,1,1)
       self.pack_start(v_pane,1,1,1)
       self.show_all()
+      self.build_hidden_charts()
       return
     #default
     self.pack_start(ChartBox(self.app, 1),1,1,1)
     self.show_all()
+    self.build_hidden_charts()
     #self.__log.info(f"ChartArea built - {self}")
   
   def load_settings(self):

@@ -131,6 +131,7 @@ class MainWindow(Gtk.Window):
     self.update_settings()
 
   def update_number_of_charts(self,val):
+    self.app.charts_number = 0
     self.chart_panel.charts = val
     self.chart_panel.build_charts()
     self.save_settings()
