@@ -103,12 +103,15 @@ class BaseSettingsPopoup(Gtk.Dialog):
   def build_footer(self):
     pass
 
+#build calendar picker, chart settings popup, time window / range to display,
+
 
 class PenSettingsPopup(BaseSettingsPopoup):
 
   def __init__(self, parent,app):
     self.chart_filter = 'All'
     self.unsaved_changes_present = False
+    self.unsaved_pen_rows = {}
     self.pen_column_names = ['id', 'chart_id', 'tag_id', 'connection_id', 'visible', 
                       'color', 'weight','scale_minimum','scale_maximum', 
                       'scale_lock', 'scale_auto']
@@ -176,7 +179,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
   
   def build_footer(self):
     self.ok_button = Gtk.Button(width_request = 100)
-    self.ok_button.connect('clicked',self.close_popup)
+    self.ok_button.connect('clicked',self.saveall_pen_rows)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     box = Gtk.Box()
@@ -190,7 +193,6 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.footer_bar.pack_end(self.ok_button,0,0,1)
     sc = self.ok_button.get_style_context()
     sc.add_class('ctrl-button')
-    ###########create function to save all unsaved rows, need to make a list of all of the unsaved rows
 
   def filter_disp_chart(self,chart_filter,*args):
     temp = chart_filter.get_active_text()
@@ -298,8 +300,21 @@ class PenSettingsPopup(BaseSettingsPopoup):
     else:
       return False
 
-  def unsaved_changes(self,status,*args):
+  def unsaved_changes(self,status,pen_row,id,*args):
+    #This method holds references to pen rows for saveall changes on OK button
     self.unsaved_changes_present = status
+    if status:
+      self.unsaved_pen_rows[id] = pen_row
+    else:
+      del self.unsaved_pen_rows[id]
+
+  def saveall_pen_rows(self,*args):
+    #when clicking ok button, save all unsaved settings, clear unsaved dictionary, and close popup
+    for key,pen_row in self.unsaved_pen_rows.items():
+      pen_row.update_db()
+    self.unsaved_changes_present = False
+    self.unsaved_pen_rows = {}
+    self.close_popup(None)
 
   def close_popup(self, button,msg="Abandon Pen Settings Changes?"):
     if self.unsaved_changes_present:
@@ -314,8 +329,6 @@ class PenSettingsPopup(BaseSettingsPopoup):
     else:
       self.destroy()
 
-################## Need to move Pen Row to widgets section
-################    Need to add OK button to popup and have it saveall
 
 class Pen_row(object):
   def __init__(self,params,pen_grid,row_num,app,parent,*args):
@@ -517,11 +530,11 @@ class Pen_row(object):
   
   def row_changed(self,*args):
     self.add_style(self.save_button,['exit-button'])
-    self.parent.unsaved_changes(True)
+    self.parent.unsaved_changes(True,self,self.id)
   
   def row_updated(self,*args):
     self.add_style(self.save_button,['ctrl-button'])
-    self.parent.unsaved_changes(False)
+    self.parent.unsaved_changes(False,self,self.id)
 
   def new_connection_selelcted(self, *args):
     pass
@@ -538,6 +551,10 @@ class Pen_row(object):
     self.tag_select.set_active(0)
   
   def save_settings(self,button,*args):
+    self.update_db()
+    self.row_updated()
+
+  def update_db(self,*args):
     p_settings = {}
     p_settings['id'] = self.id
     settings = self.db_settings_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.id == self.id).first()  # save the current settings
@@ -598,7 +615,6 @@ class Pen_row(object):
 
 
     self.db_settings_session.commit()
-    self.row_updated()
     self.update_pen_object(p_settings)
 
   def update_pen_object(self,p_settings,*args):

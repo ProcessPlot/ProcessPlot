@@ -193,7 +193,6 @@ class Chart(Gtk.GLArea):
     del self.pens[pen_id]
 
 
-
 class ChartEventBox(Gtk.EventBox):
   
   __log = logging.getLogger("ProcessPlot.classes.Chart")
@@ -213,7 +212,6 @@ class ChartEventBox(Gtk.EventBox):
     self.chart.toggle_running()
     #self.__log.info(f'Event window clicked: args: {args}')
     
-
 class ChartDebugBox(Gtk.Fixed):
   """shows chart debug info"""
   __log = logging.getLogger("ProcessPlot.classes.Chart")
