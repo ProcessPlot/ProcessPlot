@@ -1,5 +1,6 @@
 import logging, os, time
-from classes.data_manager import DataManager
+import gi
+
 from classes.ui import MainWindow
 from classes.database import DataDb, SettingsDb, ConnectionsDb
 from classes.ui import MainWindow
@@ -10,7 +11,6 @@ class App(object):
   __log = logging.getLogger('ProcessPlot.classes.app')
   def __init__(self):
     self.data_db = DataDb()
-    self.data_manager = DataManager(self)
     self.settings_db = SettingsDb()
     self.connections_db = ConnectionsDb()
     has_ui = True

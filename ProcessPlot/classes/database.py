@@ -4,10 +4,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import declarative_base, relationship, backref
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.sql.sqltypes import Float, Numeric
+from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy.sql.sqltypes import BIGINT, Float, Numeric
 
 
-# see videos below for help:
+# see videosbelow for help:
 # https://www.youtube.com/watch?v=jaKMm9njcJc&list=PL4iRawDSyRvVd1V7A45YtAGzDk6ljVPm1
 
 
@@ -63,16 +64,6 @@ class PenSettings(SettingsBase):
     scale_auto = Column(Boolean,default=0)
     #other cols
 
-
-DataBase = declarative_base()
-class Values(DataBase):
-    __tablename__ = 'values'
-    id = Column(Integer, primary_key=True)
-    point_id = Column(Integer)
-    timestamp = Column(Numeric)
-    value = Column(Numeric)
-
-    
 class SettingsDb():
     __log = logging.getLogger("ProcessPlot.classes.database")
     def __init__(self) -> None:
