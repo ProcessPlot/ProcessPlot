@@ -684,11 +684,174 @@ class PointSettingsPopup(BaseSettingsPopoup):
   def __init__(self, parent):
       super().__init__(parent, "Point Settings")
 
+class Connection_row(object):
+  def __init__(self,params,conn_grid,row_num,app,parent,*args):
+    self.app = app
+    self.parent = parent
+
+    self.db_conn_session = self.app.connections_db.session
+    self.db_conn_model = self.app.connections_db.models['connections']
+    self.Connections_Tbl = self.db_conn_model
+
+    self.params = params
+    print(params)
+    self.conn_grid = conn_grid
+    self.pen_row_num = row_num
+    self.id = self.params['id']
+    self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
+    self.build_row()
+    #Rows start at 1 because row 0 is titles
+    #Grid : Left,Top,Width,Height
+
+  def build_row(self,*args):
+
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.conn_grid.attach(self.save_button,10,self.pen_row_num,1,1)
+    #self.save_button.connect('clicked',self.save_settings)
 
 class ConnectionSettingsPopup(BaseSettingsPopoup):
 
-  def __init__(self, parent):
-      super().__init__(parent, "Connection Settings")
+  def __init__(self, parent,app):
+    self.unsaved_changes_present = False
+    self.unsaved_conn_rows = {}
+    self.conn_column_names = ['id', 'connection_type', 'description']
+    self.connections_available = {}
+    self.get_available_connections()
+    super().__init__(parent, "Connection Settings",app)
+    self.app = app
+    '''
+    self.conx_Typedata = {}
+    for item in self.db_manager.run_query('SELECT * FROM [ConnectionTypes]'):
+      self.conx_Typedata[item[0]]= item[1]
+    self.set_property('window-position', Gtk.WindowPosition.CENTER)
+    self.set_title('Connections')
+    self.set_border_width(30)
+    self.set_default_size(1000, 700)
+    self.set_keep_above(True)
+    self.connect("delete_event", lambda *args: self.destroy())
+    self.set_keep_above(True)
+    self.window_area = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
+    '''
+
+  def build_header(self,title):
+    #header
+    self.add_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddConnection.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.add_button.add(image)
+    sc = self.add_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.title_bar.pack_start(self.add_button,0,0,0)
+    #self.add_button.connect('clicked',self.create_new_pen)
+
+    title = Gtk.Label(label=title,width_request = 1000)
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.title_bar.pack_start(title,1,1,1)
+
+    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    self.title_bar.pack_end(self.pin_button,0,0,1)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('exit-button')
+
+  def build_base(self):
+    self.connection_settings = []
+    self.conn_row_num = 1
+    self.conn_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
+    self.base_area.add(self.conn_grid)
+    #header
+    self.add_column_names()
+    self.add_connection_rows()
+    self.show_all()
+  
+  def build_footer(self):
+    self.ok_button = Gtk.Button(width_request = 100)
+    self.ok_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-14')
+    sc.add_class('font-bold')
+    box.pack_start(lbl,1,1,1)
+    box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button')
+  
+  def add_connection_rows(self,*args):
+    #connection row
+    self.db_conn_session = self.app.connections_db.session
+    self.db_conn_model = self.app.connections_db.models['connections']
+    self.Connections_Tbl = self.db_conn_model
+    settings = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
+    params = {}
+    if len(settings.all()) == 0:
+      self.conn_grid.set_column_homogeneous(True)
+    else:
+      self.conn_grid.set_column_homogeneous(False)      
+    for conn in settings:
+      for c in self.conn_column_names:
+        params[c] = getattr(conn, c)
+      row = Connection_row(params,self.conn_grid,self.conn_row_num,self.app,self)
+      #self.create_delete_button(params['id'],self.conn_row_num)
+      params.clear()
+      self.conn_row_num += 1
+      self.connection_settings.append(row)
+    self.show_all()
+
+  def add_column_names(self,*args):
+    labels = ['Delete/Create', 'Name', 'Type', 'Driver Settings'] # may want to create a table in the db for column names
+    for l_idx in range(len(labels)):
+        l = Gtk.Label(labels[l_idx])
+        sc = l.get_style_context()
+        sc.add_class('text-black-color')
+        sc.add_class('font-14')
+        sc.add_class('font-bold')
+        self.conn_grid.attach(l, l_idx, 0, 1, 1)
+  
+  def scroll_to_bottom(self, adjust):
+    max = adjust.get_upper()
+    adjust.set_value(max)
+    self.scroll.set_vadjustment(adjust)
+    return False
+
+  def add_style(self, wid, style):
+    #style should be a list
+    sc = wid.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
+  def get_available_connections(self,*args):
+    pass
+  '''
+    connections = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
+    self.connections_available = {0:{'id':0,'type':0,'desc':"","count":0}}
+    d = {}
+    count = 1
+    for con in connections:
+        d['id'] = con.id
+        d['type'] = con.connection_type
+        d['desc'] = con.description
+        d['count'] = count
+        self.connections_available[int(con.id)] = d
+        d = {}
+        count += 1
+  '''
 
 
 class ValueEnter(Gtk.Dialog):
