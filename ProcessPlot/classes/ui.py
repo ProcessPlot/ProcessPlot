@@ -96,9 +96,9 @@ class MainWindow(Gtk.Window):
     sc = self.titlebar.get_style_context()
     sc.add_class('title-bar')
 
-    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button = Gtk.Button(width_request = 30)
     self.pin_button.connect('clicked',self.build_settings_popout)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/settings.png'), 20, -1, True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/settings.png'), 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.pin_button.add(image)
     self.titlebar.pack_start(self.pin_button,0,0,1)

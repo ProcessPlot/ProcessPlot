@@ -708,16 +708,16 @@ class Connection_row(object):
   def build_row(self,*args):
     #icon
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Connect.png', 30, -1, True)
-    icon = Gtk.Image(pixbuf=p_buf)
+    icon = Gtk.Image(pixbuf=p_buf,height_request = 30)
     self.conn_grid.attach(icon,0,self.conn_row_num,1,1)
 
     #Connection name entry
     db_conx_name = str(self.params['description']) 
-    self.conx_name = Gtk.Entry(max_length = 100,width_request = 300)
+    self.conx_name = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.conx_name.set_placeholder_text('Enter Connection Name')
     self.conx_name.set_alignment(0.5)
     if db_conx_name:
-      self.parent.add_style(self.conx_name,["entry","font-16","font-bold"])
+      self.parent.add_style(self.conx_name,["entry","font-18","font-bold"])
       self.conx_name.set_text(db_conx_name)
     else:
       self.parent.add_style(self.conx_name,["entry","font-12"])
@@ -727,8 +727,8 @@ class Connection_row(object):
     #Connection Driver
     self.conx_Typedata = {0:'', 1: 'Local', 2: 'ModbusTCP', 3: 'ModbusRTU', 4: 'EthernetIP', 5: 'ADS', 6: 'GRBL', 7: 'OPCUA'}
     db_conx_driver = int(self.params['connection_type']) 
-    self.conx_driver = Gtk.ComboBoxText(width_request = 200)#hexpand = True
-    self.parent.add_style(self.conx_driver,["font-18","list-select"])
+    self.conx_driver = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
+    self.parent.add_style(self.conx_driver,["font-18","list-select","font-bold"])
     for key in self.conx_Typedata:
       self.conx_driver.append(str(key),self.conx_Typedata[key])
     if db_conx_driver in self.conx_Typedata.keys():
@@ -739,16 +739,16 @@ class Connection_row(object):
     self.conx_driver.connect("changed", self.driver_selected)
     
     #Connection Settings Button
-    c_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing = 10, width_request = 100)
+    c_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing = 10, width_request = 200,height_request = 30)
     lbl = Gtk.Label('Settings')
-    self.parent.add_style(lbl,["font-14","font-bold"])
-    self.driver_settings_button = Gtk.Button()
+    self.parent.add_style(lbl,["font-18","font-bold"])
+    self.driver_settings_button = Gtk.Button(height_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 30, -1, True)
     icon = Gtk.Image(pixbuf=p_buf)
     c_box.pack_start(icon,0,0,0)
     c_box.pack_start(lbl,1,1,1)
     self.driver_settings_button.add(c_box)
-    self.parent.add_style(self.driver_settings_button,["ctrl-button","font-14","font-bold"])
+    self.parent.add_style(self.driver_settings_button,["ctrl-button"])
     #self.driver_settings_button.connect("clicked", self.open_driver_settings)
     self.conn_grid.attach(self.driver_settings_button,3,self.conn_row_num,1,1)
     if self.params['description'] and self.params['connection_type'] >= 1:
@@ -774,7 +774,7 @@ class Connection_row(object):
     enable = (obj.get_property('text-length') > 0)
     self.save_button.set_sensitive(enable)
     if enable:
-      self.parent.add_style(self.conx_name,["entry","font-16","font-bold"])
+      self.parent.add_style(self.conx_name,["entry","font-18","font-bold"])
     else:
       self.parent.add_style(self.conx_name,["entry","font-12"])
 
@@ -839,7 +839,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
   def build_base(self):
     self.connection_settings = []
     self.conn_row_num = 1
-    self.conn_grid = Gtk.Grid(column_homogeneous=False,column_spacing=20,row_spacing=10)
+    self.conn_grid = Gtk.Grid(column_homogeneous=False,column_spacing=5,row_spacing=5)
     self.base_area.add(self.conn_grid)
     #header
     self.add_column_names()
@@ -885,7 +885,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.show_all()
 
   def add_column_names(self,*args):
-    labels = ['','Connection Name', 'Connection Driver', 'Driver Settings', 'Save Connection'] # may want to create a table in the db for column names
+    labels = ['','Connection Name', 'Connection Driver', 'Driver Settings', 'Save'] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
         l = Gtk.Label(labels[l_idx])
         sc = l.get_style_context()
