@@ -118,7 +118,7 @@ ConnectionsBase = declarative_base()
 
 class ConnectionTable(ConnectionsBase): # this table holds all tag values being subscribed to
   __tablename__ = 'connections'
-  id = Column(String, primary_key=True)
+  id = Column(Integer, primary_key=True)
   connection_type = Column(Integer, nullable=False)
   description = Column(String)
 

@@ -629,16 +629,11 @@ class Pen_row(object):
     self.app.charts[self.chart_id].pens[self.id]._scale_lock = p_settings['scale_lock']
     self.app.charts[self.chart_id].pens[self.id]._scale_auto = p_settings['scale_auto']
     p_obj = self.app.charts[self.chart_id].pens[self.id]
-    #print(p_obj)
-    #print(self.app.charts[self.chart_id].pens)
-    #print(self.app.charts[p_settings['chart_id']].pens)
 
     if p_settings['chart_id'] != self.chart_id:
       #chart ID was changed so need to move pen object into other chart object
       self.app.charts[p_settings['chart_id']].pens[self.id] = p_obj
       del self.app.charts[self.chart_id].pens[self.id]
-      #print(self.app.charts[self.chart_id].pens)
-      #print(self.app.charts[p_settings['chart_id']].pens)
   
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -710,7 +705,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     sc = self.add_button.get_style_context()
     sc.add_class('ctrl-button')
     self.title_bar.pack_start(self.add_button,0,0,0)
-    self.add_button.connect('clicked',self.insert_connection_row)
+    self.add_button.connect('clicked',self.insert_connection_row,None)
 
     self.add_button2 = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddConnection.png', 30, -1, True)
@@ -719,7 +714,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     sc = self.add_button2.get_style_context()
     sc.add_class('ctrl-button')
     self.title_bar.pack_start(self.add_button2,0,0,0)
-    self.add_button2.connect('clicked',self.add_connection_popup)
+    self.add_button2.connect('clicked',self.add_connection_popup,None)
 
     title = Gtk.Label(label=title,width_request = 1000)
     sc = title.get_style_context()
@@ -780,10 +775,6 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.delete_button.connect('clicked',self.confirm_delete,conn_id)
 
   def add_connection_rows(self,*args):
-    #connection row
-    #self.db_conn_session = self.app.connections_db.session
-    #self.db_conn_model = self.app.connections_db.models['connections']
-    #self.Connections_Tbl = self.db_conn_model
     settings = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
     params = {}
     if len(settings.all()) == 0:
@@ -800,10 +791,11 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
       self.connection_settings.append(row)
     self.show_all()
   
-  def insert_connection_row(self,*args):
+  def insert_connection_row(self,button,params,*args):
+    #if params = None then insert blank row
     self.conn_grid.set_column_homogeneous(False) 
     self.conn_grid.insert_row(1)
-    row = Connection_row(None,self.conn_grid,1,self.app,self,self.conx_Typedata)
+    row = Connection_row(params,self.conn_grid,1,self.app,self,self.conx_Typedata)
     self.create_delete_button(None,1)
     self.conn_row_num += 1
     self.connection_settings.append(row)
@@ -850,22 +842,47 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.add_column_names()
     self.add_connection_rows()
     self.show_all()
+  
+  def create_connection(self,params,*args):
+    #should be passing in description and connection_type as a dictionary
+      new_conx = self.Connections_Tbl(
+        connection_type = params['connection_type'],
+        description =  params['description']
+      )
+      self.db_conn_session.add(new_conx)
+      self.db_conn_session.commit()
+      self.db_conn_session.refresh(new_conx)
+      params = {}
+      if new_conx:
+        for c in self.conn_column_names:
+          params[c] = getattr(new_conx, c)
+        self.insert_connection_row(None,params)
 
-  def add_connection_popup(self,button,*args):
-    popup = AddConnectionPopup(self)
+  def add_connection_popup(self,button,bad_name,*args):
+    popup = AddConnectionPopup(self,bad_name)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
       val = self.inv_conx_Typedata[results['connection_type']]
       results['connection_type'] = val
-      #Need to insert the row with the results returned
+      self.check_duplicate_name(results)
+
       #Also need to check that name doesn't exist already or re-open the popup
 
       return True
     else:
       return False
-
+  
+  def check_duplicate_name(self,results,*args):
+    settings = self.db_conn_session.query(self.Connections_Tbl).filter(self.Connections_Tbl.description == results['description']).first()
+    if not settings:
+      print('does not exist')
+      self.create_connection(results)
+    else:
+      print('does exist',settings)
+      self.add_connection_popup(None,results)
+  
   def get_available_connections(self,*args):
     pass
   
@@ -1020,11 +1037,12 @@ class Connection_row(object):
       sc.add_class(sty)
 
 class AddConnectionPopup(Gtk.Dialog):
-  def __init__(self, parent):
+  def __init__(self, parent,params):
     Gtk.Dialog.__init__(self, '',parent, Gtk.DialogFlags.MODAL,
                         (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
                           Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
                         )
+    self.params = params
     self.set_default_size(200, 150)
     self.set_border_width(10)
     sc = self.get_style_context()
@@ -1060,37 +1078,39 @@ class AddConnectionPopup(Gtk.Dialog):
     #self.dialog_window.pack_start(divider,0,0,1)
     self.content_area.add(self.dialog_window )
     self.build_base()
+    if self.params:
+      self.same_name(self.params)
     self.show_all()
 
   def build_base(self,*args):
     grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
-    #pop_lbl = Gtk.Label("{}".format('Prepared'))
-    #self.add_style(pop_lbl,['borderless-num-display','font-14','text-black-color'])
-    #grid.attach(pop_lbl,0,0,2,1)
+    self.pop_lbl = Gtk.Label('')
+    self.add_style(self.pop_lbl,['text-red-color','font-14','font-bold'])
+    grid.attach(self.pop_lbl,0,0,3,1)
     self.dialog_window.pack_start(grid,1,1,1)
 
     #Connection name entry
     lbl = Gtk.Label('Connection Name')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,0,1,1) 
+    grid.attach(lbl,0,1,1,1) 
     self.conx_name = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.conx_name.set_placeholder_text('Enter Connection Name')
     self.conx_name.set_alignment(0.5)
     self.add_style(self.conx_name,["entry","font-12"])
     self.conx_name.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_name,1,0,2,1)    
+    grid.attach(self.conx_name,1,1,2,1)    
 
     #Connection Driver
     lbl = Gtk.Label('Connection Driver')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,1,1,1) 
+    grid.attach(lbl,0,2,1,1) 
     self.conx_Typedata = {0:'', 1: 'Local', 2: 'ModbusTCP', 3: 'ModbusRTU', 4: 'EthernetIP', 5: 'ADS', 6: 'GRBL', 7: 'OPCUA'}
     self.conx_driver = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
     self.add_style(self.conx_driver,["font-18","list-select","font-bold"])
     for key in self.conx_Typedata:
       self.conx_driver.append(str(key),self.conx_Typedata[key])
     self.conx_driver.set_active(0)
-    grid.attach(self.conx_driver,1,1,2,1)
+    grid.attach(self.conx_driver,1,2,2,1)
     #self.conx_driver.connect("changed", self.driver_selected)
     
     sep = Gtk.Label(height_request=3)
@@ -1119,6 +1139,11 @@ class AddConnectionPopup(Gtk.Dialog):
   
   def get_result(self):
     return self.result
+  
+  def same_name(self,results):
+    self.pop_lbl.set_label('Name Already Exists')
+    self.conx_name.set_text('')
+    self.conx_driver.set_active(results['connection_type'])
 
 
 class ValueEnter(Gtk.Dialog):
