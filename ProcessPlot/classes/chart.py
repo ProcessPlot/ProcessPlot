@@ -244,13 +244,13 @@ class ChartControls(Gtk.Box):
   """holds chart control buttons"""
   __log = logging.getLogger("ProcessPlot.classes.Chart")
   
-  def __init__(self, chart) -> None:
+  def __init__(self, chart,app) -> None:
       super().__init__(orientation=Gtk.Orientation.VERTICAL)
-      self.app = chart.app
-      self.chart = chart
+      self.app = app
+      self.chart = chart.app
       settings_button = Gtk.Button(width_request = 30)
-      #settings_button.connect('clicked', )
-      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 20, -1, True)
+      #settings_button.connect('clicked',self.app.main_window.build_settings_popout )
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 30, -1, True)
       image = Gtk.Image(pixbuf=p_buf)
       settings_button.add(image)
       sc = settings_button.get_style_context()
@@ -288,7 +288,7 @@ class ChartBox(Gtk.Overlay):
     self.app.charts_number +=1
     self.eventbox = ChartEventBox(self.chart)
     self.add(self.eventbox)
-    self.add_overlay(ChartControls(self.chart))
+    self.add_overlay(ChartControls(self.chart,self.app))
     # if debugging, add debug info to charts
     if logging.getLogger("ProcessPlot.classes.Chart").getEffectiveLevel() <= logging.DEBUG:
       debug = ChartDebugBox(self)

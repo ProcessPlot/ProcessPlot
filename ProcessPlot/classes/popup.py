@@ -877,10 +877,8 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
   def check_duplicate_name(self,results,*args):
     settings = self.db_conn_session.query(self.Connections_Tbl).filter(self.Connections_Tbl.description == results['description']).first()
     if not settings:
-      print('does not exist')
       self.create_connection(results)
     else:
-      print('does exist',settings)
       self.add_connection_popup(None,results)
   
   def get_available_connections(self,*args):
@@ -900,6 +898,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
         d = {}
         count += 1
   '''
+
 
 class Connection_row(object):
   ####################Move delete up to settings panel
@@ -1035,6 +1034,7 @@ class Connection_row(object):
     sc = item.get_style_context()
     for sty in style:
       sc.add_class(sty)
+
 
 class AddConnectionPopup(Gtk.Dialog):
   def __init__(self, parent,params):
