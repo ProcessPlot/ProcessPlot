@@ -44,9 +44,9 @@ class ChartLayoutSettings(SettingsBase):
 class ChartSettings(SettingsBase):
     __tablename__ = 'chart_settings'
     id = Column(Integer, primary_key=True)
-    bg_color = Column(String) #rgb in json
-    h_grids = Column(Integer)
-    v_grids = Column(Integer)
+    bg_color = Column(String, default = '[50,100,150]') #rgb in json
+    h_grids = Column(Integer, default = 3)
+    v_grids = Column(Integer, default = 3)
     #other cols
 
 class PenSettings(SettingsBase):

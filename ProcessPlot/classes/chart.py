@@ -30,6 +30,7 @@ from OpenGL.GL import *
 from OpenGL.GL import shaders
 from classes.pen import Pen
 import json
+from classes.popup import ChartSettingsPopup
 
 __all__ = ['Chart']
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
@@ -128,9 +129,19 @@ class Chart(Gtk.GLArea):
     tbl = self.db_model
     settings = self.db_session.query(tbl).filter(tbl.id == self.db_id).first() # find one with this id
     if settings:
-      self.bg_color = json.loads(settings.bg_color) #rgb in json
+      self.bg_color = json.dumps(settings.bg_color) #rgb in json
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
+    else:
+      #create chart settings in db if they don't exist
+      new = tbl(id = self.db_id)
+      self.db_session.add(new)
+      self.db_session.commit()    
+      self.db_session.refresh(new)  #Retrieves newly created chart settings from the database (new.id)
+
+      self.bg_color = json.dumps(new.bg_color) #rgb in json
+      self.h_grids = new.h_grids
+      self.v_grids = new.v_grids
     
   def load_pen_settings(self):
     ##### chart number ----- self.db_id
@@ -247,9 +258,9 @@ class ChartControls(Gtk.Box):
   def __init__(self, chart,app) -> None:
       super().__init__(orientation=Gtk.Orientation.VERTICAL)
       self.app = app
-      self.chart = chart.app
+      self.chart = chart
       settings_button = Gtk.Button(width_request = 30)
-      #settings_button.connect('clicked',self.app.main_window.build_settings_popout )
+      settings_button.connect('clicked',self.open_chart_settings)
       p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 30, -1, True)
       image = Gtk.Image(pixbuf=p_buf)
       settings_button.add(image)
@@ -276,6 +287,15 @@ class ChartControls(Gtk.Box):
         (button_row,0,0,1),
       ]:
         self.pack_start(*widget_row)
+      
+  def open_chart_settings(self,*args):
+    popup = ChartSettingsPopup(self.app,self.chart.db_id)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
 
 class ChartBox(Gtk.Overlay):
   """Use to put overlay and eventbox on the chart"""

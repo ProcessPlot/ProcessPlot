@@ -104,19 +104,25 @@ class BaseSettingsPopoup(Gtk.Dialog):
     pass
 
 #build calendar picker, chart settings popup, time window / range to display,
+#build popup for chart settings
 
 
 class PenSettingsPopup(BaseSettingsPopoup):
 
   def __init__(self, parent,app):
+    self.app = app
     self.chart_filter = 'All'
     self.unsaved_changes_present = False
     self.unsaved_pen_rows = {}
     self.pen_column_names = ['id', 'chart_id', 'tag_id', 'connection_id', 'visible', 
                       'color', 'weight','scale_minimum','scale_maximum', 
                       'scale_lock', 'scale_auto']
+    self.db_session = self.app.settings_db.session
+    self.db_model = self.app.settings_db.models['pen']
+    self.Tbl = self.db_model
     super().__init__(parent,"Pen Settings",app)
-    self.app = app
+
+
   
   def build_header(self,title):
     #header
@@ -163,9 +169,6 @@ class PenSettingsPopup(BaseSettingsPopoup):
     sc.add_class('exit-button')
 
   def build_base(self):
-    self.db_session = self.app.settings_db.session
-    self.db_model = self.app.settings_db.models['pen']
-    self.Tbl = self.db_model
     self.pen_settings = []
     self.pen_row_num = 1
     #header = self.db_session.query(self.Tbl).first()
@@ -681,6 +684,7 @@ class PointSettingsPopup(BaseSettingsPopoup):
 
 
 class ConnectionSettingsPopup(BaseSettingsPopoup):
+
   def __init__(self, parent,app):
     self.unsaved_changes_present = False
     self.unsaved_conn_rows = {}
@@ -742,11 +746,6 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.add_connection_rows()
     self.show_all()
 
-  def remove_all_rows(self,*args):
-    rows = self.conn_grid.get_children()
-    for items in rows:
-      self.conn_grid.remove(items)
-
   def build_footer(self):
     self.ok_button = Gtk.Button(width_request = 100)
     self.ok_button.connect('clicked',self.close_popup)
@@ -763,6 +762,11 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.footer_bar.pack_end(self.ok_button,0,0,1)
     sc = self.ok_button.get_style_context()
     sc.add_class('ctrl-button')
+
+  def remove_all_rows(self,*args):
+    rows = self.conn_grid.get_children()
+    for items in rows:
+      self.conn_grid.remove(items)
 
   def create_delete_button(self,conn_id,row,*args):
     self.delete_button = Gtk.Button(width_request = 30)
@@ -1420,3 +1424,74 @@ class PopupConfirm(Gtk.Dialog):
         sc = but.get_style_context()
         sc.add_class("dialog-buttons")
         sc.add_class("font-16")
+
+
+class ChartSettingsPopup(Gtk.Dialog):
+  def __init__(self, app,c_id):
+    Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
+                        (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
+                          Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
+                        )
+    self.c_id = c_id
+    self.app = app
+    self.db_session = self.app.settings_db.session
+    self.db_model = self.app.settings_db.models['chart']
+    self.Tbl = self.db_model
+    self.set_default_size(400, 400)
+    self.set_border_width(10)
+    sc = self.get_style_context()
+    sc.add_class("dialog-border")
+    self.set_keep_above(True)
+    self.set_decorated(False)
+    self.content_area = self.get_content_area()
+    self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=400)
+    self.content_area.add(self.dialog_window )
+    self.build_header()
+    self.show_all()
+    self.get_chart_settings()
+
+  def build_header(self,*args):
+    #header
+    title = Gtk.Label(label='Chart Settings')
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.title_bar.pack_start(title,1,1,1)
+    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    self.title_bar.pack_end(self.pin_button,0,0,1)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('exit-button')
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+
+  def get_chart_settings(self,*args):
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
+    if settings:
+      self.bg_color = (settings.bg_color) #rgb in json
+      self.h_grids = settings.h_grids
+      self.v_grids = settings.v_grids
+    else:
+      print("None")
+
+  def confirm(self, button,pen_id,msg="Are you sure you want to delete this pen?", args=[]):
+    popup = PopupConfirm(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      self.delete_row(pen_id)
+      return True
+    else:
+      return False
+
+
+  def close_popup(self, *args):
+    self.destroy()
