@@ -1429,27 +1429,27 @@ class PopupConfirm(Gtk.Dialog):
 class ChartSettingsPopup(Gtk.Dialog):
   def __init__(self, app,c_id):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
-                          Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
+                        (Gtk.STOCK_OK, Gtk.ResponseType.YES)
                         )
     self.c_id = c_id
     self.app = app
     self.db_session = self.app.settings_db.session
     self.db_model = self.app.settings_db.models['chart']
     self.Tbl = self.db_model
-    self.set_default_size(400, 400)
+    self.set_default_size(300, 300)
     self.set_border_width(10)
     sc = self.get_style_context()
     sc.add_class("dialog-border")
-    self.set_keep_above(True)
+    self.set_keep_above(False)
     self.set_decorated(False)
     self.content_area = self.get_content_area()
-    self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=400)
+    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
     self.content_area.add(self.dialog_window )
     self.build_header()
-    self.show_all()
     self.get_chart_settings()
+    self.build_base()
+    self.show_all()
 
   def build_header(self,*args):
     #header
@@ -1473,6 +1473,88 @@ class ChartSettingsPopup(Gtk.Dialog):
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
 
+  def build_base(self,*args):
+    grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
+    self.dialog_window.pack_start(grid,1,1,1)
+
+
+    #Chart Select
+    lbl = Gtk.Label('Chart Number')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,1,1,1) 
+    selections = []
+    for num in range(16):
+      selections.append(str(num+1))
+    self.chart_select = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
+    self.add_style(self.chart_select,["font-18","list-select","font-bold"])
+    for key in selections:
+      self.chart_select.append(str(key),str(self.c_id))
+    self.chart_select.set_active(0)
+    grid.attach(self.chart_select,1,1,1,1)
+    #self.chart_select.connect("changed", self.driver_selected)
+
+    #color
+    lbl = Gtk.Label('Background Color')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,2,1,1) 
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.parse(self.bg_color)
+    rgbcolor.to_string()
+    bx = Gtk.Box()
+    self.color_button = Gtk.ColorButton(width_request = 50)
+    self.color_button.set_rgba (rgbcolor)
+    sc = self.color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.color_button)
+    grid.attach(bx,1,2,1,1)
+    #self.color_button.connect('color-set',self.row_changed)
+
+    #Horizontal Grid LInes
+    lbl = Gtk.Label('Horizontal Grid Lines')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,3,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.hor_grid = Gtk.Label()
+    self.hor_grid.set_label(str(self.h_grids))
+    self.add_style(self.hor_grid,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.hor_grid)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.hor_grid,{'min':0,'max':16,'type':int,'polarity':False})
+    grid.attach(but,1,3,1,1)
+    #but.connect('clicked',self.row_changed)
+
+
+    #Vertical Grid LInes
+    lbl = Gtk.Label('Vertical Grid Lines')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,4,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.vert_grid = Gtk.Label()
+    self.vert_grid.set_label(str(self.v_grids))
+    self.add_style(self.vert_grid,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.vert_grid)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.vert_grid,{'min':0,'max':16,'type':int,'polarity':False})
+    grid.attach(but,1,4,1,1)
+    #but.connect('clicked',self.row_changed)
+
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    grid.attach(bx,3,5,1,1)
+    #self.save_button.connect('clicked',self.save_settings)
+    
+    sep = Gtk.Label(height_request=3)
+    self.dialog_window.pack_start(sep,1,1,1)
+
   def get_chart_settings(self,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
@@ -1492,6 +1574,20 @@ class ChartSettingsPopup(Gtk.Dialog):
     else:
       return False
 
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
+    response = numpad.run()
+    if response == Gtk.ResponseType.NO:
+      pass
+    else:
+      pass
+      #callback(args)
+    numpad.destroy()
 
   def close_popup(self, *args):
     self.destroy()

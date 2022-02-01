@@ -29,7 +29,7 @@ from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, Gio
 from OpenGL.GL import *
 from OpenGL.GL import shaders
 from classes.pen import Pen
-import json
+import json, ast
 from classes.popup import ChartSettingsPopup
 
 __all__ = ['Chart']
@@ -129,7 +129,7 @@ class Chart(Gtk.GLArea):
     tbl = self.db_model
     settings = self.db_session.query(tbl).filter(tbl.id == self.db_id).first() # find one with this id
     if settings:
-      self.bg_color = json.dumps(settings.bg_color) #rgb in json
+      self.bg_color = ast.literal_eval(settings.bg_color) #rgb in json
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
     else:
@@ -139,7 +139,7 @@ class Chart(Gtk.GLArea):
       self.db_session.commit()    
       self.db_session.refresh(new)  #Retrieves newly created chart settings from the database (new.id)
 
-      self.bg_color = json.dumps(new.bg_color) #rgb in json
+      self.bg_color = ast.literal_eval(new.bg_color) #rgb in json
       self.h_grids = new.h_grids
       self.v_grids = new.v_grids
     
@@ -160,12 +160,12 @@ class Chart(Gtk.GLArea):
     if self.db_id:
       entry = self.db_session.query(tbl).filter(tbl.id==self.db_id).first()
     if entry: # update it
-      entry.bg_color = json.dumps(self.bg_color)
+      entry.bg_color = (self.bg_color)
       entry.h_grids= self.h_grids
       entry.v_grids=self.v_grids
     else: #create it
       entry = tbl(
-        bg_color = json.dumps(self.bg_color),
+        bg_color = (self.bg_color),
         h_grids= self.h_grids,
         v_grids=self.v_grids
       )
