@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import gi, os
+import gi, os, json
 
 from numpy import maximum
 gi.require_version('Gtk', '3.0')
@@ -690,7 +690,6 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.unsaved_conn_rows = {}
     self.conn_column_names = ['id', 'connection_type', 'description']
     self.connections_available = {}
-    self.get_available_connections()
     self.app = app
     self.db_conn_session = self.app.connections_db.session
     self.db_conn_model = self.app.connections_db.models['connections']
@@ -885,24 +884,6 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     else:
       self.add_connection_popup(None,results)
   
-  def get_available_connections(self,*args):
-    pass
-  
-  '''
-    connections = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
-    self.connections_available = {0:{'id':0,'type':0,'desc':"","count":0}}
-    d = {}
-    count = 1
-    for con in connections:
-        d['id'] = con.id
-        d['type'] = con.connection_type
-        d['desc'] = con.description
-        d['count'] = count
-        self.connections_available[int(con.id)] = d
-        d = {}
-        count += 1
-  '''
-
 
 class Connection_row(object):
   ####################Move delete up to settings panel
@@ -1115,7 +1096,6 @@ class AddConnectionPopup(Gtk.Dialog):
       self.conx_driver.append(str(key),self.conx_Typedata[key])
     self.conx_driver.set_active(0)
     grid.attach(self.conx_driver,1,2,2,1)
-    #self.conx_driver.connect("changed", self.driver_selected)
     
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
@@ -1425,13 +1405,14 @@ class PopupConfirm(Gtk.Dialog):
         sc.add_class("dialog-buttons")
         sc.add_class("font-16")
 
-
+#######################################################ADD GRID COLOR ONTO POPUP
 class ChartSettingsPopup(Gtk.Dialog):
-  def __init__(self, app,c_id):
+  def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
                         (Gtk.STOCK_OK, Gtk.ResponseType.YES)
                         )
-    self.c_id = c_id
+    self.chart = chart
+    self.c_id = self.chart.db_id
     self.app = app
     self.db_session = self.app.settings_db.session
     self.db_model = self.app.settings_db.models['chart']
@@ -1446,8 +1427,11 @@ class ChartSettingsPopup(Gtk.Dialog):
     self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
     self.content_area.add(self.dialog_window )
+    self.bg_color = [1.0,1.0,1.0,1.0] #default to white
+    self.h_grids = 2
+    self.v_grids = 2
     self.build_header()
-    self.get_chart_settings()
+    self.load_chart_settings()
     self.build_base()
     self.show_all()
 
@@ -1472,47 +1456,45 @@ class ChartSettingsPopup(Gtk.Dialog):
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
+    self.grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
 
   def build_base(self,*args):
-    grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
-    self.dialog_window.pack_start(grid,1,1,1)
-
-
     #Chart Select
     lbl = Gtk.Label('Chart Number')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,1,1,1) 
-    selections = []
-    for num in range(16):
-      selections.append(str(num+1))
+    self.grid.attach(lbl,0,1,1,1) 
     self.chart_select = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
     self.add_style(self.chart_select,["font-18","list-select","font-bold"])
-    for key in selections:
-      self.chart_select.append(str(key),str(self.c_id))
-    self.chart_select.set_active(0)
-    grid.attach(self.chart_select,1,1,1,1)
-    #self.chart_select.connect("changed", self.driver_selected)
+    selections = []
+    for num in range(16):
+      self.chart_select.append(str(num+1),str(num+1))
+    self.chart_select.set_active((self.c_id-1))
+    self.grid.attach(self.chart_select,1,1,1,1)
+    self.chart_select.connect("changed", self.new_chart_selected)
 
     #color
     lbl = Gtk.Label('Background Color')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,2,1,1) 
+    self.grid.attach(lbl,0,2,1,1) 
     rgbcolor = Gdk.RGBA()
-    rgbcolor.parse(self.bg_color)
-    rgbcolor.to_string()
+    rgbcolor.red = float(self.bg_color[0])
+    rgbcolor.green = float(self.bg_color[1])
+    rgbcolor.blue = float(self.bg_color[2])
+    rgbcolor.alpha = float(self.bg_color[3])
     bx = Gtk.Box()
     self.color_button = Gtk.ColorButton(width_request = 50)
     self.color_button.set_rgba (rgbcolor)
     sc = self.color_button.get_style_context()
     sc.add_class('ctrl-button')
     bx.set_center_widget(self.color_button)
-    grid.attach(bx,1,2,1,1)
+    self.grid.attach(bx,1,2,1,1)
     #self.color_button.connect('color-set',self.row_changed)
 
     #Horizontal Grid LInes
     lbl = Gtk.Label('Horizontal Grid Lines')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,3,1,1) 
+    self.grid.attach(lbl,0,3,1,1) 
     but = Gtk.Button(width_request = 20)
     self.hor_grid = Gtk.Label()
     self.hor_grid.set_label(str(self.h_grids))
@@ -1520,15 +1502,14 @@ class ChartSettingsPopup(Gtk.Dialog):
     but.add(self.hor_grid)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.hor_grid,{'min':0,'max':16,'type':int,'polarity':False})
-    grid.attach(but,1,3,1,1)
+    but.connect('clicked',self.open_numpad,self.hor_grid,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,3,1,1)
     #but.connect('clicked',self.row_changed)
 
-
-    #Vertical Grid LInes
+    #Vertical Grid Lines
     lbl = Gtk.Label('Vertical Grid Lines')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,4,1,1) 
+    self.grid.attach(lbl,0,4,1,1) 
     but = Gtk.Button(width_request = 20)
     self.vert_grid = Gtk.Label()
     self.vert_grid.set_label(str(self.v_grids))
@@ -1536,8 +1517,8 @@ class ChartSettingsPopup(Gtk.Dialog):
     but.add(self.vert_grid)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.vert_grid,{'min':0,'max':16,'type':int,'polarity':False})
-    grid.attach(but,1,4,1,1)
+    but.connect('clicked',self.open_numpad,self.vert_grid,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,4,1,1)
     #but.connect('clicked',self.row_changed)
 
     #Save Button
@@ -1549,20 +1530,23 @@ class ChartSettingsPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     bx = Gtk.Box()
     bx.pack_end(self.save_button,0,0,0)
-    grid.attach(bx,3,5,1,1)
-    #self.save_button.connect('clicked',self.save_settings)
-    
+    self.grid.attach(bx,3,5,1,1)
+    self.save_button.connect('clicked',self.save_settings)
+
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
 
-  def get_chart_settings(self,*args):
+  def load_chart_settings(self,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
-      self.bg_color = (settings.bg_color) #rgb in json
+      print('loading',settings.bg_color)
+      self.bg_color = json.loads(settings.bg_color) #rgb in json
+      print('loading',self.bg_color)
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
     else:
-      print("None")
+      print("Chart Not Found")
+      #using default values
 
   def confirm(self, button,pen_id,msg="Are you sure you want to delete this pen?", args=[]):
     popup = PopupConfirm(self, msg=msg)
@@ -1573,6 +1557,39 @@ class ChartSettingsPopup(Gtk.Dialog):
       return True
     else:
       return False
+
+  def new_chart_selected(self, but,*args):
+    val = self.chart_select.get_active_text()
+    self.c_id = int(val)
+    self.load_chart_settings()
+    self.vert_grid.set_label(str(self.v_grids))
+    self.hor_grid.set_label(str(self.h_grids))
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.bg_color[0])
+    rgbcolor.green = float(self.bg_color[1])
+    rgbcolor.blue = float(self.bg_color[2])
+    rgbcolor.alpha = float(self.bg_color[3])
+    self.color_button.set_rgba (rgbcolor)
+  
+  def save_settings(self,but,*args):
+    self.c_id = int(self.chart_select.get_active_text())
+    color = self.color_button.get_rgba()
+    color_list = []
+    for c in color:
+      color_list.append(c)
+
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
+    if settings:
+      settings.bg_color =  json.dumps(color_list)
+      settings.h_grids =  int(self.hor_grid.get_label())
+      settings.v_grids = int(self.vert_grid.get_label())
+      self.db_session.commit()
+    self.app.charts[self.c_id].reload_chart()
+
+  def remove_widgets(self,*args):
+    grid = self.grid.get_children()
+    for widgets in grid:
+      self.grid.remove(widgets)
 
   def add_style(self, item,style):
     sc = item.get_style_context()

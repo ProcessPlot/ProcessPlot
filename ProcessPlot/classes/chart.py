@@ -129,7 +129,7 @@ class Chart(Gtk.GLArea):
     tbl = self.db_model
     settings = self.db_session.query(tbl).filter(tbl.id == self.db_id).first() # find one with this id
     if settings:
-      self.bg_color = ast.literal_eval(settings.bg_color) #rgb in json
+      self.bg_color = json.loads(settings.bg_color) #rgb in json
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
     else:
@@ -139,9 +139,14 @@ class Chart(Gtk.GLArea):
       self.db_session.commit()    
       self.db_session.refresh(new)  #Retrieves newly created chart settings from the database (new.id)
 
-      self.bg_color = ast.literal_eval(new.bg_color) #rgb in json
+      self.bg_color = json.loads(new.bg_color) #rgb in json
       self.h_grids = new.h_grids
       self.v_grids = new.v_grids
+
+  def reload_chart(self):
+    self.load_settings()
+    self.render()
+    ################### Need to add function to update chart when chart settings changed
     
   def load_pen_settings(self):
     ##### chart number ----- self.db_id
@@ -160,12 +165,12 @@ class Chart(Gtk.GLArea):
     if self.db_id:
       entry = self.db_session.query(tbl).filter(tbl.id==self.db_id).first()
     if entry: # update it
-      entry.bg_color = (self.bg_color)
+      entry.bg_color = json.dumps(self.bg_color)
       entry.h_grids= self.h_grids
       entry.v_grids=self.v_grids
     else: #create it
       entry = tbl(
-        bg_color = (self.bg_color),
+        bg_color = json.dumps(self.bg_color),
         h_grids= self.h_grids,
         v_grids=self.v_grids
       )
@@ -289,7 +294,7 @@ class ChartControls(Gtk.Box):
         self.pack_start(*widget_row)
       
   def open_chart_settings(self,*args):
-    popup = ChartSettingsPopup(self.app,self.chart.db_id)
+    popup = ChartSettingsPopup(self.app,self.chart)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
