@@ -1405,7 +1405,7 @@ class PopupConfirm(Gtk.Dialog):
         sc.add_class("dialog-buttons")
         sc.add_class("font-16")
 
-#######################################################ADD GRID COLOR ONTO POPUP
+################################ Fix OK button to save before closing
 class ChartSettingsPopup(Gtk.Dialog):
   def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
@@ -1428,29 +1428,49 @@ class ChartSettingsPopup(Gtk.Dialog):
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
     self.content_area.add(self.dialog_window )
     self.bg_color = [1.0,1.0,1.0,1.0] #default to white
+    self.grid_color = [1.0,1.0,1.0,1.0] #default to white
+    self.marker1_color = [1.0,0.0,0.0,1.0] #default to red
+    self.marker2_color = [0.0,1.0,0.0,1.0] #default to blue
     self.h_grids = 2
     self.v_grids = 2
+    self.marker1_width = 1
+    self.marker2_width = 1
     self.build_header()
     self.load_chart_settings()
     self.build_base()
     self.show_all()
 
   def build_header(self,*args):
-    #header
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    self.title_bar.pack_start(bx,0,0,0)
+    self.save_button.connect('clicked',self.save_settings)
+
+    #title
     title = Gtk.Label(label='Chart Settings')
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
     sc.add_class('font-bold')
     self.title_bar.pack_start(title,1,1,1)
-    self.pin_button = Gtk.Button(width_request = 20)
-    self.pin_button.connect('clicked',self.close_popup)
+
+    #exit button
+    self.exit_button = Gtk.Button(width_request = 20)
+    self.exit_button.connect('clicked',self.close_popup)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
-    self.pin_button.add(image)
-    self.title_bar.pack_end(self.pin_button,0,0,1)
-    sc = self.pin_button.get_style_context()
+    self.exit_button.add(image)
+    self.title_bar.pack_end(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
+
     self.dialog_window.pack_start(self.title_bar,0,0,1)
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
@@ -1521,17 +1541,78 @@ class ChartSettingsPopup(Gtk.Dialog):
     self.grid.attach(but,1,4,1,1)
     #but.connect('clicked',self.row_changed)
 
-    #Save Button
-    self.save_button = Gtk.Button(width_request = 30)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    self.save_button.add(image)
-    sc = self.save_button.get_style_context()
-    sc.add_class('ctrl-button')
+    #grid color
+    lbl = Gtk.Label('Grid Line Color')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,5,1,1) 
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.grid_color[0])
+    rgbcolor.green = float(self.grid_color[1])
+    rgbcolor.blue = float(self.grid_color[2])
+    rgbcolor.alpha = float(self.grid_color[3])
     bx = Gtk.Box()
-    bx.pack_end(self.save_button,0,0,0)
-    self.grid.attach(bx,3,5,1,1)
-    self.save_button.connect('clicked',self.save_settings)
+    self.grid_color_button = Gtk.ColorButton(width_request = 50)
+    self.grid_color_button.set_rgba (rgbcolor)
+    sc = self.grid_color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.grid_color_button)
+    self.grid.attach(bx,1,5,1,1)
+
+    #Marker 1
+    lbl = Gtk.Label('Chart Marker 1 (Width/Color)')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,6,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.marker1_width_button = Gtk.Label()
+    self.marker1_width_button.set_label(str(self.marker1_width))
+    self.add_style(self.marker1_width_button,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.marker1_width_button)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.marker1_width_button,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,6,1,1)
+    #but.connect('clicked',self.row_changed)
+
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.marker1_color[0])
+    rgbcolor.green = float(self.marker1_color[1])
+    rgbcolor.blue = float(self.marker1_color[2])
+    rgbcolor.alpha = float(self.marker1_color[3])
+    bx = Gtk.Box()
+    self.marker1_color_button = Gtk.ColorButton(width_request = 50)
+    self.marker1_color_button.set_rgba (rgbcolor)
+    sc = self.marker1_color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.marker1_color_button)
+    self.grid.attach(bx,2,6,1,1)
+
+    #Marker 2
+    lbl = Gtk.Label('Chart Marker 2 (Width/Color)')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,7,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.marker2_width_button = Gtk.Label()
+    self.marker2_width_button.set_label(str(self.marker2_width))
+    self.add_style(self.marker2_width_button,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.marker2_width_button)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.marker2_width_button,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,7,1,1)
+    #but.connect('clicked',self.row_changed)
+
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.marker2_color[0])
+    rgbcolor.green = float(self.marker2_color[1])
+    rgbcolor.blue = float(self.marker2_color[2])
+    rgbcolor.alpha = float(self.marker2_color[3])
+    bx = Gtk.Box()
+    self.marker2_color_button = Gtk.ColorButton(width_request = 50)
+    self.marker2_color_button.set_rgba (rgbcolor)
+    sc = self.marker2_color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.marker2_color_button)
+    self.grid.attach(bx,2,7,1,1)
 
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
@@ -1539,11 +1620,14 @@ class ChartSettingsPopup(Gtk.Dialog):
   def load_chart_settings(self,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
-      print('loading',settings.bg_color)
       self.bg_color = json.loads(settings.bg_color) #rgb in json
-      print('loading',self.bg_color)
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
+      self.grid_color = json.loads(settings.grid_color) #rgb in json
+      self.marker1_width = settings.marker1_width
+      self.marker1_color = json.loads(settings.marker1_color) #rgb in json 
+      self.marker2_width = settings.marker2_width
+      self.marker2_color = json.loads(settings.marker2_color) #rgb in json 
     else:
       print("Chart Not Found")
       #using default values
@@ -1564,25 +1648,63 @@ class ChartSettingsPopup(Gtk.Dialog):
     self.load_chart_settings()
     self.vert_grid.set_label(str(self.v_grids))
     self.hor_grid.set_label(str(self.h_grids))
-    rgbcolor = Gdk.RGBA()
-    rgbcolor.red = float(self.bg_color[0])
-    rgbcolor.green = float(self.bg_color[1])
-    rgbcolor.blue = float(self.bg_color[2])
-    rgbcolor.alpha = float(self.bg_color[3])
-    self.color_button.set_rgba (rgbcolor)
+    bg_rgbcolor = Gdk.RGBA()
+    bg_rgbcolor.red = float(self.bg_color[0])
+    bg_rgbcolor.green = float(self.bg_color[1])
+    bg_rgbcolor.blue = float(self.bg_color[2])
+    bg_rgbcolor.alpha = float(self.bg_color[3])
+    self.color_button.set_rgba (bg_rgbcolor)
+    grid_rgbcolor = Gdk.RGBA()
+    grid_rgbcolor.red = float(self.grid_color[0])
+    grid_rgbcolor.green = float(self.grid_color[1])
+    grid_rgbcolor.blue = float(self.grid_color[2])
+    grid_rgbcolor.alpha = float(self.grid_color[3])
+    self.grid_color_button.set_rgba (grid_rgbcolor)
+    marker1_rgbcolor = Gdk.RGBA()
+    marker1_rgbcolor.red = float(self.marker1_color[0])
+    marker1_rgbcolor.green = float(self.marker1_color[1])
+    marker1_rgbcolor.blue = float(self.marker1_color[2])
+    marker1_rgbcolor.alpha = float(self.marker1_color[3])
+    self.marker1_color_button.set_rgba (marker1_rgbcolor)
+    marker2_rgbcolor = Gdk.RGBA()
+    marker2_rgbcolor.red = float(self.marker2_color[0])
+    marker2_rgbcolor.green = float(self.marker2_color[1])
+    marker2_rgbcolor.blue = float(self.marker2_color[2])
+    marker2_rgbcolor.alpha = float(self.marker2_color[3])
+    self.marker2_color_button.set_rgba (marker2_rgbcolor)
   
   def save_settings(self,but,*args):
     self.c_id = int(self.chart_select.get_active_text())
-    color = self.color_button.get_rgba()
-    color_list = []
-    for c in color:
-      color_list.append(c)
+    bg_color = self.color_button.get_rgba()
+    bg_color_list = []
+    for c in bg_color:
+      bg_color_list.append(c)
+
+    grid_color = self.grid_color_button.get_rgba()
+    grid_color_list = []
+    for c in grid_color:
+      grid_color_list.append(c)
+
+    marker1_color = self.marker1_color_button.get_rgba()
+    marker1_color_list = []
+    for c in marker1_color:
+      marker1_color_list.append(c)
+
+    marker2_color = self.marker2_color_button.get_rgba()
+    marker2_color_list = []
+    for c in marker2_color:
+      marker2_color_list.append(c)
 
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
-      settings.bg_color =  json.dumps(color_list)
+      settings.bg_color =  json.dumps(bg_color_list)
       settings.h_grids =  int(self.hor_grid.get_label())
       settings.v_grids = int(self.vert_grid.get_label())
+      settings.grid_color =  json.dumps(grid_color_list)
+      settings.marker1_width = int(self.marker1_width.get_label())
+      settings.marker1_color =  json.dumps(marker1_color_list)
+      settings.marker2_width = int(self.marker2_width.get_label())
+      settings.marker2_color =  json.dumps(marker2_color_list)
       self.db_session.commit()
     self.app.charts[self.c_id].reload_chart()
 

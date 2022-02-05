@@ -87,9 +87,14 @@ class Chart(Gtk.GLArea):
     self.is_running = True
     self.end_time = time.time()
     self.span = 100.0
-    self.bg_color = (0.1, 0.1, 0.1, 1.0)
-    self.h_grids = 0
-    self.v_grids = 0
+    self.bg_color = [0.1,0.1,0.1,1.0] #default to dark gray
+    self.grid_color = [1.0,1.0,1.0,1.0] #default to white
+    self.h_grids = 2
+    self.v_grids = 2
+    self.marker1_color = [1.0,0.0,0.0,1.0] #default to red
+    self.marker2_color = [0.0,1.0,0.0,1.0] #default to blue
+    self.marker1_width = 1
+    self.marker2_width = 1
     #settings
     self.load_settings()
     self.load_pen_settings()
@@ -132,6 +137,11 @@ class Chart(Gtk.GLArea):
       self.bg_color = json.loads(settings.bg_color) #rgb in json
       self.h_grids = settings.h_grids
       self.v_grids = settings.v_grids
+      self.grid_color = json.loads(settings.grid_color) #rgb in json
+      self.marker1_width = settings.marker1_width
+      self.marker1_color = json.loads(settings.marker1_color) #rgb in json
+      self.marker2_width = settings.marker2_width
+      self.marker2_color = json.loads(settings.marker2_color) #rgb in json
     else:
       #create chart settings in db if they don't exist
       new = tbl(id = self.db_id)
@@ -142,11 +152,14 @@ class Chart(Gtk.GLArea):
       self.bg_color = json.loads(new.bg_color) #rgb in json
       self.h_grids = new.h_grids
       self.v_grids = new.v_grids
+      self.grid_color = json.loads(new.grid_color) #rgb in json
+      self.marker1_width = new.marker1_width
+      self.marker1_color = json.loads(new.marker1_color) #rgb in json
+      self.marker2_width = new.marker2_width
+      self.marker2_color = json.loads(new.marker2_color) #rgb in json
 
   def reload_chart(self):
     self.load_settings()
-    self.render()
-    ################### Need to add function to update chart when chart settings changed
     
   def load_pen_settings(self):
     ##### chart number ----- self.db_id
@@ -168,11 +181,21 @@ class Chart(Gtk.GLArea):
       entry.bg_color = json.dumps(self.bg_color)
       entry.h_grids= self.h_grids
       entry.v_grids=self.v_grids
+      entry.grid_color = json.dumps(self.grid_color)
+      entry.marker1_width=self.marker1_width
+      entry.marker1_color = json.dumps(self.marker1_color)
+      entry.marker2_width=self.marker2_width
+      entry.marker2_color = json.dumps(self.marker2_color)
     else: #create it
       entry = tbl(
         bg_color = json.dumps(self.bg_color),
         h_grids= self.h_grids,
-        v_grids=self.v_grids
+        v_grids=self.v_grids,
+        grid_color = json.dumps(self.grid_color),
+        marker1_width=self.marker1_width,
+        marker1_color = json.dumps(self.marker1_color),
+        marker2_width=self.marker2_width,
+        marker2_color = json.dumps(self.marker2_color),
       )
       self.db_session.add(entry)
     # or 

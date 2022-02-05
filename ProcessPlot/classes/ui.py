@@ -275,41 +275,56 @@ class MainWindow(Gtk.Window):
 
   def build_chart_ctrl(self):
     trend_control_panel = Gtk.Box(width_request=40,height_request=400,orientation=Gtk.Orientation.VERTICAL)
-    self.pan_button = Gtk.Button(width_request = 30)
+
+    #TimeSpan Button
+    self.clock_button = Gtk.Button(width_request = 40)
+    self.clock_button.connect('clicked',self.exit_app,None)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/Clock.png'), 40, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.clock_button.add(image)
+    trend_control_panel.add(self.clock_button)
+    sc = self.clock_button.get_style_context()
+    sc.add_class('ctrl-button')
+
+    #Pan Button
+    self.pan_button = Gtk.Button(width_request = 40)
     self.pan_button.connect('clicked',self.exit_app,None)
     #self.pan_button.connect('clicked',self.setup_tags,None)
     #self.pan_button.set_sensitive(False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/pan.png'), 30, -1, True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/pan.png'), 40, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.pan_button.add(image)
     trend_control_panel.add(self.pan_button)
     sc = self.pan_button.get_style_context()
     sc.add_class('ctrl-button')
 
-    self.chart_marker_button = Gtk.Button(width_request = 30)
+    #Chart Marker Button
+    self.chart_marker_button = Gtk.Button(width_request = 40)
     #self.chart_marker_button.connect('clicked',self.setup_tags,None)
     #self.chart_marker_button.set_sensitive(False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/ChartMarkers.png'), 30, -1, True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/ChartMarkers.png'), 40, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.chart_marker_button.add(image)
     trend_control_panel.add(self.chart_marker_button)
     sc = self.chart_marker_button.get_style_context()
     sc.add_class('ctrl-button')
 
-    self.play_button = Gtk.Button(width_request = 30)
+    #Chart Play Button
+    self.play_button = Gtk.Button(width_request = 40)
     #self.play_button.connect('clicked',self.setup_tags,None)
     #self.play_button.set_sensitive(False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/play.png'), 30, -1, True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/play.png'), 40, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.play_button.add(image)
     trend_control_panel.add(self.play_button)
     sc = self.play_button.get_style_context()
     sc.add_class('ctrl-button')
 
-    self.stop_button = Gtk.Button(width_request = 30)
+    #Chart Stop Button
+    self.stop_button = Gtk.Button(width_request = 40)
     #self.stop_button.connect('clicked',self.setup_tags,None)
     #self.stop_button.set_sensitive(False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/stop.png'), 30, -1, True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/stop.png'), 40, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.stop_button.add(image)
     trend_control_panel.add(self.stop_button)

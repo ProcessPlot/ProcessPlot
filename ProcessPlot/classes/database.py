@@ -48,6 +48,10 @@ class ChartSettings(SettingsBase):
     h_grids = Column(Integer, default = 3)
     v_grids = Column(Integer, default = 3)
     grid_color = Column(String, default = '[0.0,0.0,0.0,1.0]') #rgb in json
+    marker1_width = Column(Integer, default = 1)
+    marker1_color = Column(String, default = '[0.0,1.0,0.0,1.0]') #rgb in json    
+    marker2_width = Column(Integer, default = 1)
+    marker2_color = Column(String, default = '[1.0,0.0,0.0,1.0]') #rgb in json
     #other cols
 
 class PenSettings(SettingsBase):
