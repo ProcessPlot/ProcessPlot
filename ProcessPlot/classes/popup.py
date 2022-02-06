@@ -22,6 +22,7 @@ SOFTWARE.
 
 import gi, os, json
 
+from ProcessLink.process_link import process_link
 from numpy import maximum
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -1701,9 +1702,9 @@ class ChartSettingsPopup(Gtk.Dialog):
       settings.h_grids =  int(self.hor_grid.get_label())
       settings.v_grids = int(self.vert_grid.get_label())
       settings.grid_color =  json.dumps(grid_color_list)
-      settings.marker1_width = int(self.marker1_width.get_label())
+      settings.marker1_width = int(self.marker1_width_button.get_label())
       settings.marker1_color =  json.dumps(marker1_color_list)
-      settings.marker2_width = int(self.marker2_width.get_label())
+      settings.marker2_width = int(self.marker2_width_button.get_label())
       settings.marker2_color =  json.dumps(marker2_color_list)
       self.db_session.commit()
     self.app.charts[self.c_id].reload_chart()
