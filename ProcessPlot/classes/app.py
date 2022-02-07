@@ -11,6 +11,16 @@ class App(object):
   __log = logging.getLogger('ProcessPlot.classes.app')
   def __init__(self):
     self.link = ProcessLink()
+    self.link.set("db_file", "connections.db")
+    self.link.load_db()
+
+    # c = self.link.new_connection({"id": "Turbine",
+    #                       "connection_type": "logix",
+    #                        "description": "Governor",
+    #                        "host": '192.168.1.169'
+    #                       })
+    # self.link.save_connection(c)
+
     self.data_db = DataDb()
     self.settings_db = SettingsDb()
     self.connections_db = ConnectionsDb()
