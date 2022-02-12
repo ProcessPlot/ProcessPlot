@@ -696,8 +696,8 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.db_conn_model = self.app.connections_db.models['connections']
     self.Connections_Tbl = self.db_conn_model
     self.conx_type = self.app.link.get('connection_types')
-    self.conx_Typedata = {0:'', 1: 'Local', 2: 'ModbusTCP', 3: 'ModbusRTU', 4: 'EthernetIP', 5: 'ADS', 6: 'GRBL', 7: 'OPCUA'}
-    self.inv_conx_Typedata = {'':0,'Local':1,'ModbusTCP':2,'ModbusRTU':3, 'EthernetIP':4, 'ADS':5,'GRBL':6, 'OPCUA':7}
+    #self.conx_Typedata = {0:'', 1: 'Local', 2: 'ModbusTCP', 3: 'ModbusRTU', 4: 'EthernetIP', 5: 'ADS', 6: 'GRBL', 7: 'OPCUA'}
+    #self.inv_conx_Typedata = {'':0,'Local':1,'ModbusTCP':2,'ModbusRTU':3, 'EthernetIP':4, 'ADS':5,'GRBL':6, 'OPCUA':7}
 
     super().__init__(parent, "Connection Settings",app)
 
@@ -800,7 +800,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     #if params = None then insert blank row
     self.conn_grid.set_column_homogeneous(False) 
     self.conn_grid.insert_row(1)
-    row = Connection_row(params,self.conn_grid,1,self.app,self,self.conx_Typedata)
+    row = Connection_row(params,self.conn_grid,1,self.app,self,self.conx_type)
     self.create_delete_button(None,1)
     self.conn_row_num += 1
     self.connection_settings.append(row)
@@ -850,18 +850,28 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
   
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
-      new_conx = self.Connections_Tbl(
-        connection_type = params['connection_type'],
-        description =  params['description']
-      )
-      self.db_conn_session.add(new_conx)
-      self.db_conn_session.commit()
-      self.db_conn_session.refresh(new_conx)
-      params = {}
-      if new_conx:
-        for c in self.conn_column_names:
-          params[c] = getattr(new_conx, c)
-        self.insert_connection_row(None,params)
+
+    # new_conx = self.Connections_Tbl(
+    #   connection_type = params['connection_type'],
+    #   description =  params['description']
+    # )
+    # self.db_conn_session.add(new_conx)
+    # self.db_conn_session.commit()
+    # self.db_conn_session.refresh(new_conx)
+    new_id = self.app.link.new_connection({"id": params['id'],
+                            "connection_type": params['connection_type'],
+                            "description": params['description'],
+                            "host": '192.168.1.169'
+                            })
+    for conx_id, conx_obj in self.app.link.get("connections").items():
+      if conx_id == params['id']:
+        self.app.link.save_connection(conx_obj)
+    # params = {}
+    # for c in self.conn_column_names:
+    #   params[c] = getattr(new_conx, c)
+    self.insert_connection_row(None,params)
+
+############################################ ENDED HERE FOR THE NIGHT, NEED UPDATE PEN ROWS CONNECTION LOOKUPS, STILL NEEDS CONNECTION POPUP CLEANUP
 
   def add_connection_popup(self,button,bad_name,*args):
     popup = AddConnectionPopup(self,bad_name,self.conx_type)
@@ -883,17 +893,17 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
       if conx_id == results['id']:
         dup = True
     if dup:
-      self.create_connection(results)
-    else:
       self.add_connection_popup(None,results,self.conx_type)
-############################################ ENDED HERE FOR THE NIGHT, NEED TO CREATE NEW CONNECTION IN PROCESS LINK
+    else:
+      self.create_connection(results)
+
   
 
 class Connection_row(object):
-  def __init__(self,params,conn_grid,row_num,app,parent,conx_typedata,*args):
+  def __init__(self,params,conn_grid,row_num,app,parent,conx_types,*args):
     self.app = app
     self.parent = parent
-    self.conx_Typedata = conx_typedata
+    self.conx_type = conx_types
 
     self.db_conn_session = self.app.connections_db.session
     self.db_conn_model = self.app.connections_db.models['connections']
@@ -1066,7 +1076,6 @@ class AddConnectionPopup(Gtk.Dialog):
     grid.attach(lbl,0,2,1,1) 
     self.conx_driver = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
     self.add_style(self.conx_driver,["font-18","list-select","font-bold"])
-    print(self.conx_type)
     val = 0
     for key in self.conx_type:
       self.conx_driver.append(str(val),key)
@@ -1115,7 +1124,12 @@ class AddConnectionPopup(Gtk.Dialog):
   def same_name(self,results):
     self.pop_lbl.set_label('Name Already Exists')
     self.conx_name.set_text('')
-    self.conx_driver.set_active(results['connection_type'])
+    val = 0
+    for key in self.conx_type:
+      if results['connection_type'] == key:
+        self.conx_driver.set_active(val)
+      val+= 1
+    self.conx_descr.set_text(results['description'])
 
 
 class ValueEnter(Gtk.Dialog):
