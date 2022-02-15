@@ -769,7 +769,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     for items in rows:
       self.conn_grid.remove(items)
 
-  def create_delete_button(self,conn_id,row,*args):
+  def create_delete_button(self,conx_id,row,*args):
     self.delete_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -777,7 +777,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     sc = self.delete_button.get_style_context()
     sc.add_class('ctrl-button')
     self.conn_grid.attach(self.delete_button,5,row,1,1)
-    self.delete_button.connect('clicked',self.confirm_delete,conn_id)
+    self.delete_button.connect('clicked',self.confirm_delete,conx_id)
 
   def add_connection_rows(self,*args):
     new_params = {}
@@ -828,50 +828,38 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     for sty in style:
       sc.add_class(sty)
 
-  def confirm_delete(self, button,conn_id,msg="Are you sure you want to delete this connection?", args=[]):
+  def confirm_delete(self, button,conx_id,msg="Are you sure you want to delete this connection?", args=[]):
     popup = PopupConfirm(self, msg=msg)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
-      self.delete_row(conn_id)
+      self.delete_row(conx_id)
       return True
     else:
       return False
 
-  def delete_row(self,conn_id,*args):
-    #conn_id will be None if row added without being created in the database
-    if conn_id != None:
-      self.db_conn_session.query(self.Connections_Tbl).filter(self.Connections_Tbl.id == conn_id).delete()
-      self.db_conn_session.commit()
+  def delete_row(self,id,*args):
+    conx_obj = self.app.link.get("connections").get(id)
+    if conx_obj != None:
+      self.app.link.delete_connection(conx_obj,id)
     self.remove_all_rows()
     self.add_column_names()
     self.add_connection_rows()
     self.show_all()
+
+############################################ ENDED HERE FOR THE NIGHT, NEED UPDATE PEN ROWS CONNECTION LOOKUPS, STILL NEEDS CONNECTION POPUP CLEANUP
   
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
-
-    # new_conx = self.Connections_Tbl(
-    #   connection_type = params['connection_type'],
-    #   description =  params['description']
-    # )
-    # self.db_conn_session.add(new_conx)
-    # self.db_conn_session.commit()
-    # self.db_conn_session.refresh(new_conx)
-    new_id = self.app.link.new_connection({"id": params['id'],
+    new_conx = self.app.link.new_connection({"id": params['id'],
                             "connection_type": params['connection_type'],
-                            "description": params['description'],
-                            "host": '192.168.1.169'
+                            "description": params['description']
                             })
-    for conx_id, conx_obj in self.app.link.get("connections").items():
-      if conx_id == params['id']:
-        self.app.link.save_connection(conx_obj)
-    # params = {}
-    # for c in self.conn_column_names:
-    #   params[c] = getattr(new_conx, c)
+    conx_obj = self.app.link.get("connections").get(params['id'])
+    if conx_obj != None:
+      self.app.link.save_connection(conx_obj)
     self.insert_connection_row(None,params)
 
-############################################ ENDED HERE FOR THE NIGHT, NEED UPDATE PEN ROWS CONNECTION LOOKUPS, STILL NEEDS CONNECTION POPUP CLEANUP
 
   def add_connection_popup(self,button,bad_name,*args):
     popup = AddConnectionPopup(self,bad_name,self.conx_type)
@@ -880,9 +868,6 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
       self.check_duplicate_name(results)
-
-      #Also need to check that name doesn't exist already or re-open the popup
-
       return True
     else:
       return False
