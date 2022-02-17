@@ -684,34 +684,57 @@ class PointSettingsPopup(BaseSettingsPopoup):
       super().__init__(parent, "Point Settings")
 
 
-class ConnectionSettingsPopup(BaseSettingsPopoup):
+class ConnectionSettingsPopup(Gtk.Dialog):
+
+
 
   def __init__(self, parent,app):
+    super().__init__(transient_for = parent,flags=0) 
     self.unsaved_changes_present = False
     self.unsaved_conn_rows = {}
     self.conn_column_names = ['id', 'connection_type', 'description']
     self.connections_available = {}
     self.app = app
-    self.db_conn_session = self.app.connections_db.session
-    self.db_conn_model = self.app.connections_db.models['connections']
-    self.Connections_Tbl = self.db_conn_model
     self.conx_type = self.app.link.get('connection_types')
-    #self.conx_Typedata = {0:'', 1: 'Local', 2: 'ModbusTCP', 3: 'ModbusRTU', 4: 'EthernetIP', 5: 'ADS', 6: 'GRBL', 7: 'OPCUA'}
-    #self.inv_conx_Typedata = {'':0,'Local':1,'ModbusTCP':2,'ModbusRTU':3, 'EthernetIP':4, 'ADS':5,'GRBL':6, 'OPCUA':7}
+    self.app = app
+    self.set_default_size(500, 800)
+    self.set_decorated(False)
+    self.set_border_width(10)
+    self.set_keep_above(False)
+    sc = self.get_style_context()
+    sc.add_class("dialog-border")
+    self.content_area = self.get_content_area()
 
-    super().__init__(parent, "Connection Settings",app)
+    self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
+    self.content_area.add(self.dialog_window)
+    ### -title bar- ####
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    ### -content area- ####
+    self.base_area = Gtk.Box(spacing = 10,orientation=Gtk.Orientation.VERTICAL,margin = 20)
+    self.scroll = Gtk.ScrolledWindow(width_request = 800,height_request = 600)
+    self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+    self.scroll.add(self.base_area)
+    self.dialog_window.pack_start(self.scroll,1,1,1)
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
+
+    self.build_header("Connection Settings")
+    self.build_base()
+    self.build_footer()
+    self.show_all()
 
   def build_header(self,title):
     #header
-    # self.add_button = Gtk.Button(width_request = 30)
-    # p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddConnection.png', 30, -1, True)
-    # image = Gtk.Image(pixbuf=p_buf)
-    # self.add_button.add(image)
-    # sc = self.add_button.get_style_context()
-    # sc.add_class('ctrl-button')
-    # self.title_bar.pack_start(self.add_button,0,0,0)
-    # self.add_button.connect('clicked',self.insert_connection_row,None)
-
     self.add_button2 = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddConnection.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -721,7 +744,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.title_bar.pack_start(self.add_button2,0,0,0)
     self.add_button2.connect('clicked',self.add_connection_popup,None,self.conx_type)
 
-    title = Gtk.Label(label=title,width_request = 1000)
+    title = Gtk.Label(label=title,width_request = 500)
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
@@ -847,7 +870,7 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     self.add_connection_rows()
     self.show_all()
 
-############################################ ENDED HERE FOR THE NIGHT, NEED UPDATE PEN ROWS CONNECTION LOOKUPS, STILL NEEDS CONNECTION POPUP CLEANUP
+############################################ ENDED HERE FOR THE NIGHT, NEED UPDATE PEN ROWS CONNECTION LOOKUPS, ADD DESCRIPTIONS TO CONNECTIONS POPUP AND SHRINK SIZE, CREATE CONNECTION PARAMS POPUP
   
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
@@ -860,8 +883,8 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
       self.app.link.save_connection(conx_obj)
     self.insert_connection_row(None,params)
 
-
   def add_connection_popup(self,button,bad_name,*args):
+    self.get_connection_params('Turbine')
     popup = AddConnectionPopup(self,bad_name,self.conx_type)
     response = popup.run()
     popup.destroy()
@@ -872,6 +895,11 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     else:
       return False
   
+  def get_connection_params(self,conx_id):
+    conx_obj = self.app.link.get("connections").get(conx_id)
+    if conx_obj != None:
+      print(self.app.link.get_connection_params(conx_obj,conx_id))
+
   def check_duplicate_name(self,results,*args):
     dup = False
     for conx_id,conx_obj in self.app.link.get('connections').items():
@@ -882,18 +910,14 @@ class ConnectionSettingsPopup(BaseSettingsPopoup):
     else:
       self.create_connection(results)
 
+  def close_popup(self, button):
+    self.destroy()
   
-
 class Connection_row(object):
   def __init__(self,params,conn_grid,row_num,app,parent,conx_types,*args):
     self.app = app
     self.parent = parent
     self.conx_type = conx_types
-
-    self.db_conn_session = self.app.connections_db.session
-    self.db_conn_model = self.app.connections_db.models['connections']
-    self.Connections_Tbl = self.db_conn_model
-
     self.conn_grid = conn_grid
     self.conn_row_num = row_num
     self.params = params
@@ -901,7 +925,6 @@ class Connection_row(object):
       self.id = self.params['id']
     self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
     self.connections_available = {}
-    self.get_available_connections()
     self.build_row()
     #Rows start at 1 because row 0 is titles
     #Grid : Left,Top,Width,Height
@@ -970,20 +993,6 @@ class Connection_row(object):
     else:
       self.driver_settings_button.set_sensitive(True)
 
-  def get_available_connections(self,*args):
-    connections = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
-    self.connections_available = {0:{'id':0,'type':0,'desc':"","count":0}}
-    d = {}
-    count = 1
-    for con in connections:
-        d['id'] = con.id
-        d['type'] = con.connection_type
-        d['desc'] = con.description
-        d['count'] = count
-        self.connections_available[int(con.id)] = d
-        d = {}
-        count += 1
-  
   def add_style(self, item,style):
     sc = item.get_style_context()
     for sty in style:
