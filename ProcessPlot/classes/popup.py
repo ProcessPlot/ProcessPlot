@@ -684,9 +684,7 @@ class PointSettingsPopup(BaseSettingsPopoup):
       super().__init__(parent, "Point Settings")
 
 
-class ConnectionSettingsPopup(Gtk.Dialog):
-
-
+class ConnectionsMainPopup(Gtk.Dialog):
 
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0) 
@@ -830,7 +828,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.show_all()
 
   def add_column_names(self,*args):
-    labels = ['','Connection Name', 'Connection Driver', '', '',''] # may want to create a table in the db for column names
+    labels = ['','Connection Name', 'Connection Driver', 'Connection Description', '',''] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
         l = Gtk.Label(labels[l_idx])
         sc = l.get_style_context()
@@ -884,7 +882,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.insert_connection_row(None,params)
 
   def add_connection_popup(self,button,bad_name,*args):
-    self.get_connection_params('Turbine')
+    #self.get_connection_params('Turbine')
     popup = AddConnectionPopup(self,bad_name,self.conx_type)
     response = popup.run()
     popup.destroy()
@@ -908,11 +906,25 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     if dup:
       self.add_connection_popup(None,results,self.conx_type)
     else:
-      self.create_connection(results)
+      ################################################broke connection creation here
+      #self.create_connection(results)
+      self.open_settings_popup()
+  
+  def open_settings_popup(self,*args):
+    #self.get_connection_params('Turbine')
+    popup = ConnectionSettingsPopup(self)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      results = (popup.get_result())
+      return True
+    else:
+      return False
 
   def close_popup(self, button):
     self.destroy()
-  
+
+
 class Connection_row(object):
   def __init__(self,params,conn_grid,row_num,app,parent,conx_types,*args):
     self.app = app
@@ -951,6 +963,13 @@ class Connection_row(object):
     self.conx_driver.set_label(db_conx_driver)
     self.add_style(self.conx_driver,["font-18","ctrl-lbl","font-bold"])
     self.conn_grid.attach(self.conx_driver,2,self.conn_row_num,1,1)
+
+    #Connection Description
+    db_conx_desc = self.params['description']
+    self.conx_desc = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
+    self.conx_desc.set_label(db_conx_desc)
+    self.add_style(self.conx_desc,["font-18","ctrl-lbl","font-bold"])
+    self.conn_grid.attach(self.conx_desc,3,self.conn_row_num,1,1)
     
     #Connection Settings Button
     self.driver_settings_button = Gtk.Button(height_request = 25)
@@ -959,13 +978,14 @@ class Connection_row(object):
     self.driver_settings_button.add(icon)
     self.parent.add_style(self.driver_settings_button,["ctrl-button"])
     #self.driver_settings_button.connect("clicked", self.open_driver_settings)
-    self.conn_grid.attach(self.driver_settings_button,3,self.conn_row_num,1,1)
+    self.conn_grid.attach(self.driver_settings_button,4,self.conn_row_num,1,1)
     if self.params != None:
       self.driver_settings_button.set_sensitive(True)
     else:
       self.driver_settings_button.set_sensitive(False)
 
     #Save Button
+    '''
     self.save_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 25, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -978,6 +998,7 @@ class Connection_row(object):
     else:
       self.save_button.set_sensitive(False)
     #self.save_button.connect('clicked',self.save_settings)
+    '''
 
   def enable_new(self, obj, prop):
     enable = (obj.get_property('text-length') > 0)
@@ -1124,6 +1145,146 @@ class AddConnectionPopup(Gtk.Dialog):
         self.conx_driver.set_active(val)
       val+= 1
     self.conx_descr.set_text(results['description'])
+
+
+class ConnectionSettingsPopup(Gtk.Dialog):
+  def __init__(self, params):
+    Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
+                        (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
+                          Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
+                        )
+    self.params = params
+    self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor', 'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
+    self.set_default_size(500, 800)
+    self.set_border_width(10)
+    sc = self.get_style_context()
+    sc.add_class("dialog-border")
+    self.set_keep_above(True)
+    self.set_decorated(False)
+    self.connect("response", self.on_response)
+    self.content_area = self.get_content_area()
+    self.result = {}
+
+    self.dialog_window = Gtk.Box(width_request=500,orientation=Gtk.Orientation.VERTICAL)
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=500)
+
+    #header
+    title = Gtk.Label(label='Create New Connection')
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.title_bar.pack_start(title,1,1,1)
+    self.pin_button = Gtk.Button(width_request = 20)
+    self.pin_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.pin_button.add(image)
+    self.title_bar.pack_end(self.pin_button,0,0,1)
+    sc = self.pin_button.get_style_context()
+    sc.add_class('exit-button')
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    #self.dialog_window.pack_start(divider,0,0,1)
+    self.content_area.add(self.dialog_window )
+    self.build_base()
+    self.show_all()
+
+  def build_base(self,*args):
+    grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
+    self.pop_lbl = Gtk.Label('')
+    self.add_style(self.pop_lbl,['text-red-color','font-14','font-bold'])
+    grid.attach(self.pop_lbl,0,0,3,1)
+    self.dialog_window.pack_start(grid,1,1,1)
+
+    #Connection name entry
+    lbl = Gtk.Label('Connection Name')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,1,1,1) 
+    self.conx_name = Gtk.Label(width_request = 300,height_request = 30)
+    self.conx_name.set_text(self.params['id'])
+    self.conx_name.set_alignment(0.5,0.5)
+    self.add_style(self.conx_name,["label","font-12"])
+    #self.conx_name.connect("notify::text-length", self.enable_new)
+    grid.attach(self.conx_name,1,1,2,1)    
+
+    #Pollrate
+    db_poll_rate = str(self.params['pollrate'])
+    lbl = Gtk.Label('Connection Pollrate')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,2,1,1) 
+    but = Gtk.Button(width_request = 100)
+    self.pollrate = Gtk.Label()
+    self.pollrate.set_label(db_poll_rate)
+    self.add_style(self.pollrate,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.pollrate)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.pollrate,{'min':-32768,'max':32768,'type':float,'polarity':True})
+    grid.attach(but,1,2,2,1)
+
+    #Auto Connect
+    db_auto_connect = str(self.params['auto_connect'])
+    lbl = Gtk.Label('Connection Pollrate')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,3,1,1) 
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    wid =CheckBoxWidget(30,30,image,db_auto_connect)
+    self.auto_connect = wid.return_self()
+    #self.auto_connect.connect("toggled", self.get_dark_toggle)
+    grid.attach(self.auto_connect,1,3,2,1)
+
+   #Connection description entry
+    lbl = Gtk.Label('Connection Description')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    grid.attach(lbl,0,4,1,1) 
+    self.conx_descr = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
+    self.conx_descr.set_placeholder_text('Enter Connection Description')
+    self.conx_descr.set_alignment(0.5)
+    self.add_style(self.conx_descr,["entry","font-12"])
+    self.conx_descr.connect("notify::text-length", self.enable_new)
+    grid.attach(self.conx_descr,1,4,2,1)  
+    
+    sep = Gtk.Label(height_request=3)
+    self.dialog_window.pack_start(sep,1,1,1)
+
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
+  def enable_new(self, obj, prop):
+    enable = (obj.get_property('text-length') > 0)
+    if enable:
+      self.add_style(obj,["entry","font-18","font-bold"])
+    else:
+      self.add_style(obj,["entry","font-12"])
+
+  def close_popup(self, button):
+    self.destroy()
+  
+  def on_response(self, widget, response_id):
+    #{'id': '2', 'connection_type': 4, 'description': 'EthernetIP'}
+    self.result['id'] = self.conx_name.get_text ()
+    self.result['connection_type'] = self.conx_driver.get_active_text()
+    self.result['description'] = self.conx_descr.get_text ()
+  
+  def get_result(self):
+    return self.result
+
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
+    response = numpad.run()
+    if response == Gtk.ResponseType.NO:
+      pass
+    else:
+      pass
+      #callback(args)
+    numpad.destroy()
+  
 
 
 class ValueEnter(Gtk.Dialog):
