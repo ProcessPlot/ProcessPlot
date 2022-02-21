@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from pkgutil import iter_modules
 import gi, os, json
 
 from ProcessLink.process_link import process_link
@@ -881,6 +882,13 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.app.link.save_connection(conx_obj)
     self.insert_connection_row(None,params)
 
+  def update_connection(self,params,*args):
+    conx_obj = self.app.link.get("connections").get(params['id'])
+    if conx_obj != None:
+      print(conx_obj)
+      #self.app.link.save_connection(conx_obj)
+      ############################ENDED HERE NEED TO UPDATE CONNECTION PARAMS
+
   def add_connection_popup(self,button,bad_name,*args):
     #self.get_connection_params('Turbine')
     popup = AddConnectionPopup(self,bad_name,self.conx_type)
@@ -896,7 +904,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
   def get_connection_params(self,conx_id):
     conx_obj = self.app.link.get("connections").get(conx_id)
     if conx_obj != None:
-      print(self.app.link.get_connection_params(conx_obj,conx_id))
+      return self.app.link.get_connection_params(conx_obj,conx_id)
 
   def check_duplicate_name(self,results,*args):
     dup = False
@@ -906,17 +914,17 @@ class ConnectionsMainPopup(Gtk.Dialog):
     if dup:
       self.add_connection_popup(None,results,self.conx_type)
     else:
-      ################################################broke connection creation here
-      #self.create_connection(results)
-      self.open_settings_popup()
+      self.create_connection(results)
+      self.open_settings_popup(results['id'])
   
-  def open_settings_popup(self,*args):
-    #self.get_connection_params('Turbine')
-    popup = ConnectionSettingsPopup(self)
+  def open_settings_popup(self,conx_id,*args):
+    params = self.get_connection_params(conx_id)
+    popup = ConnectionSettingsPopup(self,params)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
+      self.update_connection(results)
       return True
     else:
       return False
@@ -1148,14 +1156,14 @@ class AddConnectionPopup(Gtk.Dialog):
 
 
 class ConnectionSettingsPopup(Gtk.Dialog):
-  def __init__(self, params):
-    Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
+  def __init__(self, parent,params):
+    Gtk.Dialog.__init__(self, '',parent, Gtk.DialogFlags.MODAL,
                         (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
                           Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
                         )
     self.params = params
-    self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor', 'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
-    self.set_default_size(500, 800)
+    #self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor', 'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
+    self.set_default_size(500, 400)
     self.set_border_width(10)
     sc = self.get_style_context()
     sc.add_class("dialog-border")
@@ -1194,73 +1202,94 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.show_all()
 
   def build_base(self,*args):
+    line = 0
     grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
-    self.pop_lbl = Gtk.Label('')
-    self.add_style(self.pop_lbl,['text-red-color','font-14','font-bold'])
-    grid.attach(self.pop_lbl,0,0,3,1)
     self.dialog_window.pack_start(grid,1,1,1)
 
     #Connection name entry
     lbl = Gtk.Label('Connection Name')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,1,1,1) 
+    grid.attach(lbl,0,line,1,1) 
     self.conx_name = Gtk.Label(width_request = 300,height_request = 30)
     self.conx_name.set_text(self.params['id'])
     self.conx_name.set_alignment(0.5,0.5)
     self.add_style(self.conx_name,["label","font-18","font-bold"])
     #self.conx_name.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_name,1,1,2,1)    
+    grid.attach(self.conx_name,1,line,2,1)   
+    line+=1 
 
     #Connection description entry
     lbl = Gtk.Label('Connection Description')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,2,1,1) 
+    grid.attach(lbl,0,line,1,1) 
     self.conx_descr = Gtk.Label(width_request = 300,height_request = 30)
     self.conx_descr.set_text(self.params['description'])
     self.conx_descr.set_alignment(0.5,0.5)
     self.add_style(self.conx_descr,["label","font-18","font-bold"])
     #self.conx_descr.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_descr,1,2,2,1) 
+    grid.attach(self.conx_descr,1,line,2,1) 
+    line+=1 
 
     #Pollrate
-    db_poll_rate = str(self.params['pollrate'])
-    lbl = Gtk.Label('Connection Pollrate')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,3,1,1) 
-    but = Gtk.Button(width_request = 100)
-    self.pollrate = Gtk.Label()
-    self.pollrate.set_label(db_poll_rate)
-    self.add_style(self.pollrate,['borderless-num-display','font-14','text-black-color'])
-    but.add(self.pollrate)
-    sc = but.get_style_context()
-    sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.pollrate,{'min':-32768,'max':32768,'type':float,'polarity':True})
-    grid.attach(but,1,3,2,1)
+    if 'pollrate' in self.params.keys():    
+      db_poll_rate = str(self.params['pollrate'])
+      lbl = Gtk.Label('Connection Pollrate')
+      self.add_style(lbl,["Label","font-16",'font-bold'])
+      grid.attach(lbl,0,line,1,1) 
+      but = Gtk.Button(width_request = 100)
+      self.pollrate = Gtk.Label()
+      self.pollrate.set_label(db_poll_rate)
+      self.add_style(self.pollrate,['borderless-num-display','font-14','text-black-color'])
+      but.add(self.pollrate)
+      sc = but.get_style_context()
+      sc.add_class('ctrl-button')
+      but.connect('clicked',self.open_numpad,self.pollrate,{'min':-32768,'max':32768,'type':float,'polarity':True})
+      grid.attach(but,1,line,2,1)
+      line+=1 
 
     #Auto Connect
-    db_auto_connect = str(self.params['auto_connect'])
-    lbl = Gtk.Label('Auto Connect on Start')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,4,1,1) 
-    bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, halign = Gtk.Align.CENTER)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    wid =CheckBoxWidget(30,30,image,db_auto_connect)
-    self.auto_connect = wid.return_self()
-    bx.pack_start(self.auto_connect,0,0,0)
-    #self.auto_connect.connect("toggled", self.get_dark_toggle)
-    grid.attach(bx,1,4,2,1)
+    if 'auto_connect' in self.params.keys(): 
+      db_auto_connect = str(self.params['auto_connect'])
+      lbl = Gtk.Label('Auto Connect on Start')
+      self.add_style(lbl,["Label","font-16",'font-bold'])
+      grid.attach(lbl,0,line,1,1) 
+      bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, halign = Gtk.Align.CENTER)
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
+      image = Gtk.Image(pixbuf=p_buf)
+      wid =CheckBoxWidget(30,30,image,db_auto_connect)
+      self.auto_connect = wid.return_self()
+      bx.pack_start(self.auto_connect,0,0,0)
+      grid.attach(bx,1,line,2,1)
+      line+=1
 
-   #Connection host entry
-    db_host = str(self.params['host'])
-    lbl = Gtk.Label('Connection Host')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,5,1,1) 
-    self.conx_host = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
-    self.conx_host.set_alignment(0.5)
-    self.add_style(self.conx_host,["entry","font-18","font-bold"])
-    self.conx_host.set_text(db_host)
-    grid.attach(self.conx_host,1,5,2,1)  
+    #Connection host entry
+    if 'host' in self.params.keys(): 
+      db_host = str(self.params['host'])
+      lbl = Gtk.Label('Connection Host')
+      self.add_style(lbl,["Label","font-16",'font-bold'])
+      grid.attach(lbl,0,line,1,1) 
+      self.conx_host = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
+      self.conx_host.set_alignment(0.5)
+      self.add_style(self.conx_host,["entry","font-18","font-bold"])
+      self.conx_host.set_text(db_host)
+      grid.attach(self.conx_host,1,line,2,1)
+      line+=1 
+
+    #Port
+    if 'port' in self.params.keys(): 
+      db_port = str(self.params['port'])
+      lbl = Gtk.Label('Connection Port')
+      self.add_style(lbl,["Label","font-16",'font-bold'])
+      grid.attach(lbl,0,line,1,1) 
+      but = Gtk.Button(width_request = 100)
+      self.conx_port = Gtk.Label()
+      self.conx_port.set_label(db_port)
+      self.add_style(self.conx_port,['borderless-num-display','font-14','text-black-color'])
+      but.add(self.conx_port)
+      sc = but.get_style_context()
+      sc.add_class('ctrl-button')
+      but.connect('clicked',self.open_numpad,self.conx_port,{'min':0,'max':65536,'type':int,'polarity':True})
+      grid.attach(but,1,line,2,1)
     
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
@@ -1281,10 +1310,27 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.destroy()
   
   def on_response(self, widget, response_id):
-    #{'id': '2', 'connection_type': 4, 'description': 'EthernetIP'}
-    self.result['id'] = self.conx_name.get_text ()
-    self.result['connection_type'] = self.conx_driver.get_active_text()
+    # self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor', 'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
+    
+    self.result['id'] = self.conx_name.get_text()
+    self.result['connection_type'] = self.params['connection_type']
     self.result['description'] = self.conx_descr.get_text ()
+    if 'pollrate' in self.params.keys():
+      self.result['pollrate'] = self.pollrate.get_text()
+    else:
+      self.result['pollrate'] = None
+    if 'auto_connect' in self.params.keys():
+      self.result['auto_connect'] = self.auto_connect.get_active()
+    else:
+      self.result['auto_connect'] = False
+    if 'host' in self.params.keys():
+      self.result['host'] = self.conx_host.get_text()
+    else:
+      self.result['host'] = None
+    if 'port' in self.params.keys():
+      self.result['port'] = self.conx_port.get_text()
+    else:
+      self.result['port'] = None
   
   def get_result(self):
     return self.result
