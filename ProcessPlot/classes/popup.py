@@ -21,10 +21,11 @@ SOFTWARE.
 """
 
 from pkgutil import iter_modules
+from urllib.parse import non_hierarchical
 import gi, os, json
 
 from ProcessLink.process_link import process_link
-from numpy import maximum
+from numpy import maximum, nonzero
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import re
@@ -885,9 +886,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
   def update_connection(self,params,*args):
     conx_obj = self.app.link.get("connections").get(params['id'])
     if conx_obj != None:
-      print(conx_obj)
-      #self.app.link.save_connection(conx_obj)
-      ############################ENDED HERE NEED TO UPDATE CONNECTION PARAMS
+      for key, val in params.items():
+        if key == 'id' or key == 'description' or key == 'connection_type' or val == None:
+          pass
+        else:
+          try:
+            conx_obj.set(key,val)
+          except KeyError as e:
+            print(e,key)
+      self.app.link.save_connection(conx_obj)
 
   def add_connection_popup(self,button,bad_name,*args):
     #self.get_connection_params('Turbine')
@@ -985,28 +992,12 @@ class Connection_row(object):
     icon = Gtk.Image(pixbuf=p_buf)
     self.driver_settings_button.add(icon)
     self.parent.add_style(self.driver_settings_button,["ctrl-button"])
-    #self.driver_settings_button.connect("clicked", self.open_driver_settings)
+    self.driver_settings_button.connect("clicked", self.open_settings)
     self.conn_grid.attach(self.driver_settings_button,4,self.conn_row_num,1,1)
     if self.params != None:
       self.driver_settings_button.set_sensitive(True)
     else:
       self.driver_settings_button.set_sensitive(False)
-
-    #Save Button
-    '''
-    self.save_button = Gtk.Button(width_request = 30)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 25, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    self.save_button.add(image)
-    sc = self.save_button.get_style_context()
-    sc.add_class('ctrl-button')
-    self.conn_grid.attach(self.save_button,4,self.conn_row_num,1,1)
-    if self.params == None:
-      self.save_button.set_sensitive(True)
-    else:
-      self.save_button.set_sensitive(False)
-    #self.save_button.connect('clicked',self.save_settings)
-    '''
 
   def enable_new(self, obj, prop):
     enable = (obj.get_property('text-length') > 0)
@@ -1021,6 +1012,9 @@ class Connection_row(object):
       self.driver_settings_button.set_sensitive(False)
     else:
       self.driver_settings_button.set_sensitive(True)
+
+  def open_settings(self,button,*args):
+    self.parent.open_settings_popup(self.id)
 
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -1162,7 +1156,6 @@ class ConnectionSettingsPopup(Gtk.Dialog):
                           Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
                         )
     self.params = params
-    #self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor', 'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
     self.set_default_size(500, 400)
     self.set_border_width(10)
     sc = self.get_style_context()
@@ -1310,7 +1303,8 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.destroy()
   
   def on_response(self, widget, response_id):
-    # self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor', 'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
+    # self.params = {'id': 'Turbine', 'connection_type': 'logix', 'description': 'Governor',
+    #          'pollrate': 1.0, 'auto_connect': False, 'host': '192.168.1.169', 'port': 44818}
     
     self.result['id'] = self.conx_name.get_text()
     self.result['connection_type'] = self.params['connection_type']
@@ -1322,7 +1316,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     if 'auto_connect' in self.params.keys():
       self.result['auto_connect'] = self.auto_connect.get_active()
     else:
-      self.result['auto_connect'] = False
+      self.result['auto_connect'] = None
     if 'host' in self.params.keys():
       self.result['host'] = self.conx_host.get_text()
     else:
