@@ -338,7 +338,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
 
 class Pen_row(object):
   def __init__(self,params,pen_grid,row_num,app,parent,*args):
-    self.app = app
+    self.app = app    
     self.parent = parent
     self.db_settings_session = self.app.settings_db.session
     self.db_settings_model = self.app.settings_db.models['pen']
@@ -407,12 +407,17 @@ class Pen_row(object):
     self.display_status.connect("toggled", self.row_changed)
 
     #Connection Select
+    print('connection',self.db_conn_id)
+    print('connection',self.connections_available)
+    '''
     if self.db_conn_id in self.connections_available.keys():
       params = self.connections_available[self.db_conn_id]
     else:
       params = self.connections_available[0]
+    '''
     self.conn_select = Gtk.ComboBoxText(width_request = 300)
     for key, val in self.connections_available.items():
+      print(val,key)
       self.conn_select.append_text(val['id'])
     self.conn_select.set_active(int(key))
     sc = self.conn_select.get_style_context()
@@ -429,8 +434,8 @@ class Pen_row(object):
       params = self.tags_available[0]
     self.tag_select = Gtk.ComboBoxText(hexpand = True)
     for key, val in self.tags_available.items():
-      self.tag_select.append_text(val['desc'])
-    self.tag_select.set_active(int(params['count']))
+      self.tag_select.append_text(val['id'])
+    self.tag_select.set_active(int(key))
     sc = self.tag_select.get_style_context()
     sc.add_class('ctrl-combo')
     self.pen_grid.attach(self.tag_select,3,self.pen_row_num,1,1)
@@ -543,6 +548,7 @@ class Pen_row(object):
     self.parent.unsaved_changes(False,self,self.id)
 
   def new_connection_selelcted(self, *args):
+    #########################################FINISH FIXING THIS SECTION HERE
     pass
     c_temp = self.conn_select.get_active_text()
     id = 0
@@ -651,16 +657,17 @@ class Pen_row(object):
       sc.add_class(sty)
 
   def get_available_connections(self,*args):
+
     conx_items = ['id', 'connection_type', 'description']
     new_params = {}
     count = 1
-    self.connections_available = {0: {'id': '0', 'connection_type': 0, 'description': ''}}
+    self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
     for conx_id,conx_obj in self.app.link.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
       self.connections_available[count] = new_params
+      new_params = {}
       count += 1
-    print('new_params',self.connections_available)
     '''
     connections = self.db_conn_session.query(self.Connections_Tbl).order_by(self.Connections_Tbl.id)
     self.connections_available = {0:{'id':0,'type':0,'desc':"","count":0}}
@@ -676,7 +683,20 @@ class Pen_row(object):
         count += 1
     '''
   def get_available_tags(self,c_id,*args):
-    tags = self.db_conn_session.query(self.Tags_Tbl).filter(self.Tags_Tbl.connection_id == int(c_id)).order_by(self.Tags_Tbl.id)
+
+    tag_items = ['id', 'connection_id', 'description','datatype','tag_type']
+    new_params = {}
+    count = 1
+    self.tags_available = {0: {'id': '0', 'datatype': 0, 'description': '','c_id':None}}
+    conx_obj = self.app.link.get("connections").get(c_id)
+    for tag_id,tag_obj in conx_obj.get('tags').items():
+      for c in tag_items:
+        new_params[c] = getattr(tag_obj, c)
+      self.tags_available[count] = new_params
+      new_params = {}
+      count += 1
+
+    '''tags = self.db_conn_session.query(self.Tags_Tbl).filter(self.Tags_Tbl.connection_id == int(c_id)).order_by(self.Tags_Tbl.id)
     self.tags_available = {0:{'id':0,'type':0,'desc':"","count":0}}
     d = {}
     count = 1
@@ -689,7 +709,7 @@ class Pen_row(object):
         self.tags_available[int(tag.id)] = d
         d = {}
         count += 1
-  
+    '''
 
 class PointSettingsPopup(BaseSettingsPopoup):
 
