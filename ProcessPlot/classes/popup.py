@@ -343,7 +343,7 @@ class Pen_row(object):
     self.db_settings_session = self.app.settings_db.session
     self.db_settings_model = self.app.settings_db.models['pen']
     self.Pen_Settings_Tbl = self.db_settings_model
-
+    '''
     self.db_conn_session = self.app.connections_db.session
     self.db_conn_model = self.app.connections_db.models['connections']
     self.Connections_Tbl = self.db_conn_model
@@ -351,7 +351,7 @@ class Pen_row(object):
     self.db_conn_session = self.app.connections_db.session
     self.db_conn_model = self.app.connections_db.models['tags']
     self.Tags_Tbl = self.db_conn_model
-
+    '''
     self.params = params
     self.pen_grid = pen_grid
     self.pen_row_num = row_num
@@ -407,19 +407,14 @@ class Pen_row(object):
     self.display_status.connect("toggled", self.row_changed)
 
     #Connection Select
-    print('connection',self.db_conn_id)
-    print('connection',self.connections_available)
-    '''
-    if self.db_conn_id in self.connections_available.keys():
-      params = self.connections_available[self.db_conn_id]
-    else:
-      params = self.connections_available[0]
-    '''
+    db_conx = str(self.params['connection_id'])
     self.conn_select = Gtk.ComboBoxText(width_request = 300)
+    i = 0
     for key, val in self.connections_available.items():
-      print(val,key)
       self.conn_select.append_text(val['id'])
-    self.conn_select.set_active(int(key))
+      if val['id'] == db_conx:
+        i = key
+    self.conn_select.set_active(i)
     sc = self.conn_select.get_style_context()
     sc.add_class('ctrl-combo')
     self.pen_grid.attach(self.conn_select,2,self.pen_row_num,1,1)
@@ -428,14 +423,14 @@ class Pen_row(object):
 
 
     #Tag Select
-    if self.db_tag_id in self.tags_available.keys():
-      params = self.tags_available[self.db_tag_id]
-    else:
-      params = self.tags_available[0]
+    db_tag = str(self.params['tag_id'])
+    i = 0
     self.tag_select = Gtk.ComboBoxText(hexpand = True)
     for key, val in self.tags_available.items():
       self.tag_select.append_text(val['id'])
-    self.tag_select.set_active(int(key))
+      if val['id'] == db_tag:
+        i = key
+    self.tag_select.set_active(i)
     sc = self.tag_select.get_style_context()
     sc.add_class('ctrl-combo')
     self.pen_grid.attach(self.tag_select,3,self.pen_row_num,1,1)
@@ -549,17 +544,16 @@ class Pen_row(object):
 
   def new_connection_selelcted(self, *args):
     #########################################FINISH FIXING THIS SECTION HERE
-    pass
     c_temp = self.conn_select.get_active_text()
-    id = 0
+    id = ''
     for key, val in self.connections_available.items():
-      if val['desc'] == c_temp:
-        id = int(val['id'])
+      if val['id'] == c_temp:
+        id = str(val['id'])
     self.db_conn_id = id
     self.get_available_tags(self.db_conn_id)
     self.tag_select.remove_all()
     for key, val in self.tags_available.items():
-      self.tag_select.append_text(val['desc'])
+      self.tag_select.append_text(val['id'])
     self.tag_select.set_active(0)
   
   def save_settings(self,button,*args):
@@ -575,21 +569,13 @@ class Pen_row(object):
       settings.chart_id = chart_id
       p_settings['chart_id'] = chart_id
 
-      #search list to match tag name with id number
-      t_temp = self.tag_select.get_active_text()
-      t_id = 0
-      for key, val in self.tags_available.items():
-        if val['desc'] == t_temp:
-          t_id = int(val['id'])
+      #get tag ID
+      t_id = self.tag_select.get_active_text()
       settings.tag_id = t_id
       p_settings['tag_id'] = t_id
 
-      #search list to match connection name with id number
-      c_temp = self.conn_select.get_active_text()
-      c_id = 0
-      for key, val in self.connections_available.items():
-        if val['desc'] == c_temp:
-          c_id = int(val['id'])
+      #get connection ID
+      c_id = self.conn_select.get_active_text()
       settings.connection_id = c_id
       p_settings['connection_id'] = c_id
 
@@ -683,11 +669,10 @@ class Pen_row(object):
         count += 1
     '''
   def get_available_tags(self,c_id,*args):
-
     tag_items = ['id', 'connection_id', 'description','datatype','tag_type']
     new_params = {}
     count = 1
-    self.tags_available = {0: {'id': '0', 'datatype': 0, 'description': '','c_id':None}}
+    self.tags_available = {0: {'id': '', 'datatype': 0, 'description': '','c_id':None}}
     conx_obj = self.app.link.get("connections").get(c_id)
     for tag_id,tag_obj in conx_obj.get('tags').items():
       for c in tag_items:
