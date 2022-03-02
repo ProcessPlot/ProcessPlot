@@ -408,7 +408,7 @@ class Pen_row(object):
 
     #Connection Select
     db_conx = str(self.params['connection_id'])
-    self.conn_select = Gtk.ComboBoxText(width_request = 300)
+    self.conn_select = Gtk.ComboBoxText(width_request = 200, halign = Gtk.Align.CENTER )
     i = 0
     for key, val in self.connections_available.items():
       self.conn_select.append_text(val['id'])
@@ -420,7 +420,6 @@ class Pen_row(object):
     self.pen_grid.attach(self.conn_select,2,self.pen_row_num,1,1)
     self.conn_select.connect("changed", self.row_changed)
     self.conn_select.connect("changed",self.new_connection_selelcted)
-
 
     #Tag Select
     db_tag = str(self.params['tag_id'])
@@ -543,7 +542,6 @@ class Pen_row(object):
     self.parent.unsaved_changes(False,self,self.id)
 
   def new_connection_selelcted(self, *args):
-    #########################################FINISH FIXING THIS SECTION HERE
     c_temp = self.conn_select.get_active_text()
     id = ''
     for key, val in self.connections_available.items():
@@ -695,6 +693,7 @@ class Pen_row(object):
         d = {}
         count += 1
     '''
+
 
 class PointSettingsPopup(BaseSettingsPopoup):
 
@@ -886,7 +885,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.add_connection_rows()
     self.show_all()
 
-############################################ ENDED HERE FOR THE NIGHT, NEED UPDATE PEN ROWS CONNECTION LOOKUP
   
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
@@ -1461,8 +1459,6 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.destroy()
   
   def on_response(self, widget, response_id):
-############################### Add ON response for new connection settings
-    
     self.result['id'] = self.conx_name.get_text()
     self.result['connection_type'] = self.params['connection_type']
     self.result['description'] = self.conx_descr.get_text ()
@@ -1482,6 +1478,34 @@ class ConnectionSettingsPopup(Gtk.Dialog):
       self.result['port'] = self.conx_port.get_text()
     else:
       self.result['port'] = None
+    if 'station_id' in self.params.keys():
+      self.result['station_id'] = self.station_id.get_text()
+    else:
+      self.result['station_id'] = None
+    if 'baudrate' in self.params.keys():
+      self.result['baudrate'] = self.baudrate.get_active_text()
+    else:
+      self.result['baudrate'] = None
+    if 'timeout' in self.params.keys():
+      self.result['timeout'] = self.timeout.get_text()
+    else:
+      self.result['timeout'] = None
+    if 'stop_bit' in self.params.keys():
+      self.result['stop_bit'] = self.stop_bit.get_active_text()
+    else:
+      self.result['stop_bit'] = None
+    if 'parity' in self.params.keys():
+      self.result['parity'] = self.parity.get_active_text()
+    else:
+      self.result['parity'] = None
+    if 'byte_size' in self.params.keys():
+      self.result['byte_size'] = self.byte_size.get_active_text()
+    else:
+      self.result['byte_size'] = None
+    if 'retries' in self.params.keys():
+      self.result['retries'] = self.retries.get_text()
+    else:
+      self.result['retries'] = None
   
   def get_result(self):
     return self.result
