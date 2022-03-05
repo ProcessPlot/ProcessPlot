@@ -8,7 +8,7 @@ from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
 from classes.chart import *
-from classes.popup import PenSettingsPopup, ConnectionsMainPopup, PointSettingsPopup
+from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup
 from Public.widgets.checkbox import CheckBoxWidget
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
@@ -144,7 +144,7 @@ class MainWindow(Gtk.Window):
 
     self.popups = {
       "pen": PenSettingsPopup,
-      "point": PointSettingsPopup,
+      "point": TagMainPopup,
       "connection": ConnectionsMainPopup,
     }
 
