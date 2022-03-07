@@ -343,15 +343,6 @@ class Pen_row(object):
     self.db_settings_session = self.app.settings_db.session
     self.db_settings_model = self.app.settings_db.models['pen']
     self.Pen_Settings_Tbl = self.db_settings_model
-    '''
-    self.db_conn_session = self.app.connections_db.session
-    self.db_conn_model = self.app.connections_db.models['connections']
-    self.Connections_Tbl = self.db_conn_model
-
-    self.db_conn_session = self.app.connections_db.session
-    self.db_conn_model = self.app.connections_db.models['tags']
-    self.Tags_Tbl = self.db_conn_model
-    '''
     self.params = params
     self.pen_grid = pen_grid
     self.pen_row_num = row_num
@@ -666,6 +657,7 @@ class Pen_row(object):
       new_params = {}
       count += 1
 
+
 class TagMainPopup(Gtk.Dialog):
 
   def __init__(self, parent,app):
@@ -673,8 +665,9 @@ class TagMainPopup(Gtk.Dialog):
     self.unsaved_changes_present = False
     self.unsaved_conn_rows = {}
     self.tags_available = {}
+    self.connections_available = {}
     self.app = app
-    self.set_default_size(500, 800)
+    self.set_default_size(850, 800)
     self.set_decorated(False)
     self.set_border_width(10)
     self.set_keep_above(False)
@@ -682,11 +675,12 @@ class TagMainPopup(Gtk.Dialog):
     sc.add_class("dialog-border")
     self.content_area = self.get_content_area()
     self.get_available_tags('c_id')
+    self.get_available_connections()
 
     self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
     ### -title bar- ####
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=850)
     self.dialog_window.pack_start(self.title_bar,0,0,1)
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
@@ -694,7 +688,7 @@ class TagMainPopup(Gtk.Dialog):
     self.dialog_window.pack_start(divider,0,0,1)
     ### -content area- ####
     self.base_area = Gtk.Box(spacing = 10,orientation=Gtk.Orientation.VERTICAL,margin = 20)
-    self.scroll = Gtk.ScrolledWindow(width_request = 800,height_request = 600)
+    self.scroll = Gtk.ScrolledWindow(width_request = 850,height_request = 600)
     self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     self.scroll.add(self.base_area)
     self.dialog_window.pack_start(self.scroll,1,1,1)
@@ -713,6 +707,15 @@ class TagMainPopup(Gtk.Dialog):
 
   def build_header(self,title):
     #header
+    self.tag_sort = Gtk.ComboBoxText()
+    self.tag_sort.set_entry_text_column(0)
+    for x in self.connections_available:
+      self.tag_sort.append_text(self.connections_available[x]['id'])
+    self.tag_sort.set_active(0)
+    sc = self.tag_sort.get_style_context()
+    sc.add_class('ctrl-combo')
+    #########################self.tag_sort.connect("changed", self.filter_disp_chart)
+    self.title_bar.pack_start(self.tag_sort,0,0,1)
     self.add_button2 = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddTag.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -740,12 +743,12 @@ class TagMainPopup(Gtk.Dialog):
 
   def build_base(self):
     self.connection_settings = []
-    self.conn_row_num = 1
-    self.conn_grid = Gtk.Grid(column_homogeneous=True,column_spacing=5,row_spacing=5)
-    self.base_area.add(self.conn_grid)
+    self.row_num = 1
+    self.grid = Gtk.Grid(column_homogeneous=False,column_spacing=5,row_spacing=5)
+    self.base_area.add(self.grid)
     #header
     self.add_column_names()
-    #self.add_tag_rows()
+    self.add_tag_rows()
     self.show_all()
 
   def build_footer(self):
@@ -765,6 +768,25 @@ class TagMainPopup(Gtk.Dialog):
     sc = self.ok_button.get_style_context()
     sc.add_class('ctrl-button')
 
+  def add_tag_rows(self,*args):
+    for tags in self.tags_available:
+      for tag in self.tags_available[tags]:
+        conx_id = tags
+        row = Tag_row(self.tags_available[tags][tag],self.grid,self.row_num,self.app,self,conx_id)
+        self.create_delete_button(self.tags_available[tags][tag]['id'],self.row_num)
+        self.row_num += 1
+      #self.connection_settings.append(row)
+    self.show_all()
+    #Spaces out column headers when no data available
+    #if len(new_params) != 0:
+    #  self.grid.set_column_homogeneous(True)
+    #else:
+    #  self.grid.set_column_homogeneous(False)
+
+    #{'Turbine': {1: {'id': 'Speed', 'connection_id': 'Turbine', 'description': 'Generator Speed', 'datatype': 'FLOAT', 'tag_type': 'logix'}}, 
+    # 'Machine': {1: {'id': 'Velocity', 'connection_id': 'Machine', 'description': 'This is the machine velocity', 'datatype': 'FLOAT', 'tag_type': 'logix'}, 2: {'id': 'Power', 'connection_id': 'Machine', 'description': 'MW', 'datatype': 'FLOAT', 'tag_type': 'logix'}}, 
+    # 'Hilltop': {1: {'id': 'Elevation', 'connection_id': 'Hilltop', 'description': 'Useless', 'datatype': 'FLOAT', 'tag_type': 'local'}}}
+
   def add_column_names(self,*args):
     labels = ['','Connection', 'Tag Name', 'Description', 'Address',''] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
@@ -773,7 +795,7 @@ class TagMainPopup(Gtk.Dialog):
         sc.add_class('text-black-color')
         sc.add_class('font-14')
         sc.add_class('font-bold')
-        self.conn_grid.attach(l, l_idx, 0, 1, 1)
+        self.grid.attach(l, l_idx, 0, 1, 1)
 
   def get_available_tags(self,c_id,*args):
     tag_items = ['id', 'connection_id', 'description','datatype','tag_type']
@@ -791,6 +813,29 @@ class TagMainPopup(Gtk.Dialog):
       self.conx_tags = {}
       count = 1
 
+  def get_available_connections(self,*args):
+
+    conx_items = ['id', 'connection_type', 'description']
+    new_params = {}
+    count = 1
+    self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      for c in conx_items:
+        new_params[c] = getattr(conx_obj, c)
+      self.connections_available[count] = new_params
+      new_params = {}
+      count += 1
+
+  def create_delete_button(self,tag_id,row,*args):
+    self.delete_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.delete_button.add(image)
+    sc = self.delete_button.get_style_context()
+    sc.add_class('ctrl-button')
+    self.grid.attach(self.delete_button,5,row,1,1)
+    #self.delete_button.connect('clicked',self.confirm_delete,tag_id)
+
   def add_style(self, wid, style):
     #style should be a list
     sc = wid.get_style_context()
@@ -799,6 +844,84 @@ class TagMainPopup(Gtk.Dialog):
 
   def close_popup(self, button):
     self.destroy()
+
+
+class Tag_row(object):
+  def __init__(self,params,grid,row_num,app,parent,conx_id,*args):
+    self.app = app
+    self.parent = parent
+    self.grid = grid
+    self.row_num = row_num
+    self.params = params
+    if self.params != None:
+      self.id = self.params['id']
+    self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
+    self.build_row()
+
+  def build_row(self,*args):
+    #icon
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 25, -1, True)
+    icon = Gtk.Image(pixbuf=p_buf,height_request = 30)
+    self.grid.attach(icon,0,self.row_num,1,1)   
+
+    #Connection Name
+    db_conx_driver = self.params['connection_id']
+    self.conx_driver = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
+    #if db_conx_driver in self.conx_Typedata.keys():
+    self.conx_driver.set_label(db_conx_driver)
+    self.add_style(self.conx_driver,["font-18","ctrl-lbl","font-bold"])
+    self.grid.attach(self.conx_driver,1,self.row_num,1,1)
+
+    #tag_name
+    db_name = str(self.params['id'])
+    self.tag_name = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
+    self.tag_name.set_label(db_name)
+    self.add_style(self.tag_name,["font-18","ctrl-lbl","font-bold"])
+    self.grid.attach(self.tag_name,2,self.row_num,1,1) 
+
+    #Tag Description
+    db_tag_desc = self.params['description']
+    self.tag_desc = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
+    self.tag_desc.set_label(db_tag_desc)
+    self.add_style(self.tag_desc,["font-18","ctrl-lbl","font-bold"])
+    self.grid.attach(self.tag_desc,3,self.row_num,1,1)
+
+    #Tag Address
+    
+    #Connection Settings Button
+    self.driver_settings_button = Gtk.Button(height_request = 25)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 25, -1, True)
+    icon = Gtk.Image(pixbuf=p_buf)
+    self.driver_settings_button.add(icon)
+    self.parent.add_style(self.driver_settings_button,["ctrl-button"])
+    #self.driver_settings_button.connect("clicked", self.open_settings)
+    self.grid.attach(self.driver_settings_button,4,self.row_num,1,1)
+    if self.params != None:
+      self.driver_settings_button.set_sensitive(True)
+    else:
+      self.driver_settings_button.set_sensitive(False)
+
+  def enable_new(self, obj, prop):
+    enable = (obj.get_property('text-length') > 0)
+    self.save_button.set_sensitive(enable)
+    if enable:
+      self.parent.add_style(self.tag_name,["entry","font-18","font-bold"])
+    else:
+      self.parent.add_style(self.tag_name,["entry","font-12"])
+
+  def driver_selected(self,obj,*args):
+    if not obj.get_active_text():
+      self.driver_settings_button.set_sensitive(False)
+    else:
+      self.driver_settings_button.set_sensitive(True)
+
+  def open_settings(self,button,*args):
+    self.parent.open_settings_popup(self.id)
+
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
 
 
 class ConnectionsMainPopup(Gtk.Dialog):
@@ -1064,7 +1187,6 @@ class Connection_row(object):
     if self.params != None:
       self.id = self.params['id']
     self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
-    #self.connections_available = {}
     self.build_row()
     #Rows start at 1 because row 0 is titles
     #Grid : Left,Top,Width,Height
