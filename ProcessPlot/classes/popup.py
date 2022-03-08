@@ -676,6 +676,7 @@ class TagMainPopup(Gtk.Dialog):
     self.content_area = self.get_content_area()
     self.get_available_tags('c_id')
     self.get_available_connections()
+    self.tag_filter_val = ''
 
     self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
@@ -714,7 +715,7 @@ class TagMainPopup(Gtk.Dialog):
     self.tag_sort.set_active(0)
     sc = self.tag_sort.get_style_context()
     sc.add_class('ctrl-combo')
-    #########################self.tag_sort.connect("changed", self.filter_disp_chart)
+    self.tag_sort.connect("changed", self.filter_tags)
     self.title_bar.pack_start(self.tag_sort,0,0,1)
     self.add_button2 = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddTag.png', 30, -1, True)
@@ -748,7 +749,7 @@ class TagMainPopup(Gtk.Dialog):
     self.base_area.add(self.grid)
     #header
     self.add_column_names()
-    self.add_tag_rows()
+    self.add_tag_rows(self.tag_filter_val)
     self.show_all()
 
   def build_footer(self):
@@ -768,27 +769,24 @@ class TagMainPopup(Gtk.Dialog):
     sc = self.ok_button.get_style_context()
     sc.add_class('ctrl-button')
 
-  def add_tag_rows(self,*args):
+  def add_tag_rows(self,filter,*args):
     for tags in self.tags_available:
       for tag in self.tags_available[tags]:
         conx_id = tags
-        row = Tag_row(self.tags_available[tags][tag],self.grid,self.row_num,self.app,self,conx_id)
-        self.create_delete_button(self.tags_available[tags][tag]['id'],self.row_num)
+        if filter == '' or filter == conx_id:
+          row = Tag_row(self.tags_available[tags][tag],self.grid,self.row_num,self.app,self,conx_id)
+          self.create_delete_button(self.tags_available[tags][tag]['id'],conx_id,self.row_num)
         self.row_num += 1
       #self.connection_settings.append(row)
     self.show_all()
     #Spaces out column headers when no data available
-    #if len(new_params) != 0:
-    #  self.grid.set_column_homogeneous(True)
-    #else:
-    #  self.grid.set_column_homogeneous(False)
-
-    #{'Turbine': {1: {'id': 'Speed', 'connection_id': 'Turbine', 'description': 'Generator Speed', 'datatype': 'FLOAT', 'tag_type': 'logix'}}, 
-    # 'Machine': {1: {'id': 'Velocity', 'connection_id': 'Machine', 'description': 'This is the machine velocity', 'datatype': 'FLOAT', 'tag_type': 'logix'}, 2: {'id': 'Power', 'connection_id': 'Machine', 'description': 'MW', 'datatype': 'FLOAT', 'tag_type': 'logix'}}, 
-    # 'Hilltop': {1: {'id': 'Elevation', 'connection_id': 'Hilltop', 'description': 'Useless', 'datatype': 'FLOAT', 'tag_type': 'local'}}}
+    if len(self.tags_available) <= 1:
+      self.grid.set_column_homogeneous(True)
+    else:
+      self.grid.set_column_homogeneous(False)
 
   def add_column_names(self,*args):
-    labels = ['','Connection', 'Tag Name', 'Description', 'Address',''] # may want to create a table in the db for column names
+    labels = ['','Tag Name', 'Connection', 'Description', '',''] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
         l = Gtk.Label(labels[l_idx])
         sc = l.get_style_context()
@@ -798,6 +796,7 @@ class TagMainPopup(Gtk.Dialog):
         self.grid.attach(l, l_idx, 0, 1, 1)
 
   def get_available_tags(self,c_id,*args):
+    self.tags_available = {}
     tag_items = ['id', 'connection_id', 'description','datatype','tag_type']
     new_params = {}
     count = 1
@@ -826,7 +825,7 @@ class TagMainPopup(Gtk.Dialog):
       new_params = {}
       count += 1
 
-  def create_delete_button(self,tag_id,row,*args):
+  def create_delete_button(self,tag_id,conx_id,row,*args):
     self.delete_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -834,7 +833,42 @@ class TagMainPopup(Gtk.Dialog):
     sc = self.delete_button.get_style_context()
     sc.add_class('ctrl-button')
     self.grid.attach(self.delete_button,5,row,1,1)
-    #self.delete_button.connect('clicked',self.confirm_delete,tag_id)
+    self.delete_button.connect('clicked',self.confirm_delete,tag_id,conx_id)
+
+  def filter_tags(self,*args):
+    self.tag_filter_val = self.tag_sort.get_active_text()
+    self.remove_all_rows()
+    self.add_column_names()
+    self.add_tag_rows(self.tag_filter_val)
+
+  def remove_all_rows(self,*args):
+    rows = self.grid.get_children()
+    for items in rows:
+      self.grid.remove(items)
+
+  def delete_row(self,t_id,c_id,*args):
+    conx_obj = self.app.link.get("connections").get(c_id)
+    if conx_obj != None:
+      tag_obj = conx_obj.get('tags').get(t_id)
+      print(tag_obj,t_id,c_id)
+      self.app.link.delete_tag(tag_obj,t_id)
+    self.remove_all_rows()
+    self.add_column_names()
+    print('count',self.tags_available)
+    self.get_available_tags('c_id')
+    print('count',self.tags_available)
+    self.add_tag_rows(self.tag_filter_val)
+    self.show_all()
+
+  def confirm_delete(self, button,tag_id,conx_id,msg="Are you sure you want to delete this tag?", args=[]):
+    popup = PopupConfirm(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      self.delete_row(tag_id,conx_id)
+      return True
+    else:
+      return False
 
   def add_style(self, wid, style):
     #style should be a list
@@ -864,23 +898,25 @@ class Tag_row(object):
     icon = Gtk.Image(pixbuf=p_buf,height_request = 30)
     self.grid.attach(icon,0,self.row_num,1,1)   
 
+    #tag_name
+    db_name = str(self.params['id'])
+    self.tag_name = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
+    self.tag_name.set_label(db_name)
+    self.add_style(self.tag_name,["font-18","ctrl-lbl","font-bold"])
+    self.grid.attach(self.tag_name,1,self.row_num,1,1) 
+
     #Connection Name
     db_conx_driver = self.params['connection_id']
     self.conx_driver = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
     #if db_conx_driver in self.conx_Typedata.keys():
     self.conx_driver.set_label(db_conx_driver)
     self.add_style(self.conx_driver,["font-18","ctrl-lbl","font-bold"])
-    self.grid.attach(self.conx_driver,1,self.row_num,1,1)
-
-    #tag_name
-    db_name = str(self.params['id'])
-    self.tag_name = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
-    self.tag_name.set_label(db_name)
-    self.add_style(self.tag_name,["font-18","ctrl-lbl","font-bold"])
-    self.grid.attach(self.tag_name,2,self.row_num,1,1) 
+    self.grid.attach(self.conx_driver,2,self.row_num,1,1)
 
     #Tag Description
     db_tag_desc = self.params['description']
+    if db_tag_desc == None:
+      db_tag_desc = ''
     self.tag_desc = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
     self.tag_desc.set_label(db_tag_desc)
     self.add_style(self.tag_desc,["font-18","ctrl-lbl","font-bold"])
