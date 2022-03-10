@@ -867,8 +867,8 @@ class TagMainPopup(Gtk.Dialog):
     else:
       return False
 
-  def add_tag_popup(self,button,bad_name,*args):
-    popup = AddTagPopup(self,bad_name,self.connections_available)
+  def add_tag_popup(self,button,duplicate_name_params,*args):
+    popup = AddTagPopup(self,duplicate_name_params,self.connections_available)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
@@ -880,7 +880,6 @@ class TagMainPopup(Gtk.Dialog):
 
   def check_duplicate_name(self,results,*args):
     ##############################This IS WHERE I ENDED FOR THE NIGHT ########################################################
-    print(results['connection_id'])
     dup = False
     conx_obj = self.app.link.get('connections').get(results['connection_id'])
     if conx_obj != None:
@@ -890,9 +889,32 @@ class TagMainPopup(Gtk.Dialog):
     if dup:
       self.add_tag_popup(None,results,self.connections_available)
     else:
-      print('false')
-      #self.create_connection(results)
+      self.create_tag(results)
       #self.open_settings_popup(results['id'])
+      ###############################Need to uncomment the line above this
+
+  def create_tag(self,params,*args):
+    #sNEED TO HAVE IT PASS IN SOMEThing FOR THE ADDRESS EXCEPT 12
+    conx_obj = self.app.link.get('connections').get(params['connection_id'])
+    conx_obj.new_tag({"id": params['id'],
+                            "connection_id": params['connection_id'],
+                            "description": params['description'],
+                            "datatype": params['datatype'],
+                            "address": 12
+    })
+    tag_obj = conx_obj.get('tags').get(params['id'])
+    if tag_obj != None:
+      self.app.link.save_tag(tag_obj)
+    self.insert_tag_row(None,params)
+
+  def insert_tag_row(self,button,params,*args):
+    #if params = None then insert blank row
+    self.grid.set_column_homogeneous(False) 
+    self.grid.insert_row(1)
+    row = Tag_row(params,self.grid,1,self.app,self,params['connection_id'])
+    self.create_delete_button(params['id'],params['connection_id'],1)
+    self.row_num += 1
+    self.show_all()
 
   def add_style(self, wid, style):
     #style should be a list
@@ -985,6 +1007,7 @@ class AddTagPopup(Gtk.Dialog):
                         )
     self.params = params
     self.conx_type = conx_type
+    self.datatypes = ['INT','FLOAT','DINT','UINT','BOOLEAN','SINT']
     self.set_default_size(200, 150)
     self.set_border_width(10)
     sc = self.get_style_context()
@@ -1065,13 +1088,12 @@ class AddTagPopup(Gtk.Dialog):
     grid.attach(self.tag_descr,1,3,2,1)
 
     #Tag Datatype
-    datatypes = ['INT','FLOAT','DINT','UINT','BOOLEAN','SINT']
     lbl = Gtk.Label('Tag Datatype')
     self.add_style(lbl,["Label","font-16",'font-bold'])
     grid.attach(lbl,0,4,1,1) 
     self.tag_datatype = Gtk.ComboBoxText(width_request = 200,height_request = 30,halign = Gtk.Align.CENTER)#hexpand = True
     self.add_style(self.tag_datatype,["font-18","list-select","font-bold"])
-    for dt in datatypes:
+    for dt in self.datatypes:
        self.tag_datatype.append_text(dt)
     self.tag_datatype.set_active(0)
     grid.attach(self.tag_datatype,1,4,2,1)
@@ -1109,11 +1131,18 @@ class AddTagPopup(Gtk.Dialog):
     self.pop_lbl.set_label('Name Already Exists')
     self.tag_name.set_text('')
     val = 0
-    for key in self.conx_type:
-      if results['connection_type'] == key:
+    for conx in self.conx_type:
+      self.conx_driver.append_text(self.conx_type[conx]['id'])
+      if self.conx_type[conx]['id'] == results['connection_id']:
         self.conx_driver.set_active(val)
-      val+= 1
+      val +=1
     self.tag_descr.set_text(results['description'])
+    val = 0
+    for dt in self.datatypes:
+      self.tag_datatype.append_text(dt)
+      if dt == results['datatype']:
+        self.tag_datatype.set_active(val)
+      val += 1
 
 
 class ConnectionsMainPopup(Gtk.Dialog):
