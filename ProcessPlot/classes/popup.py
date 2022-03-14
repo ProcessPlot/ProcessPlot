@@ -878,8 +878,21 @@ class TagMainPopup(Gtk.Dialog):
     else:
       return False
 
+  def get_tag_params(self,tag_id,conx_id):
+   ##############################This IS WHERE I ENDED FOR THE NIGHT ########################################################
+   ##################################How do I know which items the different tag types have, why can't a tag return its attributes?
+    tag_items = ['id', 'connection_id', 'description','datatype','tag_type','address']
+    new_params = {}
+    conx_obj = self.app.link.get("connections").get(conx_id)
+    if conx_obj != None:
+      tag_obj = conx_obj.get('tags').get(tag_id)
+      if tag_obj != None:
+        for c in tag_items:
+          new_params[c] = getattr(tag_obj, c)
+        print(new_params)
+        return tag_obj
+
   def check_duplicate_name(self,results,*args):
-    ##############################This IS WHERE I ENDED FOR THE NIGHT ########################################################
     dup = False
     conx_obj = self.app.link.get('connections').get(results['connection_id'])
     if conx_obj != None:
@@ -890,8 +903,19 @@ class TagMainPopup(Gtk.Dialog):
       self.add_tag_popup(None,results,self.connections_available)
     else:
       self.create_tag(results)
-      #self.open_settings_popup(results['id'])
-      ###############################Need to uncomment the line above this
+      self.open_settings_popup(results['id'],results['connection_id'])
+
+  def open_settings_popup(self,tag_id,conx_id,*args):
+    params = self.get_tag_params(tag_id,conx_id)
+    """     popup = ConnectionSettingsPopup(self,params)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      results = (popup.get_result())
+      #self.update_connection(results)
+      return True
+    else:
+      return False """
 
   def create_tag(self,params,*args):
     #sNEED TO HAVE IT PASS IN SOMEThing FOR THE ADDRESS EXCEPT 12
@@ -1329,7 +1353,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.add_connection_rows()
     self.show_all()
 
-  
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
     new_conx = self.app.link.new_connection({"id": params['id'],
