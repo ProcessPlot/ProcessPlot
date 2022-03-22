@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from logging.config import valid_ident
 from pkgutil import iter_modules
 from urllib.parse import non_hierarchical
 import gi, os, json
@@ -957,6 +958,7 @@ class Tag_row(object):
     self.grid = grid
     self.row_num = row_num
     self.params = params
+    self.conx_id = conx_id
     if self.params != None:
       self.id = self.params['id']
     self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
@@ -994,13 +996,13 @@ class Tag_row(object):
 
     #Tag Address
     
-    #Connection Settings Button
+    #Tag Settings Button
     self.driver_settings_button = Gtk.Button(height_request = self.height_request)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 20, -1, True)
     icon = Gtk.Image(pixbuf=p_buf)
     self.driver_settings_button.add(icon)
     self.parent.add_style(self.driver_settings_button,["ctrl-button"])
-    #self.driver_settings_button.connect("clicked", self.open_settings)
+    self.driver_settings_button.connect("clicked", self.open_settings)
     self.grid.attach(self.driver_settings_button,4,self.row_num,1,1)
     if self.params != None:
       self.driver_settings_button.set_sensitive(True)
@@ -1014,7 +1016,7 @@ class Tag_row(object):
       self.driver_settings_button.set_sensitive(True)
 
   def open_settings(self,button,*args):
-    self.parent.open_settings_popup(self.id)
+    self.parent.open_settings_popup(self.id,self.conx_id)
 
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -1241,14 +1243,23 @@ class TagSettingsPopup(Gtk.Dialog):
     row+=1 
 
     #Tag Datatype
+    db_dt = str(self.params['datatype'])
     lbl = Gtk.Label('Tag Datatype')
     self.add_style(lbl,["Label","font-16",'font-bold'])
     grid.attach(lbl,0,row,1,1) 
     self.tag_datatype = Gtk.ComboBoxText(width_request = 200,height_request = 30,halign = Gtk.Align.CENTER)#hexpand = True
     self.add_style(self.tag_datatype,["font-18","list-select","font-bold"])
+    found = None
+    val = 0
     for dt in self.datatypes:
-       self.tag_datatype.append_text(dt)
-    self.tag_datatype.set_active(0)
+      self.tag_datatype.append_text(dt)
+      if dt == db_dt:
+         found = val
+      val+= 1
+    if found:
+      self.tag_datatype.set_active(found)
+    else:
+      self.tag_datatype.set_active(0)
     grid.attach(self.tag_datatype,1,row,2,1)
     row+=1
 
