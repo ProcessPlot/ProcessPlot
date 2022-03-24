@@ -747,6 +747,7 @@ class TagMainPopup(Gtk.Dialog):
     self.connection_settings = []
     self.row_num = 1
     self.grid = Gtk.Grid(column_homogeneous=False,column_spacing=2,row_spacing=2)
+    self.grid.set_name('tag_grid_css')
     self.base_area.add(self.grid)
     #header
     self.add_column_names()
@@ -904,15 +905,13 @@ class TagMainPopup(Gtk.Dialog):
       self.open_settings_popup(results['id'],results['connection_id'])
 
   def open_settings_popup(self,tag_id,conx_id,*args):
-   ##############################This IS WHERE I ENDED FOR THE NIGHT ########################################################
     params = self.get_tag_params(tag_id,conx_id)
     popup = TagSettingsPopup(self,params)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
-      print(results)
-      #self.update_connection(results)
+      self.update_tag(results)
       return True
     else:
       return False
@@ -930,6 +929,21 @@ class TagMainPopup(Gtk.Dialog):
     if tag_obj != None:
       self.app.link.save_tag(tag_obj)
     self.insert_tag_row(None,params)
+
+  def update_tag(self,params,*args):
+    conx_obj = self.app.link.get('connections').get(params['connection_id'])
+    if conx_obj != None:
+      tag_obj = conx_obj.get('tags').get(params['id'])
+      if tag_obj != None:
+        for key, val in params.items():
+          if key == 'id' or key == 'description' or key == 'connection_id' or val == None:
+            pass
+          else:
+            try:
+              tag_obj.set(key,val)
+            except KeyError as e:
+              print(e,key)
+        self.app.link.save_tag(tag_obj)
 
   def insert_tag_row(self,button,params,*args):
     #if params = None then insert blank row
