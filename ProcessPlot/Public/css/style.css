@@ -119,3 +119,32 @@
 #tag_grid_css :nth-child(12n+6){
   background-color: #068181;
 }
+
+.config-list-box{
+  border: 2px solid #24252A;
+  border-radius: 10px;
+}
+
+.list-box-odd-row{
+  background-color: darkgray;
+  color: white;
+  border-style: solid;
+  border-width: 1px;
+  border-color:  rgb(41, 41, 41);
+}
+
+.list-box-even-row{
+  background-color:gray;
+  color: white;
+  border-style: solid;
+  border-width: 1px;
+  border-color:  rgb(41, 41, 41);
+}
+
+.list-box-header{
+  background:rgb(55, 55, 55);
+  color: White;
+  border-style: solid;
+  border-width: 1px;
+  border-color:  rgb(41, 41, 41);
+}
