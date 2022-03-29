@@ -668,7 +668,7 @@ class TagMainPopup(Gtk.Dialog):
     self.tags_available = {}
     self.connections_available = {}
     self.app = app
-    self.set_default_size(850, 800)
+    self.set_default_size(1050, 800)
     self.set_decorated(False)
     self.set_border_width(10)
     self.set_keep_above(False)
@@ -682,7 +682,7 @@ class TagMainPopup(Gtk.Dialog):
     self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
     ### -title bar- ####
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=850)
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=1050)
     self.dialog_window.pack_start(self.title_bar,0,0,1)
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
@@ -876,12 +876,13 @@ class TagMainPopup(Gtk.Dialog):
     self.add_tag_rows(self.tag_filter_val)
     self.show_all()
 
-  def confirm_delete(self, button,tag_id,conx_id,msg="Are you sure you want to delete this tag?", args=[]):
+  def confirm_delete(self, button,tag_id,conx_id,row,msg="Are you sure you want to delete this tag?", args=[]):
     popup = PopupConfirm(self, msg=msg)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       self.delete_row(tag_id,conx_id)
+      self.listbox.remove(row)
       return True
     else:
       return False
@@ -945,6 +946,8 @@ class TagMainPopup(Gtk.Dialog):
     tag_obj = conx_obj.get('tags').get(params['id'])
     if tag_obj != None:
       self.app.link.save_tag(tag_obj)
+    params = self.get_tag_params(params['id'],params['connection_id'])
+    print(params)
     self.insert_tag_row(None,params)
 
   def update_tag(self,params,*args):
@@ -963,12 +966,7 @@ class TagMainPopup(Gtk.Dialog):
         self.app.link.save_tag(tag_obj)
 
   def insert_tag_row(self,button,params,*args):
-    #if params = None then insert blank row
-    self.grid.set_column_homogeneous(False) 
-    self.grid.insert_row(1)
-    row = Tag_row(params,self.grid,1,self.app,self,params['connection_id'])
-    self.create_delete_button(params['id'],params['connection_id'],1)
-    self.row_num += 1
+    TagsListRow(params,self.listbox,1,self.app,self,params['connection_id'],even_row=False)
     self.show_all()
 
   def add_style(self, wid, style):
@@ -982,7 +980,7 @@ class TagMainPopup(Gtk.Dialog):
 
 
 class TagsListRow(Gtk.Box):
-  ##############NEED TO WORK ON ADDING / DELETING TAGS WITH NEW LISTBOX ALSO FIX SETTINGS BUTTON TO JUST BE ICON, WORK ON FILTERING
+  ##############NEED TO WORK ON ADDING / DELETING TAGS WITH NEW LISTBOX ALSO FIX SETTINGS BUTTON TO JUST BE ICON, WORK ON FILTERING BASED ON CONNECTION
     def __init__(self,params,list_box,row_num,app,parent,conx_id,even_row,*args):
         super(TagsListRow, self).__init__()
         self.listbox = list_box
@@ -993,10 +991,16 @@ class TagsListRow(Gtk.Box):
         self.even_row = even_row
         self.params = params
         self.columns = ['id', 'connection_id', 'description','address']
+        self.lst_height = 20
+        self.row = Gtk.ListBoxRow()
         self.list_box_data()
+
 
     def open_tag_settings(self, button,*args):
       self.parent.open_settings_popup(self.id,self.conx_id)
+
+    def delete_tag(self, button,*args):
+      self.parent.confirm_delete(None,self.id,self.conx_id,self.row)
     
     def delete_tag(self, btn,id_num, row, *args):
       confirmed = self.app.confirm(None, 'Are you sure you want to delete the tag', [])
@@ -1004,43 +1008,36 @@ class TagsListRow(Gtk.Box):
         self.listbox.remove(row)
 
     def list_box_data(self):
-      row = Gtk.ListBoxRow()
-      hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, height_request = 30)
-      row.add(hbox)
+      hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, height_request = self.lst_height)
+      self.row.add(hbox)
       for col in self.columns:
         lbl = Gtk.Label(label=str(self.params[col]), xalign=0.5, yalign = 0.5, width_request = 175)
         hbox.pack_start(lbl, True, True, 0)
         self.add_style(lbl,['font-14','font-bold'])
       if self.even_row:
-        self.add_style(row,['list-box-even-row'])
+        self.add_style(self.row,['list-box-even-row'])
       else:
-        self.add_style(row,['list-box-odd-row'])
-      btn_box = Gtk.Box(orientation = Gtk.Orientation.HORIZONTAL,height_request = 25,spacing = 10)
-      bx = Gtk.Box(orientation = Gtk.Orientation.HORIZONTAL,height_request = 25)
-      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 20, -1, True)
+        self.add_style(self.row,['list-box-odd-row'])
+
+      #tag settings button
+      self.driver_settings_button = Gtk.Button(height_request = self.lst_height, width_request = self.lst_height)
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', self.lst_height, -1, True)
       icon = Gtk.Image(pixbuf=p_buf)
-      lbl = Gtk.Label("Tag Settings")
-      bx.pack_start(lbl, 1, 0, 10)
-      bx.pack_start(icon, 0, 0, 0)
-      settings_btn = Gtk.Button( height_request = 25, width_request = 25)
-      settings_btn.connect("clicked", self.open_tag_settings)
-      self.add_style(settings_btn,['ctrl-button',"font-14","font-bold"])
-      settings_btn.add(bx)
-      btn_box.pack_start(settings_btn,False,False,0)
-      hbox.pack_start(btn_box, False, False, 0)
+      self.driver_settings_button.add(icon)
+      self.parent.add_style(self.driver_settings_button,["ctrl-button"])
+      self.driver_settings_button.connect("clicked", self.open_tag_settings)
+      hbox.pack_start(self.driver_settings_button, False, False, 0)
+
+      #tag delete button
+      self.tag_delete_button = Gtk.Button(height_request = self.lst_height, width_request = self.lst_height)
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', self.lst_height, -1, True)
+      icon = Gtk.Image(pixbuf=p_buf)
+      self.tag_delete_button.add(icon)
+      self.parent.add_style(self.tag_delete_button,["ctrl-button"])
+      #self.tag_delete_button.connect("clicked", self.open_tag_settings)
+      hbox.pack_start(self.tag_delete_button, False, False, 0)
       
-      bx2 = Gtk.Box(orientation = Gtk.Orientation.HORIZONTAL,height_request = 25)
-      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 20, -1, True)
-      icon = Gtk.Image(pixbuf=p_buf)
-      lbl = Gtk.Label("Delete")
-      bx2.pack_start(lbl, 1, 0, 10)
-      bx2.pack_start(icon, 0, 0, 0)
-      delete_btn = Gtk.Button( height_request = 25, width_request = 25)
-      #delete_btn.connect("clicked", self.delete_tag,tag['ID'],row)
-      self.add_style(delete_btn,['ctrl-button',"font-14","font-bold"])
-      delete_btn.add(bx2)
-      btn_box.pack_start(delete_btn,False,False,0)
-      self.listbox.add(row)
+      self.listbox.add(self.row)
 
     def add_style(self, item,style):
       sc = item.get_style_context()
