@@ -947,7 +947,6 @@ class TagMainPopup(Gtk.Dialog):
     if tag_obj != None:
       self.app.link.save_tag(tag_obj)
     params = self.get_tag_params(params['id'],params['connection_id'])
-    print(params)
     self.insert_tag_row(None,params)
 
   def update_tag(self,params,*args):
@@ -1002,10 +1001,10 @@ class TagsListRow(Gtk.Box):
     def delete_tag(self, button,*args):
       self.parent.confirm_delete(None,self.id,self.conx_id,self.row)
     
-    def delete_tag(self, btn,id_num, row, *args):
-      confirmed = self.app.confirm(None, 'Are you sure you want to delete the tag', [])
-      if confirmed:
-        self.listbox.remove(row)
+    # def delete_tag(self, btn,id_num, row, *args):
+    #   confirmed = self.app.confirm(None, 'Are you sure you want to delete the tag', [])
+    #   if confirmed:
+    #     self.listbox.remove(row)
 
     def list_box_data(self):
       hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, height_request = self.lst_height)
@@ -1034,7 +1033,7 @@ class TagsListRow(Gtk.Box):
       icon = Gtk.Image(pixbuf=p_buf)
       self.tag_delete_button.add(icon)
       self.parent.add_style(self.tag_delete_button,["ctrl-button"])
-      #self.tag_delete_button.connect("clicked", self.open_tag_settings)
+      self.tag_delete_button.connect("clicked", self.delete_tag)
       hbox.pack_start(self.tag_delete_button, False, False, 0)
       
       self.listbox.add(self.row)
