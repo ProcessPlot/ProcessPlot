@@ -805,14 +805,25 @@ class TagMainPopup(Gtk.Dialog):
     #   self.grid.set_column_homogeneous(False)
 
   def add_column_names(self,*args):
-    labels = ['','Tag Name', 'Connection', 'Description', '',''] # may want to create a table in the db for column names
+    labels = ['','Tag Name', 'Connection', 'Description','Address','',''] # may want to create a table in the db for column names
     for l_idx in range(len(labels)):
         l = Gtk.Label(labels[l_idx])
         sc = l.get_style_context()
         sc.add_class('text-black-color')
         sc.add_class('font-14')
         sc.add_class('font-bold')
-        self.grid.attach(l, l_idx, 0, 1, 1)
+        #self.grid.attach(l, l_idx, 0, 1, 1)
+    l_row = Gtk.ListBoxRow()
+    hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, height_request = 30)
+    l_row.add(hbox)
+    for l in labels:
+      if l == '':
+        lbl = Gtk.Label(label=l, xalign=0.5, yalign = 0.5, width_request = 20)
+      else:     
+        lbl = Gtk.Label(label=l, xalign=0.5, yalign = 0.5, width_request = 175)         
+      hbox.pack_start(lbl, True, True, 0)
+      self.add_style(lbl,['font-16','font-bold','text-black-color'])
+    self.listbox.add(l_row)
 
   def get_available_tags(self,c_id,*args):
     self.tags_available = {}
@@ -857,23 +868,23 @@ class TagMainPopup(Gtk.Dialog):
   def filter_tags(self,*args):
     self.tag_filter_val = self.tag_sort.get_active_text()
     self.remove_all_rows()
-    self.add_column_names()
+    #self.add_column_names()
     self.add_tag_rows(self.tag_filter_val)
 
   def remove_all_rows(self,*args):
-    rows = self.grid.get_children()
-    for items in rows:
-      self.grid.remove(items)
+    rows = self.listbox.get_children()
+    for row in rows:
+      self.listbox.remove(row)
 
   def delete_row(self,t_id,c_id,*args):
     conx_obj = self.app.link.get("connections").get(c_id)
     if conx_obj != None:
       tag_obj = conx_obj.get('tags').get(t_id)
       self.app.link.delete_tag(tag_obj,t_id,c_id)
-    self.remove_all_rows()
-    self.add_column_names()
-    self.get_available_tags('c_id')
-    self.add_tag_rows(self.tag_filter_val)
+    #self.remove_all_rows()
+    #self.add_column_names()
+    #self.get_available_tags('c_id')
+    #self.add_tag_rows(self.tag_filter_val)
     self.show_all()
 
   def confirm_delete(self, button,tag_id,conx_id,row,msg="Are you sure you want to delete this tag?", args=[]):
@@ -978,8 +989,8 @@ class TagMainPopup(Gtk.Dialog):
     self.destroy()
 
 
-class TagsListRow(Gtk.Box):
-  ##############NEED TO WORK ON ADDING / DELETING TAGS WITH NEW LISTBOX ALSO FIX SETTINGS BUTTON TO JUST BE ICON, WORK ON FILTERING BASED ON CONNECTION
+class TagsListRow(object):
+  ##############NEED TO WORK ON FILTERING BASED ON CONNECTION
     def __init__(self,params,list_box,row_num,app,parent,conx_id,even_row,*args):
         super(TagsListRow, self).__init__()
         self.listbox = list_box
@@ -1000,17 +1011,20 @@ class TagsListRow(Gtk.Box):
 
     def delete_tag(self, button,*args):
       self.parent.confirm_delete(None,self.id,self.conx_id,self.row)
-    
-    # def delete_tag(self, btn,id_num, row, *args):
-    #   confirmed = self.app.confirm(None, 'Are you sure you want to delete the tag', [])
-    #   if confirmed:
-    #     self.listbox.remove(row)
 
     def list_box_data(self):
       hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, height_request = self.lst_height)
       self.row.add(hbox)
+      #icon
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 20, -1, True)
+      icon = Gtk.Image(pixbuf=p_buf)
+      hbox.pack_start(icon, False, False, 0)
+
       for col in self.columns:
-        lbl = Gtk.Label(label=str(self.params[col]), xalign=0.5, yalign = 0.5, width_request = 175)
+        if col in self.params.keys():
+          lbl = Gtk.Label(label=str(self.params[col]), xalign=0.5, yalign = 0.5, width_request = 175)
+        else:
+          lbl = Gtk.Label(label='', xalign=0.5, yalign = 0.5, width_request = 175)          
         hbox.pack_start(lbl, True, True, 0)
         self.add_style(lbl,['font-14','font-bold'])
       if self.even_row:
@@ -1043,78 +1057,78 @@ class TagsListRow(Gtk.Box):
       for sty in style:
         sc.add_class(sty)
 
-class Tag_row(object):
-  def __init__(self,params,grid,row_num,app,parent,conx_id,*args):
-    self.height_request = 15
-    self.app = app
-    self.parent = parent
-    self.grid = grid
-    self.row_num = row_num
-    self.params = params
-    self.conx_id = conx_id
-    if self.params != None:
-      self.id = self.params['id']
-    self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
-    self.build_row()
+# class Tag_row(object):
+#   def __init__(self,params,grid,row_num,app,parent,conx_id,*args):
+#     self.height_request = 15
+#     self.app = app
+#     self.parent = parent
+#     self.grid = grid
+#     self.row_num = row_num
+#     self.params = params
+#     self.conx_id = conx_id
+#     if self.params != None:
+#       self.id = self.params['id']
+#     self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
+#     self.build_row()
 
-  def build_row(self,*args):
-    #icon
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 20, -1, True)
-    icon = Gtk.Image(pixbuf=p_buf,height_request = self.height_request)
-    self.grid.attach(icon,0,self.row_num,1,1)   
+#   def build_row(self,*args):
+#     #icon
+#     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Tag.png', 20, -1, True)
+#     icon = Gtk.Image(pixbuf=p_buf,height_request = self.height_request)
+#     self.grid.attach(icon,0,self.row_num,1,1)   
 
-    #tag_name
-    db_name = str(self.params['id'])
-    self.tag_name = Gtk.Label(width_request = 250,height_request = self.height_request)#hexpand = True
-    self.tag_name.set_label(db_name)
-    self.add_style(self.tag_name,["font-16","ctrl-lbl","font-bold"])
-    self.grid.attach(self.tag_name,1,self.row_num,1,1) 
+#     #tag_name
+#     db_name = str(self.params['id'])
+#     self.tag_name = Gtk.Label(width_request = 250,height_request = self.height_request)#hexpand = True
+#     self.tag_name.set_label(db_name)
+#     self.add_style(self.tag_name,["font-16","ctrl-lbl","font-bold"])
+#     self.grid.attach(self.tag_name,1,self.row_num,1,1) 
 
-    #Connection Name
-    db_conx_driver = self.params['connection_id']
-    self.conx_driver = Gtk.Label(width_request = 200,height_request = self.height_request)#hexpand = True
-    #if db_conx_driver in self.conx_Typedata.keys():
-    self.conx_driver.set_label(db_conx_driver)
-    self.add_style(self.conx_driver,["font-16","ctrl-lbl","font-bold"])
-    self.grid.attach(self.conx_driver,2,self.row_num,1,1)
+#     #Connection Name
+#     db_conx_driver = self.params['connection_id']
+#     self.conx_driver = Gtk.Label(width_request = 200,height_request = self.height_request)#hexpand = True
+#     #if db_conx_driver in self.conx_Typedata.keys():
+#     self.conx_driver.set_label(db_conx_driver)
+#     self.add_style(self.conx_driver,["font-16","ctrl-lbl","font-bold"])
+#     self.grid.attach(self.conx_driver,2,self.row_num,1,1)
 
-    #Tag Description
-    db_tag_desc = self.params['description']
-    if db_tag_desc == None:
-      db_tag_desc = ''
-    self.tag_desc = Gtk.Label(width_request = 250,height_request = self.height_request)#hexpand = True
-    self.tag_desc.set_label(db_tag_desc)
-    self.add_style(self.tag_desc,["font-16","ctrl-lbl","font-bold"])
-    self.grid.attach(self.tag_desc,3,self.row_num,1,1)
+#     #Tag Description
+#     db_tag_desc = self.params['description']
+#     if db_tag_desc == None:
+#       db_tag_desc = ''
+#     self.tag_desc = Gtk.Label(width_request = 250,height_request = self.height_request)#hexpand = True
+#     self.tag_desc.set_label(db_tag_desc)
+#     self.add_style(self.tag_desc,["font-16","ctrl-lbl","font-bold"])
+#     self.grid.attach(self.tag_desc,3,self.row_num,1,1)
 
-    #Tag Address
+#     #Tag Address
     
-    #Tag Settings Button
-    self.driver_settings_button = Gtk.Button(height_request = self.height_request)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 20, -1, True)
-    icon = Gtk.Image(pixbuf=p_buf)
-    self.driver_settings_button.add(icon)
-    self.parent.add_style(self.driver_settings_button,["ctrl-button"])
-    self.driver_settings_button.connect("clicked", self.open_settings)
-    self.grid.attach(self.driver_settings_button,4,self.row_num,1,1)
-    if self.params != None:
-      self.driver_settings_button.set_sensitive(True)
-    else:
-      self.driver_settings_button.set_sensitive(False)
+#     #Tag Settings Button
+#     self.driver_settings_button = Gtk.Button(height_request = self.height_request)
+#     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 20, -1, True)
+#     icon = Gtk.Image(pixbuf=p_buf)
+#     self.driver_settings_button.add(icon)
+#     self.parent.add_style(self.driver_settings_button,["ctrl-button"])
+#     self.driver_settings_button.connect("clicked", self.open_settings)
+#     self.grid.attach(self.driver_settings_button,4,self.row_num,1,1)
+#     if self.params != None:
+#       self.driver_settings_button.set_sensitive(True)
+#     else:
+#       self.driver_settings_button.set_sensitive(False)
 
-  def driver_selected(self,obj,*args):
-    if not obj.get_active_text():
-      self.driver_settings_button.set_sensitive(False)
-    else:
-      self.driver_settings_button.set_sensitive(True)
+#   def driver_selected(self,obj,*args):
+#     if not obj.get_active_text():
+#       self.driver_settings_button.set_sensitive(False)
+#     else:
+#       self.driver_settings_button.set_sensitive(True)
 
-  def open_settings(self,button,*args):
-    self.parent.open_settings_popup(self.id,self.conx_id)
+#   def open_settings(self,button,*args):
+#     self.parent.open_settings_popup(self.id,self.conx_id)
 
-  def add_style(self, item,style):
-    sc = item.get_style_context()
-    for sty in style:
-      sc.add_class(sty)
+#   def add_style(self, item,style):
+#     sc = item.get_style_context()
+#     for sty in style:
+#       sc.add_class(sty)
 
 
 class AddTagPopup(Gtk.Dialog):
