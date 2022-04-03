@@ -22,6 +22,7 @@ SOFTWARE.
 
 from logging.config import valid_ident
 from pkgutil import iter_modules
+
 from urllib.parse import non_hierarchical
 import gi, os, json
 
@@ -752,7 +753,56 @@ class TagMainPopup(Gtk.Dialog):
     self.listbox = Gtk.ListBox(halign =Gtk.Align.FILL,valign = Gtk.Align.FILL)
     self.listbox.set_selection_mode(Gtk.SelectionMode.NONE)
     self.add_style(self.listbox,['config-list-box'])
-    self.base_area.add(self.listbox)
+    #self.base_area.add(self.listbox)
+
+#######################
+    icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
+    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , str)
+    self.treeview = Gtk.TreeView(self.liststore)
+
+    self.tvcolumn = Gtk.TreeViewColumn('')
+    self.tvcolumn1 = Gtk.TreeViewColumn('Tagname')
+    self.tvcolumn2 = Gtk.TreeViewColumn('Connection')
+    self.tvcolumn3 = Gtk.TreeViewColumn('Address')
+    self.tvcolumn4 = Gtk.TreeViewColumn('Description')
+
+        # add a row with text and a stock item - color strings for
+    # the background
+    self.liststore.append([icon,'icon', 'Open Big File','Open Bigger File', 'Open Biggest File'])
+
+    # add columns to treeview
+    self.treeview.append_column(self.tvcolumn)
+    self.treeview.append_column(self.tvcolumn1)
+    self.treeview.append_column(self.tvcolumn2)
+    self.treeview.append_column(self.tvcolumn3)
+    self.treeview.append_column(self.tvcolumn4)
+
+    # create a CellRenderers to render the data
+    self.cellpb = Gtk.CellRendererPixbuf()
+    self.cell1 = Gtk.CellRendererText()
+    self.cell2 = Gtk.CellRendererText()
+    self.cell3 = Gtk.CellRendererText()
+    self.cell4 = Gtk.CellRendererText()
+
+    # add the cells to the columns - 2 in the first
+    self.tvcolumn.pack_start(self.cellpb, False)
+    self.tvcolumn1.pack_start(self.cell1, True)
+    self.tvcolumn2.pack_start(self.cell2, True)
+    self.tvcolumn3.pack_start(self.cell3, True)
+    self.tvcolumn4.pack_start(self.cell4, True)
+
+    self.tvcolumn.set_attributes(self.cellpb,pixbuf=0)
+    self.tvcolumn.set_min_width(30)
+    self.tvcolumn1.set_attributes(self.cell1, text=1)
+    self.tvcolumn1.set_min_width(100)
+    self.tvcolumn2.set_attributes(self.cell2, text=2)
+    self.tvcolumn2.set_min_width(100)
+    self.tvcolumn3.set_attributes(self.cell3, text=3)
+    self.tvcolumn3.set_min_width(100)
+    self.tvcolumn4.set_attributes(self.cell4, text=4)
+    self.tvcolumn4.set_min_width(300)
+    self.base_area.add(self.treeview)
+
     #header
     self.add_column_names()
     self.add_tag_rows(self.tag_filter_val)
@@ -855,15 +905,15 @@ class TagMainPopup(Gtk.Dialog):
       new_params = {}
       count += 1
 
-  def create_delete_button(self,tag_id,conx_id,row,*args):
-    self.delete_button = Gtk.Button(width_request = 20)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    self.delete_button.add(image)
-    sc = self.delete_button.get_style_context()
-    sc.add_class('ctrl-button')
-    self.grid.attach(self.delete_button,5,row,1,1)
-    self.delete_button.connect('clicked',self.confirm_delete,tag_id,conx_id)
+  # def create_delete_button(self,tag_id,conx_id,row,*args):
+  #   self.delete_button = Gtk.Button(width_request = 20)
+  #   p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 20, -1, True)
+  #   image = Gtk.Image(pixbuf=p_buf)
+  #   self.delete_button.add(image)
+  #   sc = self.delete_button.get_style_context()
+  #   sc.add_class('ctrl-button')
+  #   self.grid.attach(self.delete_button,5,row,1,1)
+  #   self.delete_button.connect('clicked',self.confirm_delete,tag_id,conx_id)
 
   def filter_tags(self,*args):
     self.tag_filter_val = self.tag_sort.get_active_text()
@@ -1023,6 +1073,9 @@ class TagsListRow(object):
       for col in self.columns:
         if col in self.params.keys():
           lbl = Gtk.Label(label=str(self.params[col]), xalign=0.5, yalign = 0.5, width_request = 175)
+          lbl.set_use_markup(True)
+          lbl.set_max_width_chars(20)
+          lbl.set_line_wrap(True)
         else:
           lbl = Gtk.Label(label='', xalign=0.5, yalign = 0.5, width_request = 175)          
         hbox.pack_start(lbl, True, True, 0)
