@@ -756,19 +756,36 @@ class TagMainPopup(Gtk.Dialog):
     #self.base_area.add(self.listbox)
 
 #######################
-    icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
-    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , str)
+    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 20, 20)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 20, 20)
+    
+    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , str,GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
+    self.treeview.connect('button-press-event' , self.tree_item_clicked)
 
     self.tvcolumn = Gtk.TreeViewColumn('')
     self.tvcolumn1 = Gtk.TreeViewColumn('Tagname')
     self.tvcolumn2 = Gtk.TreeViewColumn('Connection')
     self.tvcolumn3 = Gtk.TreeViewColumn('Address')
     self.tvcolumn4 = Gtk.TreeViewColumn('Description')
+    self.tvcolumn_settings = Gtk.TreeViewColumn('')
+    self.tvcolumn_delete = Gtk.TreeViewColumn('')
 
-        # add a row with text and a stock item - color strings for
     # the background
-    self.liststore.append([icon,'icon', 'Open Big File','Open Bigger File', 'Open Biggest File'])
+    self.liststore.append([tag_icon,'icon', 'Open Big File','Open Bigger File', 'Open Biggest File',settings_icon,delete_icon])
+    self.liststore.append([tag_icon,'icon2', 'Open Big File2','Open Bigger File2', 'Open Biggest File2',settings_icon,delete_icon])
+    self.liststore.append([tag_icon,'icon3', 'Open Big File3','Open Bigger File3', 'Open Biggest File3',settings_icon,delete_icon])
+    self.liststore.insert(0, [tag_icon,'icon4', 'Open Big File4','Open Bigger File4', 'Open Biggest File4',settings_icon,delete_icon])
+
+    # make treeview searchable
+    self.treeview.set_search_column(2)
+
+    # Allow sorting on the column
+    self.tvcolumn.set_sort_column_id(2)
+
+    # Allow drag and drop reordering of rows
+    self.treeview.set_reorderable(True)
 
     # add columns to treeview
     self.treeview.append_column(self.tvcolumn)
@@ -776,6 +793,8 @@ class TagMainPopup(Gtk.Dialog):
     self.treeview.append_column(self.tvcolumn2)
     self.treeview.append_column(self.tvcolumn3)
     self.treeview.append_column(self.tvcolumn4)
+    self.treeview.append_column(self.tvcolumn_settings)
+    self.treeview.append_column(self.tvcolumn_delete)
 
     # create a CellRenderers to render the data
     self.cellpb = Gtk.CellRendererPixbuf()
@@ -783,6 +802,8 @@ class TagMainPopup(Gtk.Dialog):
     self.cell2 = Gtk.CellRendererText()
     self.cell3 = Gtk.CellRendererText()
     self.cell4 = Gtk.CellRendererText()
+    self.cell_settings = Gtk.CellRendererPixbuf()
+    self.cell_delete = Gtk.CellRendererPixbuf()
 
     # add the cells to the columns - 2 in the first
     self.tvcolumn.pack_start(self.cellpb, False)
@@ -790,23 +811,89 @@ class TagMainPopup(Gtk.Dialog):
     self.tvcolumn2.pack_start(self.cell2, True)
     self.tvcolumn3.pack_start(self.cell3, True)
     self.tvcolumn4.pack_start(self.cell4, True)
+    self.tvcolumn_settings.pack_end(self.cell_settings, False)
+    self.tvcolumn_delete.pack_end(self.cell_delete, False)
 
     self.tvcolumn.set_attributes(self.cellpb,pixbuf=0)
-    self.tvcolumn.set_min_width(30)
+    self.tvcolumn.set_max_width(30)
     self.tvcolumn1.set_attributes(self.cell1, text=1)
-    self.tvcolumn1.set_min_width(100)
+    self.tvcolumn1.set_expand(True)
     self.tvcolumn2.set_attributes(self.cell2, text=2)
-    self.tvcolumn2.set_min_width(100)
+    self.tvcolumn2.set_expand(True)
     self.tvcolumn3.set_attributes(self.cell3, text=3)
-    self.tvcolumn3.set_min_width(100)
+    self.tvcolumn3.set_expand(True)
     self.tvcolumn4.set_attributes(self.cell4, text=4)
-    self.tvcolumn4.set_min_width(300)
+    self.tvcolumn4.set_expand(True)
+    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
+    self.tvcolumn_settings.set_max_width(30)
+    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
+    self.tvcolumn_delete.set_max_width(30)
     self.base_area.add(self.treeview)
 
     #header
     self.add_column_names()
     self.add_tag_rows(self.tag_filter_val)
     self.show_all()
+
+  def tree_item_clicked(self, treeview, event):
+    pthinfo = treeview.get_path_at_pos(event.x, event.y)
+    if event.button == 1: #left click
+      if pthinfo != None:
+        path,column,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,column,0)
+        print(column.get_title())
+        #update currently active display
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        #If selected column is delete icon then initial delete of tag
+        if column is self.tvcolumn_delete:
+          if tree_iter != None:
+            self.liststore.remove(tree_iter)
+      else:
+        #unselect row in treeview
+        selection = treeview.get_selection()
+        selection.unselect_all()
+    elif event.button == 3: #right click
+      if pthinfo != None:
+        path,col,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,col,0)
+        rect = Gdk.Rectangle()
+        rect.x = event.x
+        rect.y = event.y + 10
+        rect.width = rect.height = 1
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        popover = Gtk.Popover(width_request = 200)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        if tree_iter is not None:
+          #gathers the Tag name/Connection column text in the row clicked on
+          t_id = tree_model[tree_iter][1]
+          c_id = tree_model[tree_iter][2]
+          print('Tagname',t_id,c_id)
+          #popover to add display
+          edit_btn = Gtk.ModelButton(label="Edit", name=t_id)
+          #cb = lambda btn: self.open_widget_popup(btn)
+          #edit_btn.connect("clicked", cb)
+          vbox.pack_start(edit_btn, False, True, 10)
+          delete_btn = Gtk.ModelButton(label="Delete", name=t_id)
+          #cb = lambda btn: self.open_widget_popup(btn)
+          #delete_btn.connect("clicked", cb)
+          vbox.pack_start(delete_btn, False, True, 10)
+        popover.add(vbox)
+        popover.set_position(Gtk.PositionType.RIGHT)
+        popover.set_relative_to(treeview)
+        popover.set_pointing_to(rect)
+        popover.show_all()
+        sc = popover.get_style_context()
+        sc.add_class('popover-bg')
+        sc.add_class('font-16')
+        return
+      else:
+        return
+    selection = treeview.get_selection()
+    tree_model, tree_iter = selection.get_selected()
 
   def build_footer(self):
     self.ok_button = Gtk.Button(width_request = 100)

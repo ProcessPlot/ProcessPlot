@@ -139,3 +139,14 @@
   border-width: 1px;
   border-color:  rgb(41, 41, 41);
 }
+
+.popover-bg {
+  padding: 5px;
+  text-decoration: none;
+  color: #C0C0C0;
+  transition: all 0.3s ease 0s;
+  margin: 5px;
+  background-image: linear-gradient( gray, rgb(55, 55, 55));
+  border: 4px solid black;
+  border-radius: 4px;
+}
