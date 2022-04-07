@@ -661,7 +661,7 @@ class Pen_row(object):
 
 
 class TagMainPopup(Gtk.Dialog):
-
+###########################################NEED TO ADD DELETE AND INSERT TO LISTSTORE
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0) 
     self.unsaved_changes_present = False
@@ -755,47 +755,10 @@ class TagMainPopup(Gtk.Dialog):
     self.add_style(self.listbox,['config-list-box'])
     #self.base_area.add(self.listbox)
 
-#######################
-    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
-    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 20, 20)
-    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 20, 20)
-    
+#######################  
     self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , str,GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
-
-    self.tvcolumn = Gtk.TreeViewColumn('')
-    self.tvcolumn1 = Gtk.TreeViewColumn('Tagname')
-    self.tvcolumn2 = Gtk.TreeViewColumn('Connection')
-    self.tvcolumn3 = Gtk.TreeViewColumn('Address')
-    self.tvcolumn4 = Gtk.TreeViewColumn('Description')
-    self.tvcolumn_settings = Gtk.TreeViewColumn('')
-    self.tvcolumn_delete = Gtk.TreeViewColumn('')
-
-    # the background
-    self.liststore.append([tag_icon,'icon', 'Open Big File','Open Bigger File', 'Open Biggest File',settings_icon,delete_icon])
-    self.liststore.append([tag_icon,'icon2', 'Open Big File2','Open Bigger File2', 'Open Biggest File2',settings_icon,delete_icon])
-    self.liststore.append([tag_icon,'icon3', 'Open Big File3','Open Bigger File3', 'Open Biggest File3',settings_icon,delete_icon])
-    self.liststore.insert(0, [tag_icon,'icon4', 'Open Big File4','Open Bigger File4', 'Open Biggest File4',settings_icon,delete_icon])
-
-    # make treeview searchable
-    self.treeview.set_search_column(2)
-
-    # Allow sorting on the column
-    self.tvcolumn.set_sort_column_id(2)
-
-    # Allow drag and drop reordering of rows
-    self.treeview.set_reorderable(True)
-
-    # add columns to treeview
-    self.treeview.append_column(self.tvcolumn)
-    self.treeview.append_column(self.tvcolumn1)
-    self.treeview.append_column(self.tvcolumn2)
-    self.treeview.append_column(self.tvcolumn3)
-    self.treeview.append_column(self.tvcolumn4)
-    self.treeview.append_column(self.tvcolumn_settings)
-    self.treeview.append_column(self.tvcolumn_delete)
-
     # create a CellRenderers to render the data
     self.cellpb = Gtk.CellRendererPixbuf()
     self.cell1 = Gtk.CellRendererText()
@@ -804,30 +767,74 @@ class TagMainPopup(Gtk.Dialog):
     self.cell4 = Gtk.CellRendererText()
     self.cell_settings = Gtk.CellRendererPixbuf()
     self.cell_delete = Gtk.CellRendererPixbuf()
+    #Add the column headers
+    columns = {0:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
+               1:{'name':'Tagname','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               2:{'name':'Connection','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               3:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               4:{'name':'Description','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+              }
+    for c in columns:
+      col = Gtk.TreeViewColumn(columns[c]['name'])
+      self.treeview.append_column(col)
+      col.pack_start(columns[c]['cell'], columns[c]['expand'])
+      # Allow sorting on the column
+      col.set_sort_column_id(c)
+      if columns[c]['type'] == 'pixbuf':
+        col.set_attributes(columns[c]['cell'],pixbuf=c)
+        col.set_max_width(columns[c]['width'])
+      else:
+        col.set_attributes(columns[c]['cell'],text=c)
+        col.set_expand(True)
+
+    # self.tvcolumn = Gtk.TreeViewColumn('')
+    # self.tvcolumn1 = Gtk.TreeViewColumn('Tagname')
+    # self.tvcolumn2 = Gtk.TreeViewColumn('Connection')
+    # self.tvcolumn3 = Gtk.TreeViewColumn('Address')
+    # self.tvcolumn4 = Gtk.TreeViewColumn('Description')
+    self.tvcolumn_settings = Gtk.TreeViewColumn('')
+    self.tvcolumn_delete = Gtk.TreeViewColumn('')
+
+
+    # add columns to treeview
+    # self.treeview.append_column(self.tvcolumn)
+    # self.treeview.append_column(self.tvcolumn1)
+    # self.treeview.append_column(self.tvcolumn2)
+    # self.treeview.append_column(self.tvcolumn3)
+    # self.treeview.append_column(self.tvcolumn4)
+    self.treeview.append_column(self.tvcolumn_settings)
+    self.treeview.append_column(self.tvcolumn_delete)
+
+
 
     # add the cells to the columns - 2 in the first
-    self.tvcolumn.pack_start(self.cellpb, False)
-    self.tvcolumn1.pack_start(self.cell1, True)
-    self.tvcolumn2.pack_start(self.cell2, True)
-    self.tvcolumn3.pack_start(self.cell3, True)
-    self.tvcolumn4.pack_start(self.cell4, True)
+    # self.tvcolumn.pack_start(self.cellpb, False)
+    # self.tvcolumn1.pack_start(self.cell1, True)
+    # self.tvcolumn2.pack_start(self.cell2, True)
+    # self.tvcolumn3.pack_start(self.cell3, True)
+    # self.tvcolumn4.pack_start(self.cell4, True)
     self.tvcolumn_settings.pack_end(self.cell_settings, False)
     self.tvcolumn_delete.pack_end(self.cell_delete, False)
 
-    self.tvcolumn.set_attributes(self.cellpb,pixbuf=0)
-    self.tvcolumn.set_max_width(30)
-    self.tvcolumn1.set_attributes(self.cell1, text=1)
-    self.tvcolumn1.set_expand(True)
-    self.tvcolumn2.set_attributes(self.cell2, text=2)
-    self.tvcolumn2.set_expand(True)
-    self.tvcolumn3.set_attributes(self.cell3, text=3)
-    self.tvcolumn3.set_expand(True)
-    self.tvcolumn4.set_attributes(self.cell4, text=4)
-    self.tvcolumn4.set_expand(True)
+    # self.tvcolumn.set_attributes(self.cellpb,pixbuf=0)
+    # self.tvcolumn.set_max_width(30)
+    # self.tvcolumn1.set_attributes(self.cell1, text=1)
+    # self.tvcolumn1.set_expand(True)
+    # self.tvcolumn2.set_attributes(self.cell2, text=2)
+    # self.tvcolumn2.set_expand(True)
+    # self.tvcolumn3.set_attributes(self.cell3, text=3)
+    # self.tvcolumn3.set_expand(True)
+    # self.tvcolumn4.set_attributes(self.cell4, text=4)
+    # self.tvcolumn4.set_expand(True)
     self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
     self.tvcolumn_settings.set_max_width(30)
     self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
     self.tvcolumn_delete.set_max_width(30)
+    # make treeview searchable
+    self.treeview.set_search_column(2)
+    # Allow drag and drop reordering of rows
+    self.treeview.set_reorderable(True)
+    #Add treeview to base window
     self.base_area.add(self.treeview)
 
     #header
@@ -846,8 +853,9 @@ class TagMainPopup(Gtk.Dialog):
         #update currently active display
         selection = treeview.get_selection()
         tree_model, tree_iter = selection.get_selected()
-        #If selected column is delete icon then initial delete of tag
+        #If selected column is delete icon then initiate delete of tag
         if column is self.tvcolumn_delete:
+          print(column)
           if tree_iter != None:
             self.liststore.remove(tree_iter)
       else:
@@ -913,33 +921,42 @@ class TagMainPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
 
   def add_tag_rows(self,filter,*args):
+    #self.liststore.append([tag_icon,'icon3', 'Open Big File3','Open Bigger File3', 'Open Biggest File3',settings_icon,delete_icon])
+    #self.liststore.insert(0, [tag_icon,'icon4', 'Open Big File4','Open Bigger File4', 'Open Biggest File4',settings_icon,delete_icon])
+    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 20, 20)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 20, 20)
+
     even_row = False
     for tags in self.tags_available:
       for tag in self.tags_available[tags]:
         conx_id = tags
         if filter == '' or filter == conx_id:
-          TagsListRow(self.tags_available[tags][tag],self.listbox,self.row_num,self.app,self,conx_id,even_row)
+          #Need a better way to deal with this
+          if 'address' in self.tags_available[tags][tag].keys():
+            self.liststore.append([tag_icon,
+                                  self.tags_available[tags][tag]['id'],
+                                  self.tags_available[tags][tag]['connection_id'],
+                                  self.tags_available[tags][tag]['address'],
+                                  self.tags_available[tags][tag]['description'],
+                                  settings_icon,
+                                  delete_icon
+                                            ])
+          else:
+            self.liststore.append([tag_icon,
+                                   self.tags_available[tags][tag]['id'],
+                                   self.tags_available[tags][tag]['connection_id'],
+                                   '',
+                                   self.tags_available[tags][tag]['description'],
+                                   settings_icon,
+                                   delete_icon
+                                            ])
+          #TagsListRow(self.tags_available[tags][tag],self.listbox,self.row_num,self.app,self,conx_id,even_row)
           if even_row:
             even_row = False
           else:
             even_row = True
     self.show_all()
-
-
-    # for tags in self.tags_available:
-    #   for tag in self.tags_available[tags]:
-    #     conx_id = tags
-    #     if filter == '' or filter == conx_id:
-    #       row = Tag_row(self.tags_available[tags][tag],self.grid,self.row_num,self.app,self,conx_id)
-    #       self.create_delete_button(self.tags_available[tags][tag]['id'],conx_id,self.row_num)
-    #     self.row_num += 1
-    #   #self.connection_settings.append(row)
-    # self.show_all()
-    # #Spaces out column headers when no data available
-    # if len(self.tags_available) <= 1:
-    #   self.grid.set_column_homogeneous(True)
-    # else:
-    #   self.grid.set_column_homogeneous(False)
 
   def add_column_names(self,*args):
     labels = ['','Tag Name', 'Connection', 'Description','Address','',''] # may want to create a table in the db for column names
@@ -1124,7 +1141,6 @@ class TagMainPopup(Gtk.Dialog):
 
   def close_popup(self, button):
     self.destroy()
-
 
 class TagsListRow(object):
   ##############NEED TO WORK ON FILTERING BASED ON CONNECTION
