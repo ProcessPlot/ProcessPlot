@@ -150,3 +150,14 @@
   border: 4px solid black;
   border-radius: 4px;
 }
+
+.treeview{ 
+  color: Black; 
+  background: rgb(200, 202, 202); 
+  text-shadow: none; 
+  box-shadow: none; 
+}
+.treeview:hover { 
+  background-color: #666666; 
+  color: red; 
+}

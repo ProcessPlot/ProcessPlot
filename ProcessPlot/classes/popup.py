@@ -111,7 +111,6 @@ class BaseSettingsPopoup(Gtk.Dialog):
 #build calendar picker, chart settings popup, time window / range to display,
 #build popup for chart settings
 
-
 class PenSettingsPopup(BaseSettingsPopoup):
 
   def __init__(self, parent,app):
@@ -371,15 +370,16 @@ class Pen_row(object):
     #Chart Select
     db_chart_number = str(self.params['chart_id'])
     selections = []
-    for num in range(self.app.charts_number):
+    #for num in range(self.app.charts_number):
+    for num in range(16):
       selections.append(str(num+1))
     self.chart_number = Gtk.ComboBoxText(width_request = 20)
     for x in selections:
         self.chart_number.append_text(x)
-    try:
-      idx = selections.index(str(db_chart_number))
-    except IndexError:
+    if int(db_chart_number) > 16 or int(db_chart_number) <1:
       idx = 0
+    else:
+      idx = selections.index(str(db_chart_number))
     sc = self.chart_number.get_style_context()
     sc.add_class('ctrl-combo')
     self.chart_number.set_active(idx)
@@ -661,7 +661,7 @@ class Pen_row(object):
 
 
 class TagMainPopup(Gtk.Dialog):
-###########################################NEED TO ADD DELETE AND INSERT TO LISTSTORE
+##################################TRY TO CUT AND PASTE FROM EXCEL INTO TAG SPREADSHEET
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0) 
     self.unsaved_changes_present = False
@@ -749,6 +749,9 @@ class TagMainPopup(Gtk.Dialog):
     self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , str,GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
+    self.treeview.set_rules_hint( True )
+    self.add_style(self.treeview,['treeview'])
+    #self.treeview.set_property('even-row-color','#dddddd')
 
     #Generate Columns
     columns = {0:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
@@ -879,9 +882,9 @@ class TagMainPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
 
   def add_tag_rows(self,filter,*args):
-    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
-    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 20, 20)
-    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 20, 20)
+    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 25, 25)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 25, 25)
     for tags in self.tags_available:
       for tag in self.tags_available[tags]:
         conx_id = tags
@@ -1080,6 +1083,7 @@ class TagMainPopup(Gtk.Dialog):
 
   def close_popup(self, button):
     self.destroy()
+
 
 class AddTagPopup(Gtk.Dialog):
   def __init__(self, parent,params,conx_type):
@@ -2844,6 +2848,224 @@ class ChartSettingsPopup(Gtk.Dialog):
     grid = self.grid.get_children()
     for widgets in grid:
       self.grid.remove(widgets)
+
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
+    response = numpad.run()
+    if response == Gtk.ResponseType.NO:
+      pass
+    else:
+      pass
+      #callback(args)
+    numpad.destroy()
+
+  def close_popup(self, *args):
+    self.destroy()
+
+
+class TimeSpanPopup(Gtk.Dialog):
+  def __init__(self, app,chart):
+    Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
+                        (Gtk.STOCK_OK, Gtk.ResponseType.YES)
+                        )
+    self.app = app
+    self.set_default_size(300, 300)
+    self.set_border_width(10)
+    sc = self.get_style_context()
+    sc.add_class("dialog-border")
+    self.set_keep_above(False)
+    self.set_decorated(False)
+    self.content_area = self.get_content_area()
+    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+    self.content_area.add(self.dialog_window )
+    self.bg_color = [1.0,1.0,1.0,1.0] #default to white
+    self.grid_color = [1.0,1.0,1.0,1.0] #default to white
+    self.marker1_color = [1.0,0.0,0.0,1.0] #default to red
+    self.marker2_color = [0.0,1.0,0.0,1.0] #default to blue
+    self.h_grids = 2
+    self.v_grids = 2
+    self.marker1_width = 1
+    self.marker2_width = 1
+    self.build_header()
+    self.build_base()
+    self.show_all()
+
+  def build_header(self,*args):
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    self.title_bar.pack_start(bx,0,0,0)
+
+    #title
+    title = Gtk.Label(label='Chart Time')
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-18')
+    sc.add_class('font-bold')
+    self.title_bar.pack_start(title,1,1,1)
+
+    #exit button
+    self.exit_button = Gtk.Button(width_request = 20)
+    self.exit_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.exit_button.add(image)
+    self.title_bar.pack_end(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
+    sc.add_class('exit-button')
+
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
+
+  def build_base(self,*args):
+    #Chart Select
+    lbl = Gtk.Label('Chart Number')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,1,1,1) 
+    self.chart_select = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
+    self.add_style(self.chart_select,["font-18","list-select","font-bold"])
+    selections = []
+    for num in range(16):
+      self.chart_select.append(str(num+1),str(num+1))
+    self.chart_select.set_active(1)
+    self.grid.attach(self.chart_select,1,1,1,1)
+    #self.chart_select.connect("changed", self.new_chart_selected)
+
+    #color
+    lbl = Gtk.Label('Background Color')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,2,1,1) 
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.bg_color[0])
+    rgbcolor.green = float(self.bg_color[1])
+    rgbcolor.blue = float(self.bg_color[2])
+    rgbcolor.alpha = float(self.bg_color[3])
+    bx = Gtk.Box()
+    self.color_button = Gtk.ColorButton(width_request = 50)
+    self.color_button.set_rgba (rgbcolor)
+    sc = self.color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.color_button)
+    self.grid.attach(bx,1,2,1,1)
+
+    #Horizontal Grid LInes
+    lbl = Gtk.Label('Horizontal Grid Lines')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,3,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.hor_grid = Gtk.Label()
+    self.hor_grid.set_label(str(self.h_grids))
+    self.add_style(self.hor_grid,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.hor_grid)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.hor_grid,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,3,1,1)
+
+    #Vertical Grid Lines
+    lbl = Gtk.Label('Vertical Grid Lines')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,4,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.vert_grid = Gtk.Label()
+    self.vert_grid.set_label(str(self.v_grids))
+    self.add_style(self.vert_grid,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.vert_grid)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.vert_grid,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,4,1,1)
+
+    #grid color
+    lbl = Gtk.Label('Grid Line Color')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,5,1,1) 
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.grid_color[0])
+    rgbcolor.green = float(self.grid_color[1])
+    rgbcolor.blue = float(self.grid_color[2])
+    rgbcolor.alpha = float(self.grid_color[3])
+    bx = Gtk.Box()
+    self.grid_color_button = Gtk.ColorButton(width_request = 50)
+    self.grid_color_button.set_rgba (rgbcolor)
+    sc = self.grid_color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.grid_color_button)
+    self.grid.attach(bx,1,5,1,1)
+
+    #Marker 1
+    lbl = Gtk.Label('Chart Marker 1 (Width/Color)')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,6,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.marker1_width_button = Gtk.Label()
+    self.marker1_width_button.set_label(str(self.marker1_width))
+    self.add_style(self.marker1_width_button,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.marker1_width_button)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.marker1_width_button,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,6,1,1)
+
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.marker1_color[0])
+    rgbcolor.green = float(self.marker1_color[1])
+    rgbcolor.blue = float(self.marker1_color[2])
+    rgbcolor.alpha = float(self.marker1_color[3])
+    bx = Gtk.Box()
+    self.marker1_color_button = Gtk.ColorButton(width_request = 50)
+    self.marker1_color_button.set_rgba (rgbcolor)
+    sc = self.marker1_color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.marker1_color_button)
+    self.grid.attach(bx,2,6,1,1)
+
+    #Marker 2
+    lbl = Gtk.Label('Chart Marker 2 (Width/Color)')
+    self.add_style(lbl,["Label","font-16",'font-bold'])
+    self.grid.attach(lbl,0,7,1,1) 
+    but = Gtk.Button(width_request = 20)
+    self.marker2_width_button = Gtk.Label()
+    self.marker2_width_button.set_label(str(self.marker2_width))
+    self.add_style(self.marker2_width_button,['borderless-num-display','font-14','text-black-color'])
+    but.add(self.marker2_width_button)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.marker2_width_button,{'min':0,'max':8,'type':int,'polarity':False})
+    self.grid.attach(but,1,7,1,1)
+
+    rgbcolor = Gdk.RGBA()
+    rgbcolor.red = float(self.marker2_color[0])
+    rgbcolor.green = float(self.marker2_color[1])
+    rgbcolor.blue = float(self.marker2_color[2])
+    rgbcolor.alpha = float(self.marker2_color[3])
+    bx = Gtk.Box()
+    self.marker2_color_button = Gtk.ColorButton(width_request = 50)
+    self.marker2_color_button.set_rgba (rgbcolor)
+    sc = self.marker2_color_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx.set_center_widget(self.marker2_color_button)
+    self.grid.attach(bx,2,7,1,1)
+
+    sep = Gtk.Label(height_request=3)
+    self.dialog_window.pack_start(sep,1,1,1)
 
   def add_style(self, item,style):
     sc = item.get_style_context()

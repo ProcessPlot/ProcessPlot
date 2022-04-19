@@ -8,7 +8,7 @@ from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
 from classes.chart import *
-from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup
+from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup, TimeSpanPopup
 from Public.widgets.checkbox import CheckBoxWidget
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
@@ -25,6 +25,12 @@ class MainWindow(Gtk.Window):
     self.headless_mode = False
     self.screen_width = 1950
     self.screen_height = 1050
+    self.popups = {
+      "pen": PenSettingsPopup,
+      "point": TagMainPopup,
+      "connection": ConnectionsMainPopup,
+      "timespan":TimeSpanPopup,
+    }
     #settings
     self.application_settings = Gtk.Settings.get_default()
     self.application_settings.set_property("gtk-application-prefer-dark-theme", self.dark_mode)
@@ -89,7 +95,6 @@ class MainWindow(Gtk.Window):
     else:
       self.db_session.add(Tbl(dark_mode=self.dark_mode, charts=self.numCharts, headless = self.headless_mode,screen_height = self.screen_height, screen_width = self.screen_width  ))
     self.db_session.commit()
-
   
   def build_titlebar(self,*args):
 
@@ -130,6 +135,11 @@ class MainWindow(Gtk.Window):
     self.save_settings()
     self.update_settings()
 
+  def get_headless_toggle(self,t_button):
+    self.headless_mode = bool(t_button.get_active())
+    self.save_settings()
+    self.update_settings()
+
   def update_number_of_charts(self,val):
     self.app.charts_number = 0
     self.chart_panel.charts = val
@@ -141,12 +151,6 @@ class MainWindow(Gtk.Window):
     settings_popout_width = 300
     self.settings_window = Gtk.Box(width_request=settings_popout_width,orientation=Gtk.Orientation.VERTICAL)
     self.settings_title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=settings_popout_width)
-
-    self.popups = {
-      "pen": PenSettingsPopup,
-      "point": TagMainPopup,
-      "connection": ConnectionsMainPopup,
-    }
 
     #header
     title = Gtk.Label(label = 'Settings')
@@ -176,6 +180,7 @@ class MainWindow(Gtk.Window):
     sc.add_class('ctrl-button')
     self.conn_button.connect('clicked',self.open_popup,"connection",self.app)
 
+    #Tag Button
     self.point_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Tag.png'), 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -184,9 +189,9 @@ class MainWindow(Gtk.Window):
     sc = self.point_button.get_style_context()
     sc.add_class('ctrl-button')
     self.point_button.connect('clicked',self.open_popup,"point",self.app)
- 
-    self.pen_settings_button = Gtk.Button(width_request = 30)
 
+    #Pen Settings Button
+    self.pen_settings_button = Gtk.Button(width_request = 30)
     self.pen_settings_button.connect('clicked',self.open_popup,"pen",self.app)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Create.png'), 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -196,11 +201,11 @@ class MainWindow(Gtk.Window):
     sc.add_class('ctrl-button')
 
     self.settings_window.pack_start(self.ctrl_button_bar,0,0,1)
-
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     self.settings_window.pack_start(divider,0,0,1)
+    
     #Settings Data
 
     self.settings_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,width_request=settings_popout_width,height_request = 800)
@@ -255,7 +260,7 @@ class MainWindow(Gtk.Window):
     image = Gtk.Image(pixbuf=p_buf)
     wid =CheckBoxWidget(30,30,image,self.headless_mode)
     t_button = wid.return_self()
-    #t_button.connect("toggled", self.get_dark_toggle)
+    t_button.connect("toggled", self.get_headless_toggle)
     settings3.pack_start(t_button,0,0,1)
     self.settings_data.pack_start(settings3,0,0,1)
     
@@ -278,7 +283,7 @@ class MainWindow(Gtk.Window):
 
     #TimeSpan Button
     self.clock_button = Gtk.Button(width_request = 40)
-    self.clock_button.connect('clicked',self.exit_app,None)
+    self.clock_button.connect('clicked',self.open_popup,"timespan",self.app)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/Clock.png'), 40, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.clock_button.add(image)
