@@ -109,7 +109,16 @@ class BaseSettingsPopoup(Gtk.Dialog):
     pass
 
 #build calendar picker, chart settings popup, time window / range to display,
-#build popup for chart settings
+
+################################ Fix OK button to save before closing
+################################ Being able to edit tag description once created
+################################ When editting a tag it doesn't update on tag browser until after closing and reopening
+################################ Popup opening / closing / saving consistency buttons 
+################################ When deleting a connection the row stays in the connection specific table
+################################ finish timespan popup
+################################ TRY TO CUT AND PASTE FROM EXCEL INTO TAG SPREADSHEET
+################################ Verify that user can't leave any boxes blank
+################################ Still need to create ledgend on popout
 
 class PenSettingsPopup(BaseSettingsPopoup):
 
@@ -661,7 +670,6 @@ class Pen_row(object):
 
 
 class TagMainPopup(Gtk.Dialog):
-##################################TRY TO CUT AND PASTE FROM EXCEL INTO TAG SPREADSHEET
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0) 
     self.unsaved_changes_present = False
@@ -2541,7 +2549,7 @@ class PopupConfirm(Gtk.Dialog):
         sc.add_class("dialog-buttons")
         sc.add_class("font-16")
 
-################################ Fix OK button to save before closing
+
 class ChartSettingsPopup(Gtk.Dialog):
   def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
@@ -2874,6 +2882,11 @@ class TimeSpanPopup(Gtk.Dialog):
                         (Gtk.STOCK_OK, Gtk.ResponseType.YES)
                         )
     self.app = app
+    self.chart = chart
+    self.c_id = self.chart.db_id
+    self.db_session = self.app.settings_db.session
+    self.db_model = self.app.settings_db.models['chart']
+    self.Tbl = self.db_model
     self.set_default_size(300, 300)
     self.set_border_width(10)
     sc = self.get_style_context()
@@ -2935,137 +2948,120 @@ class TimeSpanPopup(Gtk.Dialog):
     self.dialog_window.pack_start(self.grid,1,1,1)
 
   def build_base(self,*args):
-    #Chart Select
-    lbl = Gtk.Label('Chart Number')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
+    #Start Time
+    lbl = Gtk.Label('Chart {} Start Time'.format(self.c_id))
+    lbl.set_halign(Gtk.Align(2))
+    self.add_style(lbl,["Label","font-18",'font-bold'])
     self.grid.attach(lbl,0,1,1,1) 
-    self.chart_select = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
-    self.add_style(self.chart_select,["font-18","list-select","font-bold"])
-    selections = []
-    for num in range(16):
-      self.chart_select.append(str(num+1),str(num+1))
-    self.chart_select.set_active(1)
-    self.grid.attach(self.chart_select,1,1,1,1)
-    #self.chart_select.connect("changed", self.new_chart_selected)
+    but = Gtk.Button(width_request = 200)
+    self.st_time= Gtk.Label()
+    self.st_time.set_label(str(self.h_grids))
+    self.add_style(self.st_time,['borderless-num-display','font-18','text-black-color'])
+    but.add(self.st_time)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.st_time,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
+    self.grid.attach(but,1,1,1,1)
 
-    #color
-    lbl = Gtk.Label('Background Color')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
+    #Timespan
+    lbl = Gtk.Label('Chart {} Timespan (min)'.format(self.c_id))
+    lbl.set_halign(Gtk.Align(2))
+    self.add_style(lbl,["Label","font-18",'font-bold'])
     self.grid.attach(lbl,0,2,1,1) 
-    rgbcolor = Gdk.RGBA()
-    rgbcolor.red = float(self.bg_color[0])
-    rgbcolor.green = float(self.bg_color[1])
-    rgbcolor.blue = float(self.bg_color[2])
-    rgbcolor.alpha = float(self.bg_color[3])
-    bx = Gtk.Box()
-    self.color_button = Gtk.ColorButton(width_request = 50)
-    self.color_button.set_rgba (rgbcolor)
-    sc = self.color_button.get_style_context()
-    sc.add_class('ctrl-button')
-    bx.set_center_widget(self.color_button)
-    self.grid.attach(bx,1,2,1,1)
-
-    #Horizontal Grid LInes
-    lbl = Gtk.Label('Horizontal Grid Lines')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    self.grid.attach(lbl,0,3,1,1) 
-    but = Gtk.Button(width_request = 20)
-    self.hor_grid = Gtk.Label()
-    self.hor_grid.set_label(str(self.h_grids))
-    self.add_style(self.hor_grid,['borderless-num-display','font-14','text-black-color'])
-    but.add(self.hor_grid)
+    but = Gtk.Button(width_request = 200)
+    self.timespan = Gtk.Label()
+    self.timespan.set_label(str(self.h_grids))
+    self.add_style(self.timespan,['borderless-num-display','font-18','text-black-color'])
+    but.add(self.timespan)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.hor_grid,{'min':0,'max':8,'type':int,'polarity':False})
-    self.grid.attach(but,1,3,1,1)
+    but.connect('clicked',self.open_numpad,self.timespan,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
+    self.grid.attach(but,1,2,1,1)
 
-    #Vertical Grid Lines
-    lbl = Gtk.Label('Vertical Grid Lines')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    self.grid.attach(lbl,0,4,1,1) 
-    but = Gtk.Button(width_request = 20)
-    self.vert_grid = Gtk.Label()
-    self.vert_grid.set_label(str(self.v_grids))
-    self.add_style(self.vert_grid,['borderless-num-display','font-14','text-black-color'])
-    but.add(self.vert_grid)
+    #Blank Line
+    lbl = Gtk.Label('')
+    self.add_style(lbl,['borderless-num-display','font-18','text-black-color'])
+    self.grid.attach(lbl,0,3,2,1)
+
+    #Synchronize All Chart Times
+    but = Gtk.Button(width_request = 200)
+    self.end_time = Gtk.Label()
+    self.end_time.set_label('Synchronize All Chart Times')
+    self.add_style(self.end_time,['borderless-num-display','font-18','text-black-color'])
+    but.add(self.end_time)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.vert_grid,{'min':0,'max':8,'type':int,'polarity':False})
-    self.grid.attach(but,1,4,1,1)
+    #but.connect('clicked',self.open_numpad,self.end_time,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
+    self.grid.attach(but,0,4,2,1)
 
-    #grid color
-    lbl = Gtk.Label('Grid Line Color')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    self.grid.attach(lbl,0,5,1,1) 
-    rgbcolor = Gdk.RGBA()
-    rgbcolor.red = float(self.grid_color[0])
-    rgbcolor.green = float(self.grid_color[1])
-    rgbcolor.blue = float(self.grid_color[2])
-    rgbcolor.alpha = float(self.grid_color[3])
-    bx = Gtk.Box()
-    self.grid_color_button = Gtk.ColorButton(width_request = 50)
-    self.grid_color_button.set_rgba (rgbcolor)
-    sc = self.grid_color_button.get_style_context()
-    sc.add_class('ctrl-button')
-    bx.set_center_widget(self.grid_color_button)
-    self.grid.attach(bx,1,5,1,1)
+    hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-    #Marker 1
-    lbl = Gtk.Label('Chart Marker 1 (Width/Color)')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    self.grid.attach(lbl,0,6,1,1) 
-    but = Gtk.Button(width_request = 20)
-    self.marker1_width_button = Gtk.Label()
-    self.marker1_width_button.set_label(str(self.marker1_width))
-    self.add_style(self.marker1_width_button,['borderless-num-display','font-14','text-black-color'])
-    but.add(self.marker1_width_button)
-    sc = but.get_style_context()
-    sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.marker1_width_button,{'min':0,'max':8,'type':int,'polarity':False})
-    self.grid.attach(but,1,6,1,1)
+    self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
+    self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
+    self.hours.props.digits = 2
+    hbox.pack_start(self.hours,0,0,0)
+    
+    self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
+    self.minutes.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
+    self.minutes.props.digits = 2
+    hbox.pack_start(self.minutes,0,0,0)
 
-    rgbcolor = Gdk.RGBA()
-    rgbcolor.red = float(self.marker1_color[0])
-    rgbcolor.green = float(self.marker1_color[1])
-    rgbcolor.blue = float(self.marker1_color[2])
-    rgbcolor.alpha = float(self.marker1_color[3])
-    bx = Gtk.Box()
-    self.marker1_color_button = Gtk.ColorButton(width_request = 50)
-    self.marker1_color_button.set_rgba (rgbcolor)
-    sc = self.marker1_color_button.get_style_context()
-    sc.add_class('ctrl-button')
-    bx.set_center_widget(self.marker1_color_button)
-    self.grid.attach(bx,2,6,1,1)
+    self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
+    self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
+    self.seconds.props.digits = 2
+    hbox.pack_start(self.seconds,0,0,0)
 
-    #Marker 2
-    lbl = Gtk.Label('Chart Marker 2 (Width/Color)')
-    self.add_style(lbl,["Label","font-16",'font-bold'])
-    self.grid.attach(lbl,0,7,1,1) 
-    but = Gtk.Button(width_request = 20)
-    self.marker2_width_button = Gtk.Label()
-    self.marker2_width_button.set_label(str(self.marker2_width))
-    self.add_style(self.marker2_width_button,['borderless-num-display','font-14','text-black-color'])
-    but.add(self.marker2_width_button)
-    sc = but.get_style_context()
-    sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.marker2_width_button,{'min':0,'max':8,'type':int,'polarity':False})
-    self.grid.attach(but,1,7,1,1)
+    hbox.pack_start(vbox,0,0,0)
 
-    rgbcolor = Gdk.RGBA()
-    rgbcolor.red = float(self.marker2_color[0])
-    rgbcolor.green = float(self.marker2_color[1])
-    rgbcolor.blue = float(self.marker2_color[2])
-    rgbcolor.alpha = float(self.marker2_color[3])
-    bx = Gtk.Box()
-    self.marker2_color_button = Gtk.ColorButton(width_request = 50)
-    self.marker2_color_button.set_rgba (rgbcolor)
-    sc = self.marker2_color_button.get_style_context()
-    sc.add_class('ctrl-button')
-    bx.set_center_widget(self.marker2_color_button)
-    self.grid.attach(bx,2,7,1,1)
+    bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+    lbl = Gtk.Label(label='Year',width_request = 150,halign = Gtk.Align.END)
+    #lbl.set_halign(Gtk.Align(2))
+    self.add_style(lbl,["Label","font-18",'font-bold'])
+    bx.pack_start(lbl,1,1,1)
+    self.year = Gtk.SpinButton()
+    self.year.set_orientation(Gtk.Orientation.HORIZONTAL)
+    self.year.set_adjustment(Gtk.Adjustment(value=2022, lower=1900, upper=2050,step_increment=1))
+    self.year.props.digits = 0
+    bx.pack_start(self.year,0,0,0)
+    vbox.pack_start(bx,0,0,0)
+
+    bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+    lbl = Gtk.Label(label = 'Month',width_request = 150,halign = Gtk.Align.END)
+    lbl.set_halign(Gtk.Align(2))
+    self.add_style(lbl,["Label","font-18",'font-bold'])
+    bx.pack_start(lbl,1,1,1)
+    self.month = Gtk.SpinButton()
+    self.month.set_orientation(Gtk.Orientation.HORIZONTAL)
+    self.month.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=12,step_increment=1))
+    self.month.props.digits = 0
+    bx.pack_start(self.month,0,0,0)
+    vbox.pack_start(bx,0,0,0)
+
+    bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+    lbl = Gtk.Label(label = 'Day',width_request = 150,halign = Gtk.Align.START)
+    lbl.set_halign(Gtk.Align(2))
+    self.add_style(lbl,["Label","font-18",'font-bold'])
+    bx.pack_start(lbl,1,1,1)
+    self.day = Gtk.SpinButton()
+    self.day.set_orientation(Gtk.Orientation.HORIZONTAL)
+    self.day.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=30,step_increment=1))
+    self.day.props.digits = 0
+    bx.pack_start(self.day,0,0,0)
+    vbox.pack_start(bx,0,0,0)
+
+
+    self.dialog_window.pack_start(hbox, 0, 0, 0)
+
 
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
+
+  def on_date_selected(self, calendar):
+      year, month, day = self.calendar.get_date()
+      month += 1
+
+      print("Date selected: %i/%i/%i" % (year, month, day))
 
   def add_style(self, item,style):
     sc = item.get_style_context()

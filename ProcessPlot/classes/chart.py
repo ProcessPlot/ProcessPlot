@@ -30,7 +30,7 @@ from OpenGL.GL import *
 from OpenGL.GL import shaders
 from classes.pen import Pen
 import json, ast
-from classes.popup import ChartSettingsPopup
+from classes.popup import ChartSettingsPopup, TimeSpanPopup
 
 __all__ = ['Chart']
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
@@ -287,13 +287,15 @@ class ChartControls(Gtk.Box):
       super().__init__(orientation=Gtk.Orientation.VERTICAL)
       self.app = app
       self.chart = chart
+      #Chart settings button
       settings_button = Gtk.Button(width_request = 30)
-      settings_button.connect('clicked',self.open_chart_settings)
       p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/settings.png'), 30, -1, True)
       image = Gtk.Image(pixbuf=p_buf)
       settings_button.add(image)
       sc = settings_button.get_style_context()
       sc.add_class('ctrl-button')
+      settings_button.connect('clicked',self.open_chart_settings)
+      #Chart play button
       play_button = Gtk.Button(width_request = 30)
       p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/play.png'), 30, -1, True)
       image = Gtk.Image(pixbuf=p_buf)
@@ -301,14 +303,24 @@ class ChartControls(Gtk.Box):
       sc = play_button.get_style_context()
       sc.add_class('ctrl-button')
       play_button.connect('clicked', chart.toggle_running)
+      #TimeSpan Button
+      clock_button = Gtk.Button(width_request = 30)
+      p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR,'images/Clock.png'), 40, -1, True)
+      image = Gtk.Image(pixbuf=p_buf)
+      clock_button.add(image)
+      sc = clock_button.get_style_context()
+      sc.add_class('ctrl-button')
+      clock_button.connect('clicked',self.open_chart_timespan)
       button_row = Gtk.Box()
       for widget in [
         (Gtk.Box(),1,1,1),
         (settings_button,0,0,1),
         (play_button,0,0,1),
+        (clock_button,0,0,1),
         (Gtk.Box(),1,1,1)]:
         button_row.pack_start(*widget)
       for widget_row in [
+        (Gtk.Box(),1,1,1),
         (Gtk.Box(),1,1,1),
         (Gtk.Box(),1,1,1),
         (Gtk.Box(),1,1,1),
@@ -318,6 +330,16 @@ class ChartControls(Gtk.Box):
       
   def open_chart_settings(self,*args):
     popup = ChartSettingsPopup(self.app,self.chart)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
+
+  def open_chart_timespan(self,*args):
+    #self.clock_button.connect('clicked',self.open_popup,"timespan",self.app)
+    popup = TimeSpanPopup(self.app,self.chart)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
