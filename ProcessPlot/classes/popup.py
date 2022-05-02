@@ -2980,7 +2980,7 @@ class TimeSpanPopup(Gtk.Dialog):
 
     #Blank Line
     lbl = Gtk.Label('')
-    self.add_style(lbl,['borderless-num-display','font-18','text-black-color'])
+    self.add_style(lbl,['borderless-num-display','text-black-color'])
     self.grid.attach(lbl,0,3,2,1)
 
     #Synchronize All Chart Times
@@ -2994,31 +2994,59 @@ class TimeSpanPopup(Gtk.Dialog):
     #but.connect('clicked',self.open_numpad,self.end_time,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
     self.grid.attach(but,0,4,2,1)
 
+    dtbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    dtbox.pack_start(divider,0,0,0)
+    lbl = Gtk.Label('Set Date / Time')
+    self.add_style(lbl,['borderless-num-display','text-black-color'])
+    dtbox.pack_start(lbl,1,1,1)
+
     self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
     self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
-    self.hours.props.digits = 2
+    #self.hours.props.digits = 2
+    self.add_style(self.hours,['font-36','text-black-color'])
+    self.hours.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.hours,0,0,0)
+
+    lbl = Gtk.Label(':')
+    self.add_style(lbl,['borderless-num-display','font-36','text-black-color','font-bold'])
+    hbox.pack_start(lbl,0,0,0)
     
     self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
     self.minutes.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
-    self.minutes.props.digits = 2
+    #self.minutes.props.digits = 2
+    self.add_style(self.minutes,['font-36','text-black-color'])
+    self.minutes.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.minutes,0,0,0)
 
+    lbl = Gtk.Label('.')
+    self.add_style(lbl,['borderless-num-display','font-36','text-black-color','font-bold'])
+    hbox.pack_start(lbl,0,0,0)
+
     self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
-    self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
-    self.seconds.props.digits = 2
+    self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=999,step_increment=1))
+    #self.seconds.props.digits = 2
+    self.add_style(self.seconds,['font-36','text-black-color'])
+    self.seconds.connect('output', self.show_leading_zeros,2)
     hbox.pack_start(self.seconds,0,0,0)
+
+    #Blank Line
+    lbl = Gtk.Label('')
+    self.add_style(lbl,['borderless-num-display','font-18','text-black-color'])
+    hbox.pack_start(lbl,1,1,1)
 
     hbox.pack_start(vbox,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
-    lbl = Gtk.Label(label='Year',width_request = 150,halign = Gtk.Align.END)
-    #lbl.set_halign(Gtk.Align(2))
+    lbl = Gtk.Label(label='Year',width_request = 150)
+    lbl.set_justify(Gtk.Justification.RIGHT)
     self.add_style(lbl,["Label","font-18",'font-bold'])
-    bx.pack_start(lbl,1,1,1)
+    bx.pack_start(lbl,0,0,0)
     self.year = Gtk.SpinButton()
     self.year.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.year.set_adjustment(Gtk.Adjustment(value=2022, lower=1900, upper=2050,step_increment=1))
@@ -3050,18 +3078,19 @@ class TimeSpanPopup(Gtk.Dialog):
     bx.pack_start(self.day,0,0,0)
     vbox.pack_start(bx,0,0,0)
 
-
-    self.dialog_window.pack_start(hbox, 0, 0, 0)
+    dtbox.pack_start(hbox, 0, 0, 0)
+    self.dialog_window.pack_start(dtbox, 0, 0, 0)
 
 
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
 
-  def on_date_selected(self, calendar):
-      year, month, day = self.calendar.get_date()
-      month += 1
-
-      print("Date selected: %i/%i/%i" % (year, month, day))
+  def show_leading_zeros(obj,spin_button,num,*args):
+    adjustment = spin_button.get_adjustment()
+    if num == 2:
+      spin_button.set_text('{:03d}'.format(int(adjustment.get_value())))
+    else:
+      spin_button.set_text('{:02d}'.format(int(adjustment.get_value())))
 
   def add_style(self, item,style):
     sc = item.get_style_context()
