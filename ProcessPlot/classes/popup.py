@@ -2994,6 +2994,8 @@ class TimeSpanPopup(Gtk.Dialog):
     #but.connect('clicked',self.open_numpad,self.end_time,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
     self.grid.attach(but,0,4,2,1)
 
+    #Date / Time Picker
+
     dtbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -3003,12 +3005,12 @@ class TimeSpanPopup(Gtk.Dialog):
     sc.add_class('Hdivider')
     dtbox.pack_start(divider,0,0,0)
     lbl = Gtk.Label('Set Date / Time')
-    self.add_style(lbl,['borderless-num-display','text-black-color'])
+    self.add_style(lbl,["Label","font-18",'font-bold'])
     dtbox.pack_start(lbl,1,1,1)
 
     self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
     self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
-    #self.hours.props.digits = 2
+    self.hours.props.digits = 0
     self.add_style(self.hours,['font-36','text-black-color'])
     self.hours.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.hours,0,0,0)
@@ -3019,7 +3021,7 @@ class TimeSpanPopup(Gtk.Dialog):
     
     self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
     self.minutes.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
-    #self.minutes.props.digits = 2
+    self.minutes.props.digits = 0
     self.add_style(self.minutes,['font-36','text-black-color'])
     self.minutes.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.minutes,0,0,0)
@@ -3030,7 +3032,7 @@ class TimeSpanPopup(Gtk.Dialog):
 
     self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
     self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=999,step_increment=1))
-    #self.seconds.props.digits = 2
+    self.seconds.props.digits = 0
     self.add_style(self.seconds,['font-36','text-black-color'])
     self.seconds.connect('output', self.show_leading_zeros,2)
     hbox.pack_start(self.seconds,0,0,0)
@@ -3043,11 +3045,11 @@ class TimeSpanPopup(Gtk.Dialog):
     hbox.pack_start(vbox,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
-    lbl = Gtk.Label(label='Year',width_request = 150)
-    lbl.set_justify(Gtk.Justification.RIGHT)
+    lbl = Gtk.Label(label='Year ',width_request = 150)
+    lbl.set_xalign(1.0)
     self.add_style(lbl,["Label","font-18",'font-bold'])
     bx.pack_start(lbl,0,0,0)
-    self.year = Gtk.SpinButton()
+    self.year = Gtk.SpinButton(width_request = 150)
     self.year.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.year.set_adjustment(Gtk.Adjustment(value=2022, lower=1900, upper=2050,step_increment=1))
     self.year.props.digits = 0
@@ -3055,11 +3057,11 @@ class TimeSpanPopup(Gtk.Dialog):
     vbox.pack_start(bx,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
-    lbl = Gtk.Label(label = 'Month',width_request = 150,halign = Gtk.Align.END)
-    lbl.set_halign(Gtk.Align(2))
+    lbl = Gtk.Label(label = 'Month ',width_request = 150)
+    lbl.set_xalign(1.0)
     self.add_style(lbl,["Label","font-18",'font-bold'])
     bx.pack_start(lbl,1,1,1)
-    self.month = Gtk.SpinButton()
+    self.month = Gtk.SpinButton(width_request = 150)
     self.month.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.month.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=12,step_increment=1))
     self.month.props.digits = 0
@@ -3067,11 +3069,11 @@ class TimeSpanPopup(Gtk.Dialog):
     vbox.pack_start(bx,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
-    lbl = Gtk.Label(label = 'Day',width_request = 150,halign = Gtk.Align.START)
-    lbl.set_halign(Gtk.Align(2))
+    lbl = Gtk.Label(label = 'Day ',width_request = 150)
+    lbl.set_xalign(1.0)
     self.add_style(lbl,["Label","font-18",'font-bold'])
     bx.pack_start(lbl,1,1,1)
-    self.day = Gtk.SpinButton()
+    self.day = Gtk.SpinButton(width_request = 150)
     self.day.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.day.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=30,step_increment=1))
     self.day.props.digits = 0
