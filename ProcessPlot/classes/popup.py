@@ -759,7 +759,6 @@ class TagMainPopup(Gtk.Dialog):
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
     self.treeview.set_rules_hint( True )
     self.add_style(self.treeview,['treeview'])
-    #self.treeview.set_property('even-row-color','#dddddd')
 
     #Generate Columns
     columns = {0:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
@@ -2877,9 +2876,10 @@ class ChartSettingsPopup(Gtk.Dialog):
 
 
 class TimeSpanPopup(Gtk.Dialog):
+  ###########################################Needs update buttons
   def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_OK, Gtk.ResponseType.YES)
+                        (Gtk.STOCK_APPLY, Gtk.ResponseType.YES,Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
                         )
     self.app = app
     self.chart = chart
@@ -3005,13 +3005,13 @@ class TimeSpanPopup(Gtk.Dialog):
     sc.add_class('Hdivider')
     dtbox.pack_start(divider,0,0,0)
     lbl = Gtk.Label('Set Date / Time')
-    self.add_style(lbl,["Label","font-18",'font-bold'])
+    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     dtbox.pack_start(lbl,1,1,1)
 
-    self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
+    self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
     self.hours.props.digits = 0
-    self.add_style(self.hours,['font-36','text-black-color'])
+    self.add_style(self.hours,['font-36','text-black-color','spinbutton'])
     self.hours.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.hours,0,0,0)
 
@@ -3019,10 +3019,10 @@ class TimeSpanPopup(Gtk.Dialog):
     self.add_style(lbl,['borderless-num-display','font-36','text-black-color','font-bold'])
     hbox.pack_start(lbl,0,0,0)
     
-    self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
+    self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.minutes.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
     self.minutes.props.digits = 0
-    self.add_style(self.minutes,['font-36','text-black-color'])
+    self.add_style(self.minutes,['font-36','text-black-color','spinbutton'])
     self.minutes.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.minutes,0,0,0)
 
@@ -3030,26 +3030,27 @@ class TimeSpanPopup(Gtk.Dialog):
     self.add_style(lbl,['borderless-num-display','font-36','text-black-color','font-bold'])
     hbox.pack_start(lbl,0,0,0)
 
-    self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL)
+    self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=999,step_increment=1))
     self.seconds.props.digits = 0
-    self.add_style(self.seconds,['font-36','text-black-color'])
+    self.add_style(self.seconds,['font-36','text-black-color','spinbutton'])
     self.seconds.connect('output', self.show_leading_zeros,2)
     hbox.pack_start(self.seconds,0,0,0)
 
     #Blank Line
     lbl = Gtk.Label('')
     self.add_style(lbl,['borderless-num-display','font-18','text-black-color'])
-    hbox.pack_start(lbl,1,1,1)
+    #hbox.pack_start(lbl,1,1,1)
 
     hbox.pack_start(vbox,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+    self.add_style(bx,['padding'])
     lbl = Gtk.Label(label='Year ',width_request = 150)
     lbl.set_xalign(1.0)
-    self.add_style(lbl,["Label","font-18",'font-bold'])
+    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     bx.pack_start(lbl,0,0,0)
-    self.year = Gtk.SpinButton(width_request = 150)
+    self.year = Gtk.SpinButton(width_request = 120)
     self.year.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.year.set_adjustment(Gtk.Adjustment(value=2022, lower=1900, upper=2050,step_increment=1))
     self.year.props.digits = 0
@@ -3057,23 +3058,31 @@ class TimeSpanPopup(Gtk.Dialog):
     vbox.pack_start(bx,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+    self.add_style(bx,['padding'])
     lbl = Gtk.Label(label = 'Month ',width_request = 150)
     lbl.set_xalign(1.0)
-    self.add_style(lbl,["Label","font-18",'font-bold'])
+    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     bx.pack_start(lbl,1,1,1)
-    self.month = Gtk.SpinButton(width_request = 150)
-    self.month.set_orientation(Gtk.Orientation.HORIZONTAL)
-    self.month.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=12,step_increment=1))
-    self.month.props.digits = 0
-    bx.pack_start(self.month,0,0,0)
+    months = Gtk.ListStore(int,str)
+    lst = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    for num in range(len(lst)):
+      months.append([num+1,lst[num]])
+    self.months = Gtk.ComboBox.new_with_model(months)
+    renderer_text = Gtk.CellRendererText()
+    self.months.pack_start(renderer_text, True)
+    self.months.add_attribute(renderer_text, "text", 1)
+    self.months.set_active(1)
+    self.months.connect("changed", self.on_month_combo_changed)
+    bx.pack_start(self.months,0,0,0)
     vbox.pack_start(bx,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+    self.add_style(bx,['padding'])
     lbl = Gtk.Label(label = 'Day ',width_request = 150)
     lbl.set_xalign(1.0)
-    self.add_style(lbl,["Label","font-18",'font-bold'])
+    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     bx.pack_start(lbl,1,1,1)
-    self.day = Gtk.SpinButton(width_request = 150)
+    self.day = Gtk.SpinButton(width_request = 120)
     self.day.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.day.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=30,step_increment=1))
     self.day.props.digits = 0
@@ -3081,11 +3090,32 @@ class TimeSpanPopup(Gtk.Dialog):
     vbox.pack_start(bx,0,0,0)
 
     dtbox.pack_start(hbox, 0, 0, 0)
+
+    #Update Chart Time
+    but = Gtk.Button(width_request = 200)
+    self.end_time = Gtk.Label()
+    self.end_time.set_label('Update Chart Time')
+    self.add_style(self.end_time,['borderless-num-display','font-18','text-black-color'])
+    but.add(self.end_time)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
     self.dialog_window.pack_start(dtbox, 0, 0, 0)
+    dtbox.pack_start(but, 0, 0, 0)
 
 
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
+
+
+  def on_month_combo_changed(self, combo):
+      tree_iter = combo.get_active_iter()
+      if tree_iter is not None:
+          model = combo.get_model()
+          row_id, name = model[tree_iter][:2]
+          print("Selected: ID=%d, name=%s" % (row_id, name))
+      else:
+          entry = combo.get_child()
+          print("Entered: %s" % entry.get_text())
 
   def show_leading_zeros(obj,spin_button,num,*args):
     adjustment = spin_button.get_adjustment()
