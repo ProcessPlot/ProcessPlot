@@ -24,7 +24,7 @@ from logging.config import valid_ident
 from pkgutil import iter_modules
 
 from urllib.parse import non_hierarchical
-import gi, os, json
+import gi, os, json, datetime, time
 
 from ProcessLink.process_link import process_link
 from numpy import maximum, nonzero
@@ -112,7 +112,6 @@ class BaseSettingsPopoup(Gtk.Dialog):
 
 ################################ Fix OK button to save before closing
 ################################ Being able to edit tag description once created
-################################ When editting a tag it doesn't update on tag browser until after closing and reopening
 ################################ Popup opening / closing / saving consistency buttons 
 ################################ When deleting a connection the row stays in the connection specific table
 ################################ finish timespan popup
@@ -1037,6 +1036,10 @@ class TagMainPopup(Gtk.Dialog):
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
       self.update_tag(results)
+      self.remove_all_rows()
+      self.get_available_tags('c_id')
+      self.add_tag_rows(self.tag_filter_val)
+      self.show_all()
       return True
     else:
       return False
@@ -2876,7 +2879,6 @@ class ChartSettingsPopup(Gtk.Dialog):
 
 
 class TimeSpanPopup(Gtk.Dialog):
-  ###########################################Needs update buttons
   def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
                         (Gtk.STOCK_APPLY, Gtk.ResponseType.YES,Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
@@ -2897,14 +2899,6 @@ class TimeSpanPopup(Gtk.Dialog):
     self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
     self.content_area.add(self.dialog_window )
-    self.bg_color = [1.0,1.0,1.0,1.0] #default to white
-    self.grid_color = [1.0,1.0,1.0,1.0] #default to white
-    self.marker1_color = [1.0,0.0,0.0,1.0] #default to red
-    self.marker2_color = [0.0,1.0,0.0,1.0] #default to blue
-    self.h_grids = 2
-    self.v_grids = 2
-    self.marker1_width = 1
-    self.marker2_width = 1
     self.build_header()
     self.build_base()
     self.show_all()
@@ -2918,14 +2912,14 @@ class TimeSpanPopup(Gtk.Dialog):
     sc = self.save_button.get_style_context()
     sc.add_class('ctrl-button')
     bx = Gtk.Box()
-    bx.pack_end(self.save_button,0,0,0)
+    #bx.pack_end(self.save_button,0,0,0)
     self.title_bar.pack_start(bx,0,0,0)
 
     #title
     title = Gtk.Label(label='Chart Time')
     sc = title.get_style_context()
     sc.add_class('text-black-color')
-    sc.add_class('font-18')
+    sc.add_class('font-22')
     sc.add_class('font-bold')
     self.title_bar.pack_start(title,1,1,1)
 
@@ -2935,7 +2929,7 @@ class TimeSpanPopup(Gtk.Dialog):
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.exit_button.add(image)
-    self.title_bar.pack_end(self.exit_button,0,0,1)
+    #self.title_bar.pack_end(self.exit_button,0,0,1)
     sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
 
@@ -2944,72 +2938,42 @@ class TimeSpanPopup(Gtk.Dialog):
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
-    self.grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
-    self.dialog_window.pack_start(self.grid,1,1,1)
 
   def build_base(self,*args):
-    #Start Time
-    lbl = Gtk.Label('Chart {} Start Time'.format(self.c_id))
-    lbl.set_halign(Gtk.Align(2))
-    self.add_style(lbl,["Label","font-18",'font-bold'])
-    self.grid.attach(lbl,0,1,1,1) 
-    but = Gtk.Button(width_request = 200)
-    self.st_time= Gtk.Label()
-    self.st_time.set_label(str(self.h_grids))
-    self.add_style(self.st_time,['borderless-num-display','font-18','text-black-color'])
-    but.add(self.st_time)
-    sc = but.get_style_context()
-    sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.st_time,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
-    self.grid.attach(but,1,1,1,1)
-
-    #Timespan
-    lbl = Gtk.Label('Chart {} Timespan (min)'.format(self.c_id))
-    lbl.set_halign(Gtk.Align(2))
-    self.add_style(lbl,["Label","font-18",'font-bold'])
-    self.grid.attach(lbl,0,2,1,1) 
-    but = Gtk.Button(width_request = 200)
-    self.timespan = Gtk.Label()
-    self.timespan.set_label(str(self.h_grids))
-    self.add_style(self.timespan,['borderless-num-display','font-18','text-black-color'])
-    but.add(self.timespan)
-    sc = but.get_style_context()
-    sc.add_class('ctrl-button')
-    but.connect('clicked',self.open_numpad,self.timespan,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
-    self.grid.attach(but,1,2,1,1)
-
-    #Blank Line
-    lbl = Gtk.Label('')
-    self.add_style(lbl,['borderless-num-display','text-black-color'])
-    self.grid.attach(lbl,0,3,2,1)
-
-    #Synchronize All Chart Times
-    but = Gtk.Button(width_request = 200)
-    self.end_time = Gtk.Label()
-    self.end_time.set_label('Synchronize All Chart Times')
-    self.add_style(self.end_time,['borderless-num-display','font-18','text-black-color'])
-    but.add(self.end_time)
-    sc = but.get_style_context()
-    sc.add_class('ctrl-button')
-    #but.connect('clicked',self.open_numpad,self.end_time,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
-    self.grid.attach(but,0,4,2,1)
-
     #Date / Time Picker
 
     dtbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    now = datetime.datetime.now()
+
+    #Timespan
+    bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    lbl = Gtk.Label('Chart {} Timespan (min)'.format(self.c_id))
+    self.add_style(lbl,["Label","font-18",'font-bold'])
+    bx.pack_start(lbl,1,1,1)
+    but = Gtk.Button(width_request = 200)
+    self.timespan = Gtk.Label()
+    self.timespan.set_label(str(now.hour))
+    self.add_style(self.timespan,['borderless-num-display','font-18','text-black-color'])
+    but.add(self.timespan)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.open_numpad,self.timespan,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
+    bx.pack_start(but,0,0,0)
+    dtbox.pack_start(bx,0,0,0)
 
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     dtbox.pack_start(divider,0,0,0)
     lbl = Gtk.Label('Set Date / Time')
-    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
+    self.add_style(lbl,["Label","font-22",'font-bold','text-black-color'])
     dtbox.pack_start(lbl,1,1,1)
 
     self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
+    self.hours.set_value(now.hour)
     self.hours.props.digits = 0
     self.add_style(self.hours,['font-36','text-black-color','spinbutton'])
     self.hours.connect('output', self.show_leading_zeros,1)
@@ -3022,6 +2986,7 @@ class TimeSpanPopup(Gtk.Dialog):
     self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.minutes.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
     self.minutes.props.digits = 0
+    self.minutes.set_value(now.minute)
     self.add_style(self.minutes,['font-36','text-black-color','spinbutton'])
     self.minutes.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.minutes,0,0,0)
@@ -3033,6 +2998,7 @@ class TimeSpanPopup(Gtk.Dialog):
     self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=999,step_increment=1))
     self.seconds.props.digits = 0
+    self.seconds.set_value(now.second)
     self.add_style(self.seconds,['font-36','text-black-color','spinbutton'])
     self.seconds.connect('output', self.show_leading_zeros,2)
     hbox.pack_start(self.seconds,0,0,0)
@@ -3046,20 +3012,22 @@ class TimeSpanPopup(Gtk.Dialog):
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
     self.add_style(bx,['padding'])
-    lbl = Gtk.Label(label='Year ',width_request = 150)
+    lbl = Gtk.Label(label='Year ',width_request = 200)
     lbl.set_xalign(1.0)
     self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     bx.pack_start(lbl,0,0,0)
     self.year = Gtk.SpinButton(width_request = 120)
     self.year.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.year.set_adjustment(Gtk.Adjustment(value=2022, lower=1900, upper=2050,step_increment=1))
+    self.add_style(self.year,['font-18','text-black-color','spinbutton'])
     self.year.props.digits = 0
+    self.year.set_value(now.year)
     bx.pack_start(self.year,0,0,0)
     vbox.pack_start(bx,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
     self.add_style(bx,['padding'])
-    lbl = Gtk.Label(label = 'Month ',width_request = 150)
+    lbl = Gtk.Label(label = 'Month ',width_request = 200)
     lbl.set_xalign(1.0)
     self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     bx.pack_start(lbl,1,1,1)
@@ -3071,32 +3039,35 @@ class TimeSpanPopup(Gtk.Dialog):
     renderer_text = Gtk.CellRendererText()
     self.months.pack_start(renderer_text, True)
     self.months.add_attribute(renderer_text, "text", 1)
-    self.months.set_active(1)
+    self.months.set_active((now.month-1))
     self.months.connect("changed", self.on_month_combo_changed)
+    self.add_style(self.months,['font-18','text-black-color'])
     bx.pack_start(self.months,0,0,0)
     vbox.pack_start(bx,0,0,0)
 
     bx = Gtk.Box(Gtk.Orientation.HORIZONTAL)
     self.add_style(bx,['padding'])
-    lbl = Gtk.Label(label = 'Day ',width_request = 150)
+    lbl = Gtk.Label(label = 'Day ',width_request = 200)
     lbl.set_xalign(1.0)
     self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
     bx.pack_start(lbl,1,1,1)
     self.day = Gtk.SpinButton(width_request = 120)
     self.day.set_orientation(Gtk.Orientation.HORIZONTAL)
-    self.day.set_adjustment(Gtk.Adjustment(value=2022, lower=1, upper=30,step_increment=1))
+    self.day.set_adjustment(Gtk.Adjustment(value=1, lower=1, upper=30,step_increment=1))
     self.day.props.digits = 0
+    self.day.set_value(now.day)
+    self.add_style(self.day,['font-18','text-black-color','spinbutton'])
     bx.pack_start(self.day,0,0,0)
     vbox.pack_start(bx,0,0,0)
 
     dtbox.pack_start(hbox, 0, 0, 0)
 
-    #Update Chart Time
+    #Synchronize All Chart Times
     but = Gtk.Button(width_request = 200)
-    self.end_time = Gtk.Label()
-    self.end_time.set_label('Update Chart Time')
-    self.add_style(self.end_time,['borderless-num-display','font-18','text-black-color'])
-    but.add(self.end_time)
+    self.sync_charts = Gtk.Label()
+    self.sync_charts.set_label('Synchronize All Chart Times')
+    self.add_style(self.sync_charts,['borderless-num-display','font-18','text-black-color'])
+    but.add(self.sync_charts)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
     self.dialog_window.pack_start(dtbox, 0, 0, 0)

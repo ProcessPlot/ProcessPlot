@@ -141,7 +141,7 @@
 .spinbutton{ 
   margin: 3px;
   padding: 3px;
-  background-color: #666666;
+  /* background-color: #666666; */
 }
 
 .spinbutton:active{
