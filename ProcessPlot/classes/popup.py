@@ -2901,6 +2901,7 @@ class TimeSpanPopup(Gtk.Dialog):
     self.content_area.add(self.dialog_window )
     self.build_header()
     self.build_base()
+    self.load_chart_settings()
     self.show_all()
 
   def build_header(self,*args):
@@ -2912,8 +2913,9 @@ class TimeSpanPopup(Gtk.Dialog):
     sc = self.save_button.get_style_context()
     sc.add_class('ctrl-button')
     bx = Gtk.Box()
-    #bx.pack_end(self.save_button,0,0,0)
+    bx.pack_end(self.save_button,0,0,0)
     self.title_bar.pack_start(bx,0,0,0)
+    self.save_button.connect('clicked',self.save_settings)
 
     #title
     title = Gtk.Label(label='Chart Time')
@@ -3087,6 +3089,23 @@ class TimeSpanPopup(Gtk.Dialog):
       else:
           entry = combo.get_child()
           print("Entered: %s" % entry.get_text())
+
+  def load_chart_settings(self,*args):
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
+    if settings:
+      self.timespan.set_text(str(settings.time_span))
+    else:
+      print("Chart Not Found")
+      #using default values
+
+  def save_settings(self,but,*args):
+
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
+    if settings:
+      settings.time_span =  int(self.timespan.get_label())
+      self.db_session.commit()
+    self.app.charts[self.c_id].reload_chart()
+
 
   def show_leading_zeros(obj,spin_button,num,*args):
     adjustment = spin_button.get_adjustment()
