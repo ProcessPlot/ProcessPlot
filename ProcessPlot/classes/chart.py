@@ -96,6 +96,12 @@ class Chart(Gtk.GLArea):
     self.marker1_width = 1
     self.marker2_width = 1
     self.time_span = 1
+    self.start_hour = 12
+    self.start_minute = 1
+    self.start_second = 1
+    self.start_year = 2022
+    self.start_month = 1
+    self.start_day = 1
     #settings
     self.load_settings()
     self.load_pen_settings()
@@ -144,6 +150,12 @@ class Chart(Gtk.GLArea):
       self.marker2_width = settings.marker2_width
       self.marker2_color = json.loads(settings.marker2_color) #rgb in json
       self.time_span = settings.time_span
+      self.start_hour = settings.start_hour
+      self.start_minute = settings.start_minute
+      self.start_second = settings.start_second
+      self.start_year = settings.start_year
+      self.start_month = settings.start_month
+      self.start_day = settings.start_day
     else:
       #create chart settings in db if they don't exist
       new = tbl(id = self.db_id)
@@ -160,6 +172,12 @@ class Chart(Gtk.GLArea):
       self.marker2_width = new.marker2_width
       self.marker2_color = json.loads(new.marker2_color) #rgb in json
       self.time_span = new.time_span
+      self.start_hour = new.start_hour
+      self.start_minute = new.start_minute
+      self.start_second = new.start_second
+      self.start_year = new.start_year
+      self.start_month = new.start_month
+      self.start_day = new.start_day
 
   def reload_chart(self):
     self.load_settings()
@@ -189,7 +207,13 @@ class Chart(Gtk.GLArea):
       entry.marker1_color = json.dumps(self.marker1_color)
       entry.marker2_width=self.marker2_width
       entry.marker2_color = json.dumps(self.marker2_color)
-      entry.marker2_width=self.time_span
+      entry.time_span=self.time_span
+      entry.start_hour=self.start_hour
+      entry.start_minute=self.start_minute
+      entry.start_second=self.start_second
+      entry.start_year=self.start_year
+      entry.start_month=self.start_month
+      entry.start_day=self.start_day
     else: #create it
       entry = tbl(
         bg_color = json.dumps(self.bg_color),
@@ -201,6 +225,12 @@ class Chart(Gtk.GLArea):
         marker2_width=self.marker2_width,
         marker2_color = json.dumps(self.marker2_color),
         time_span = self.time_span,
+        start_hour = self.start_hour,
+        start_minute = self.start_minute,
+        start_second = self.start_second,
+        start_year = self.start_year,
+        start_month = self.start_month,
+        start_day = self.start_day,
       )
       self.db_session.add(entry)
     self.db_session.commit()

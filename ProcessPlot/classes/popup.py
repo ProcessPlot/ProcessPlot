@@ -2947,7 +2947,7 @@ class TimeSpanPopup(Gtk.Dialog):
     dtbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    now = datetime.datetime.now()
+
 
     #Timespan
     bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -2956,7 +2956,6 @@ class TimeSpanPopup(Gtk.Dialog):
     bx.pack_start(lbl,1,1,1)
     but = Gtk.Button(width_request = 200)
     self.timespan = Gtk.Label()
-    self.timespan.set_label(str(now.hour))
     self.add_style(self.timespan,['borderless-num-display','font-18','text-black-color'])
     but.add(self.timespan)
     sc = but.get_style_context()
@@ -2969,13 +2968,25 @@ class TimeSpanPopup(Gtk.Dialog):
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     dtbox.pack_start(divider,0,0,0)
+
+    header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     lbl = Gtk.Label('Set Date / Time')
     self.add_style(lbl,["Label","font-22",'font-bold','text-black-color'])
-    dtbox.pack_start(lbl,1,1,1)
+    header_box.pack_start(lbl,1,1,1)
+    #set current button
+    but = Gtk.Button(width_request = 100)
+    set_current = Gtk.Label()
+    set_current.set_label('Set Current')
+    self.add_style(set_current,['borderless-num-display','font-18','text-black-color'])
+    but.add(set_current)
+    sc = but.get_style_context()
+    sc.add_class('ctrl-button')
+    but.connect('clicked',self.load_current_time)
+    header_box.pack_start(but,0,0,0)
+    dtbox.pack_start(header_box,1,1,1)
 
     self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
-    self.hours.set_value(now.hour)
     self.hours.props.digits = 0
     self.add_style(self.hours,['font-36','text-black-color','spinbutton'])
     self.hours.connect('output', self.show_leading_zeros,1)
@@ -2988,7 +2999,6 @@ class TimeSpanPopup(Gtk.Dialog):
     self.minutes = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.minutes.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=59,step_increment=1))
     self.minutes.props.digits = 0
-    self.minutes.set_value(now.minute)
     self.add_style(self.minutes,['font-36','text-black-color','spinbutton'])
     self.minutes.connect('output', self.show_leading_zeros,1)
     hbox.pack_start(self.minutes,0,0,0)
@@ -3000,7 +3010,6 @@ class TimeSpanPopup(Gtk.Dialog):
     self.seconds = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.seconds.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=999,step_increment=1))
     self.seconds.props.digits = 0
-    self.seconds.set_value(now.second)
     self.add_style(self.seconds,['font-36','text-black-color','spinbutton'])
     self.seconds.connect('output', self.show_leading_zeros,2)
     hbox.pack_start(self.seconds,0,0,0)
@@ -3023,7 +3032,6 @@ class TimeSpanPopup(Gtk.Dialog):
     self.year.set_adjustment(Gtk.Adjustment(value=2022, lower=1900, upper=2050,step_increment=1))
     self.add_style(self.year,['font-18','text-black-color','spinbutton'])
     self.year.props.digits = 0
-    self.year.set_value(now.year)
     bx.pack_start(self.year,0,0,0)
     vbox.pack_start(bx,0,0,0)
 
@@ -3041,7 +3049,6 @@ class TimeSpanPopup(Gtk.Dialog):
     renderer_text = Gtk.CellRendererText()
     self.months.pack_start(renderer_text, True)
     self.months.add_attribute(renderer_text, "text", 1)
-    self.months.set_active((now.month-1))
     self.months.connect("changed", self.on_month_combo_changed)
     self.add_style(self.months,['font-18','text-black-color'])
     bx.pack_start(self.months,0,0,0)
@@ -3057,43 +3064,58 @@ class TimeSpanPopup(Gtk.Dialog):
     self.day.set_orientation(Gtk.Orientation.HORIZONTAL)
     self.day.set_adjustment(Gtk.Adjustment(value=1, lower=1, upper=30,step_increment=1))
     self.day.props.digits = 0
-    self.day.set_value(now.day)
     self.add_style(self.day,['font-18','text-black-color','spinbutton'])
     bx.pack_start(self.day,0,0,0)
     vbox.pack_start(bx,0,0,0)
-
     dtbox.pack_start(hbox, 0, 0, 0)
 
     #Synchronize All Chart Times
-    but = Gtk.Button(width_request = 200)
+    but = Gtk.Button(width_request = 100)
     self.sync_charts = Gtk.Label()
     self.sync_charts.set_label('Synchronize All Chart Times')
     self.add_style(self.sync_charts,['borderless-num-display','font-18','text-black-color'])
     but.add(self.sync_charts)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
-    self.dialog_window.pack_start(dtbox, 0, 0, 0)
     dtbox.pack_start(but, 0, 0, 0)
 
+    self.dialog_window.pack_start(dtbox, 0, 0, 0)
 
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
-
+  
+  def load_current_time(self,*args):
+    now = datetime.datetime.now()
+    self.hours.set_value(now.hour)
+    self.minutes.set_value(now.minute)
+    self.seconds.set_value(now.second)
+    self.day.set_value(now.day)
+    self.months.set_active((now.month-1))
+    self.year.set_value(now.year)
 
   def on_month_combo_changed(self, combo):
       tree_iter = combo.get_active_iter()
       if tree_iter is not None:
           model = combo.get_model()
           row_id, name = model[tree_iter][:2]
-          print("Selected: ID=%d, name=%s" % (row_id, name))
+          #print("Selected: ID=%d, name=%s" % (row_id, name))
       else:
           entry = combo.get_child()
-          print("Entered: %s" % entry.get_text())
+          #print("Entered: %s" % entry.get_text())
 
   def load_chart_settings(self,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
       self.timespan.set_text(str(settings.time_span))
+      if settings.start_year == 1:
+        self.load_current_time()
+      else:
+        self.hours.set_value(settings.start_hour)
+        self.minutes.set_value(settings.start_minute)
+        self.seconds.set_value(settings.start_second)
+        self.day.set_value(settings.start_day)
+        self.months.set_active((settings.start_month+1))
+        self.year.set_value(settings.start_year)
     else:
       print("Chart Not Found")
       #using default values
@@ -3103,6 +3125,12 @@ class TimeSpanPopup(Gtk.Dialog):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
       settings.time_span =  int(self.timespan.get_label())
+      settings.start_hour =  int(self.hours.get_value())
+      settings.start_minute =  int(self.minutes.get_value())
+      settings.start_second =  int(self.seconds.get_value())
+      settings.start_year =  int(self.year.get_value())
+      settings.start_month =  int(self.months.get_active())
+      settings.start_day =  int(self.day.get_value())
       self.db_session.commit()
     self.app.charts[self.c_id].reload_chart()
 
