@@ -111,10 +111,8 @@ class BaseSettingsPopoup(Gtk.Dialog):
 #build calendar picker, chart settings popup, time window / range to display,
 
 ################################ Fix OK button to save before closing
-################################ Being able to edit tag description once created
 ################################ Popup opening / closing / saving consistency buttons 
 ################################ When deleting a connection the row stays in the connection specific table
-################################ finish timespan popup
 ################################ TRY TO CUT AND PASTE FROM EXCEL INTO TAG SPREADSHEET
 ################################ Verify that user can't leave any boxes blank
 ################################ Still need to create ledgend on popout
@@ -1065,7 +1063,7 @@ class TagMainPopup(Gtk.Dialog):
       tag_obj = conx_obj.get('tags').get(params['id'])
       if tag_obj != None:
         for key, val in params.items():
-          if key == 'id' or key == 'description' or key == 'connection_id' or val == None:
+          if key == 'id' or key == 'connection_id' or val == None:
             pass
           else:
             try:
@@ -1305,10 +1303,12 @@ class TagSettingsPopup(Gtk.Dialog):
     lbl = Gtk.Label('Tag Description')
     self.add_style(lbl,["Label","font-16",'font-bold'])
     grid.attach(lbl,0,row,1,1) 
-    self.conx_descr = Gtk.Label(width_request = 300,height_request = 30)
+    #self.conx_descr = Gtk.Label(width_request = 300,height_request = 30)
+    self.conx_descr = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
+    self.conx_descr.set_alignment(0.5)
+    #self.add_style(self.conx_descr,["label","font-18","font-bold"])
+    self.add_style(self.conx_descr,["entry","font-18","font-bold"])
     self.conx_descr.set_text(self.params['description'])
-    self.conx_descr.set_alignment(0.5,0.5)
-    self.add_style(self.conx_descr,["label","font-18","font-bold"])
     #self.conx_descr.connect("notify::text-length", self.enable_new)
     grid.attach(self.conx_descr,1,row,2,1) 
     row+=1 
@@ -2903,6 +2903,7 @@ class TimeSpanPopup(Gtk.Dialog):
     self.build_base()
     self.load_chart_settings()
     self.show_all()
+    print(self.app.charts_number)
 
   def build_header(self,*args):
     #Save Button
@@ -2915,7 +2916,7 @@ class TimeSpanPopup(Gtk.Dialog):
     bx = Gtk.Box()
     bx.pack_end(self.save_button,0,0,0)
     self.title_bar.pack_start(bx,0,0,0)
-    self.save_button.connect('clicked',self.save_settings)
+    self.save_button.connect('clicked',self.save_settings,self.c_id)
 
     #title
     title = Gtk.Label(label='Chart Time')
@@ -3073,6 +3074,7 @@ class TimeSpanPopup(Gtk.Dialog):
     but = Gtk.Button(width_request = 100)
     self.sync_charts = Gtk.Label()
     self.sync_charts.set_label('Synchronize All Chart Times')
+    but.connect("clicked", self.update_all_chart_times)
     self.add_style(self.sync_charts,['borderless-num-display','font-18','text-black-color'])
     but.add(self.sync_charts)
     sc = but.get_style_context()
@@ -3086,12 +3088,21 @@ class TimeSpanPopup(Gtk.Dialog):
   
   def load_current_time(self,*args):
     now = datetime.datetime.now()
-    self.hours.set_value(now.hour)
-    self.minutes.set_value(now.minute)
-    self.seconds.set_value(now.second)
-    self.day.set_value(now.day)
-    self.months.set_active((now.month-1))
-    self.year.set_value(now.year)
+    month = now.month
+    d_t = {'hour':now.hour,'minute':now.minute,'second':now.second,'day':now.day,'month':month,'year':now.year}
+    self.load_time(d_t)
+
+  def load_time(self,d_t,*args):
+    self.hours.set_value(d_t['hour'])
+    self.minutes.set_value(d_t['minute'])
+    self.seconds.set_value(d_t['second'])
+    self.day.set_value(d_t['day'])
+    self.months.set_active((d_t['month'])-1)
+    self.year.set_value(d_t['year'])
+
+  def update_all_chart_times(self,*args):
+    for c_id in range(self.app.charts_number):
+      self.save_settings('',c_id+1)
 
   def on_month_combo_changed(self, combo):
       tree_iter = combo.get_active_iter()
@@ -3114,15 +3125,14 @@ class TimeSpanPopup(Gtk.Dialog):
         self.minutes.set_value(settings.start_minute)
         self.seconds.set_value(settings.start_second)
         self.day.set_value(settings.start_day)
-        self.months.set_active((settings.start_month+1))
+        self.months.set_active((settings.start_month))
         self.year.set_value(settings.start_year)
     else:
       print("Chart Not Found")
       #using default values
 
-  def save_settings(self,but,*args):
-
-    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
+  def save_settings(self,but,chart_id,*args):
+    settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(chart_id)).first()
     if settings:
       settings.time_span =  int(self.timespan.get_label())
       settings.start_hour =  int(self.hours.get_value())
@@ -3132,7 +3142,7 @@ class TimeSpanPopup(Gtk.Dialog):
       settings.start_month =  int(self.months.get_active())
       settings.start_day =  int(self.day.get_value())
       self.db_session.commit()
-    self.app.charts[self.c_id].reload_chart()
+    self.app.charts[chart_id].reload_chart()
 
 
   def show_leading_zeros(obj,spin_button,num,*args):
