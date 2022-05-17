@@ -205,7 +205,7 @@ class PenSettingsPopup(BaseSettingsPopoup):
     self.ok_button.add(box)
     self.footer_bar.pack_end(self.ok_button,0,0,1)
     sc = self.ok_button.get_style_context()
-    sc.add_class('ctrl-button')
+    sc.add_class('ctrl-button-footer')
 
   def filter_disp_chart(self,chart_filter,*args):
     temp = chart_filter.get_active_text()
@@ -2897,13 +2897,31 @@ class TimeSpanPopup(Gtk.Dialog):
     self.set_decorated(False)
     self.content_area = self.get_content_area()
     self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
     self.content_area.add(self.dialog_window )
+    ### - Title Bar- ###
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+
+    ### - Base Area- ###
+    self.base_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    self.dialog_window.pack_start(self.base_area, 0, 0, 0)
+
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
     self.build_header()
     self.build_base()
+    self.build_footer()
     self.load_chart_settings()
     self.show_all()
-    print(self.app.charts_number)
 
   def build_header(self,*args):
     #Save Button
@@ -2936,16 +2954,9 @@ class TimeSpanPopup(Gtk.Dialog):
     sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
 
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    self.dialog_window.pack_start(divider,0,0,1)
-
   def build_base(self,*args):
     #Date / Time Picker
 
-    dtbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -2963,12 +2974,12 @@ class TimeSpanPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     but.connect('clicked',self.open_numpad,self.timespan,{'min':0.0,'max':100000.0,'type':float,'polarity':False})
     bx.pack_start(but,0,0,0)
-    dtbox.pack_start(bx,0,0,0)
+    self.base_area.pack_start(bx,0,0,0)
 
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
-    dtbox.pack_start(divider,0,0,0)
+    self.base_area.pack_start(divider,0,0,0)
 
     header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     lbl = Gtk.Label('Set Date / Time')
@@ -2984,7 +2995,7 @@ class TimeSpanPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     but.connect('clicked',self.load_current_time)
     header_box.pack_start(but,0,0,0)
-    dtbox.pack_start(header_box,1,1,1)
+    self.base_area.pack_start(header_box,1,1,1)
 
     self.hours = Gtk.SpinButton(orientation=Gtk.Orientation.VERTICAL,width_request = 80)
     self.hours.set_adjustment(Gtk.Adjustment(value=1, lower=0, upper=24, step_increment=1))
@@ -3068,7 +3079,7 @@ class TimeSpanPopup(Gtk.Dialog):
     self.add_style(self.day,['font-18','text-black-color','spinbutton'])
     bx.pack_start(self.day,0,0,0)
     vbox.pack_start(bx,0,0,0)
-    dtbox.pack_start(hbox, 0, 0, 0)
+    self.base_area.pack_start(hbox, 0, 0, 0)
 
     #Synchronize All Chart Times
     but = Gtk.Button(width_request = 100)
@@ -3079,13 +3090,44 @@ class TimeSpanPopup(Gtk.Dialog):
     but.add(self.sync_charts)
     sc = but.get_style_context()
     sc.add_class('ctrl-button')
-    dtbox.pack_start(but, 0, 0, 0)
+    self.base_area.pack_start(but, 0, 0, 0)
 
-    self.dialog_window.pack_start(dtbox, 0, 0, 0)
+    #sep = Gtk.Label(height_request=3)
+    #self.dialog_window.pack_start(sep,1,1,1)
 
-    sep = Gtk.Label(height_request=3)
-    self.dialog_window.pack_start(sep,1,1,1)
-  
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,self.c_id)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
   def load_current_time(self,*args):
     now = datetime.datetime.now()
     month = now.month
