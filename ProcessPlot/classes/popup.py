@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from enum import auto
 from logging.config import valid_ident
 from pkgutil import iter_modules
 
@@ -2555,7 +2556,7 @@ class PopupConfirm(Gtk.Dialog):
 class ChartSettingsPopup(Gtk.Dialog):
   def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_OK, Gtk.ResponseType.YES)
+                        ()
                         )
     self.chart = chart
     self.c_id = self.chart.db_id
@@ -2569,10 +2570,6 @@ class ChartSettingsPopup(Gtk.Dialog):
     sc.add_class("dialog-border")
     self.set_keep_above(False)
     self.set_decorated(False)
-    self.content_area = self.get_content_area()
-    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
-    self.content_area.add(self.dialog_window )
     self.bg_color = [1.0,1.0,1.0,1.0] #default to white
     self.grid_color = [1.0,1.0,1.0,1.0] #default to white
     self.marker1_color = [1.0,0.0,0.0,1.0] #default to red
@@ -2581,9 +2578,34 @@ class ChartSettingsPopup(Gtk.Dialog):
     self.v_grids = 2
     self.marker1_width = 1
     self.marker2_width = 1
-    self.build_header()
+
+
+    self.content_area = self.get_content_area()
+    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.content_area.add(self.dialog_window )
+    ### - Title Bar- ###
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+
+    ### - Base Area- ###
+    self.grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
+
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
     self.load_chart_settings()
+    self.build_header()
     self.build_base()
+    self.build_footer()
     self.show_all()
 
   def build_header(self,*args):
@@ -2596,7 +2618,7 @@ class ChartSettingsPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     bx = Gtk.Box()
     bx.pack_end(self.save_button,0,0,0)
-    self.title_bar.pack_start(bx,0,0,0)
+    #self.title_bar.pack_start(bx,0,0,0)
     self.save_button.connect('clicked',self.save_settings)
 
     #title
@@ -2613,17 +2635,9 @@ class ChartSettingsPopup(Gtk.Dialog):
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     self.exit_button.add(image)
-    self.title_bar.pack_end(self.exit_button,0,0,1)
+    #self.title_bar.pack_end(self.exit_button,0,0,1)
     sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
-
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    self.dialog_window.pack_start(divider,0,0,1)
-    self.grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
-    self.dialog_window.pack_start(self.grid,1,1,1)
 
   def build_base(self,*args):
     #Chart Select
@@ -2763,6 +2777,55 @@ class ChartSettingsPopup(Gtk.Dialog):
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
 
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,self.c_id,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,self.c_id,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
   def load_chart_settings(self,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
     if settings:
@@ -2777,7 +2840,6 @@ class ChartSettingsPopup(Gtk.Dialog):
     else:
       print("Chart Not Found")
       #using default values
-
   def confirm(self, button,pen_id,msg="Are you sure you want to delete this pen?", args=[]):
     popup = PopupConfirm(self, msg=msg)
     response = popup.run()
@@ -2818,8 +2880,8 @@ class ChartSettingsPopup(Gtk.Dialog):
     marker2_rgbcolor.blue = float(self.marker2_color[2])
     marker2_rgbcolor.alpha = float(self.marker2_color[3])
     self.marker2_color_button.set_rgba (marker2_rgbcolor)
-  
-  def save_settings(self,but,*args):
+
+  def save_settings(self,but,chart_id,auto_close,*args):
     self.c_id = int(self.chart_select.get_active_text())
     bg_color = self.color_button.get_rgba()
     bg_color_list = []
@@ -2853,6 +2915,8 @@ class ChartSettingsPopup(Gtk.Dialog):
       settings.marker2_color =  json.dumps(marker2_color_list)
       self.db_session.commit()
     self.app.charts[self.c_id].reload_chart()
+    if auto_close:
+      self.close_popup()
 
   def remove_widgets(self,*args):
     grid = self.grid.get_children()
@@ -2881,7 +2945,7 @@ class ChartSettingsPopup(Gtk.Dialog):
 class TimeSpanPopup(Gtk.Dialog):
   def __init__(self, app,chart):
     Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_APPLY, Gtk.ResponseType.YES,Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+                        ()
                         )
     self.app = app
     self.chart = chart
@@ -2933,7 +2997,7 @@ class TimeSpanPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     bx = Gtk.Box()
     bx.pack_end(self.save_button,0,0,0)
-    self.title_bar.pack_start(bx,0,0,0)
+    #self.title_bar.pack_start(bx,0,0,0)
     self.save_button.connect('clicked',self.save_settings,self.c_id)
 
     #title
@@ -2959,7 +3023,6 @@ class TimeSpanPopup(Gtk.Dialog):
 
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
 
     #Timespan
     bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -3092,9 +3155,6 @@ class TimeSpanPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     self.base_area.pack_start(but, 0, 0, 0)
 
-    #sep = Gtk.Label(height_request=3)
-    #self.dialog_window.pack_start(sep,1,1,1)
-
   def build_footer(self):
     #CANCEL Button
     self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
@@ -3112,9 +3172,25 @@ class TimeSpanPopup(Gtk.Dialog):
     sc = self.cancel_button.get_style_context()
     sc.add_class('ctrl-button-footer')
 
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,self.c_id,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
     #APPLY Button
     self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.apply_button.connect('clicked',self.save_settings,self.c_id)
+    self.apply_button.connect('clicked',self.save_settings,self.c_id,False)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     box = Gtk.Box()
@@ -3173,7 +3249,7 @@ class TimeSpanPopup(Gtk.Dialog):
       print("Chart Not Found")
       #using default values
 
-  def save_settings(self,but,chart_id,*args):
+  def save_settings(self,but,chart_id,auto_close,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(chart_id)).first()
     if settings:
       settings.time_span =  int(self.timespan.get_label())
@@ -3185,6 +3261,8 @@ class TimeSpanPopup(Gtk.Dialog):
       settings.start_day =  int(self.day.get_value())
       self.db_session.commit()
     self.app.charts[chart_id].reload_chart()
+    if auto_close:
+      self.close_popup()
 
 
   def show_leading_zeros(obj,spin_button,num,*args):
