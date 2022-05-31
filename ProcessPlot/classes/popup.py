@@ -27,6 +27,8 @@ from pkgutil import iter_modules
 from urllib.parse import non_hierarchical
 import gi, os, json, datetime, time
 
+from pycomm3 import parse_connection_path
+
 from ProcessLink.process_link import process_link
 from numpy import maximum, nonzero
 gi.require_version('Gtk', '3.0')
@@ -1668,12 +1670,12 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.app.link.save_connection(conx_obj)
 
   def add_connection_popup(self,button,bad_name,*args):
-    popup = AddConnectionPopup(self,bad_name,self.conx_type)
+    popup = AddConnectionPopup(self,bad_name,self.app,self.conx_type)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
-      results = (popup.get_result())
-      self.check_duplicate_name(results)
+      #results = (popup.get_result())
+      #self.check_duplicate_name(results)
       return True
     else:
       return False
@@ -1683,16 +1685,16 @@ class ConnectionsMainPopup(Gtk.Dialog):
     if conx_obj != None:
       return self.app.link.get_connection_params(conx_obj,conx_id)
 
-  def check_duplicate_name(self,results,*args):
-    dup = False
-    for conx_id,conx_obj in self.app.link.get('connections').items():
-      if conx_id == results['id']:
-        dup = True
-    if dup:
-      self.add_connection_popup(None,results,self.conx_type)
-    else:
-      self.create_connection(results)
-      self.open_settings_popup(results['id'])
+  # def check_duplicate_name(self,results,*args):
+  #   dup = False
+  #   for conx_id,conx_obj in self.app.link.get('connections').items():
+  #     if conx_id == results['id']:
+  #       dup = True
+  #   if dup:
+  #     self.add_connection_popup(None,results,self.conx_type)
+  #   else:
+  #     self.create_connection(results)
+  #     self.open_settings_popup(results['id'])
   
   def open_settings_popup(self,conx_id,*args):
     params = self.get_connection_params(conx_id)
@@ -1792,11 +1794,12 @@ class Connection_row(object):
 
 
 class AddConnectionPopup(Gtk.Dialog):
-  def __init__(self, parent,params,conx_type):
+  def __init__(self, parent,params,app,conx_type):
     Gtk.Dialog.__init__(self, '',parent, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
-                          Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
+                        ()
                         )
+    self.parent = parent
+    self.app = app
     self.params = params
     self.conx_type = conx_type
     self.set_default_size(200, 150)
@@ -1806,60 +1809,89 @@ class AddConnectionPopup(Gtk.Dialog):
     self.set_keep_above(True)
     self.set_decorated(False)
     self.connect("response", self.on_response)
-    self.content_area = self.get_content_area()
     self.result = {}
 
-    self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.content_area = self.get_content_area()
+    self.dialog_window = Gtk.Box(width_request=500,orientation=Gtk.Orientation.VERTICAL)
+    self.content_area.add(self.dialog_window )
+    ### - Title Bar- ###
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
 
-    #header
+    ### - Base Area- ###
+    self.grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
+
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
+    self.load_settings()
+    self.build_header()
+    self.build_base()
+    self.build_footer()
+    if self.params:
+      self.same_name(self.params)
+    self.show_all()
+
+  def build_header(self,*args):
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    #self.title_bar.pack_start(bx,0,0,0)
+    self.save_button.connect('clicked',self.save_settings,False)
+
+    #title
     title = Gtk.Label(label='Create New Connection')
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
     sc.add_class('font-bold')
     self.title_bar.pack_start(title,1,1,1)
-    self.pin_button = Gtk.Button(width_request = 20)
-    self.pin_button.connect('clicked',self.close_popup)
+
+    #exit button
+    self.exit_button = Gtk.Button(width_request = 20)
+    self.exit_button.connect('clicked',self.close_popup)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
-    self.pin_button.add(image)
-    self.title_bar.pack_end(self.pin_button,0,0,1)
-    sc = self.pin_button.get_style_context()
+    self.exit_button.add(image)
+    #self.title_bar.pack_end(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    #self.dialog_window.pack_start(divider,0,0,1)
-    self.content_area.add(self.dialog_window )
-    self.build_base()
-    if self.params:
-      self.same_name(self.params)
-    self.show_all()
 
   def build_base(self,*args):
-    grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
     self.pop_lbl = Gtk.Label('')
     self.add_style(self.pop_lbl,['text-red-color','font-14','font-bold'])
-    grid.attach(self.pop_lbl,0,0,3,1)
-    self.dialog_window.pack_start(grid,1,1,1)
+    self.grid.attach(self.pop_lbl,0,0,3,1)
 
     #Connection name entry
     lbl = Gtk.Label('Connection Name')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,1,1,1) 
+    self.grid.attach(lbl,0,1,1,1) 
     self.conx_name = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.conx_name.set_placeholder_text('Enter Connection Name')
     self.conx_name.set_alignment(0.5)
     self.add_style(self.conx_name,["entry","font-12"])
     self.conx_name.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_name,1,1,2,1)    
+    self.grid.attach(self.conx_name,1,1,2,1)    
 
     #Connection Driver
     lbl = Gtk.Label('Connection Driver')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,2,1,1) 
+    self.grid.attach(lbl,0,2,1,1) 
     self.conx_driver = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
     self.add_style(self.conx_driver,["font-18","list-select","font-bold"])
     val = 0
@@ -1867,21 +1899,91 @@ class AddConnectionPopup(Gtk.Dialog):
       self.conx_driver.append(str(val),key)
       val+= 1
     self.conx_driver.set_active(0)
-    grid.attach(self.conx_driver,1,2,2,1)
+    self.grid.attach(self.conx_driver,1,2,2,1)
 
    #Connection description entry
     lbl = Gtk.Label('Connection Description')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,3,1,1) 
+    self.grid.attach(lbl,0,3,1,1) 
     self.conx_descr = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.conx_descr.set_placeholder_text('Enter Connection Description')
     self.conx_descr.set_alignment(0.5)
     self.add_style(self.conx_descr,["entry","font-12"])
     self.conx_descr.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_descr,1,3,2,1)  
+    self.grid.attach(self.conx_descr,1,3,2,1)  
     
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
+
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+  def load_settings(self,*args):
+    pass
+
+  def save_settings(self,button,auto_close,*args):
+    ####Get Results
+    #{'id': '2', 'connection_type': 4, 'description': 'EthernetIP'}
+    self.result['id'] = self.conx_name.get_text ()
+    self.result['connection_type'] = self.conx_driver.get_active_text()
+    self.result['description'] = self.conx_descr.get_text ()
+    #####Check Results /Save
+    dup = False
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      if conx_id == self.result['id']:
+        dup = True
+    if dup:
+      self.same_name(self.result)
+    else:
+      self.close_popup(False)
+      self.parent.create_connection(self.result)
+      self.parent.open_settings_popup(self.result['id'])
 
   def add_style(self, item,style):
     sc = item.get_style_context()
