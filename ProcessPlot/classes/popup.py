@@ -1141,7 +1141,7 @@ class AddTagPopup(Gtk.Dialog):
     self.content_area.add(self.dialog_window )
     self.build_base()
     if self.params:
-      self.same_name(self.params)
+      self.reload_popup(self.params)
     self.show_all()
 
   def build_base(self,*args):
@@ -1222,7 +1222,7 @@ class AddTagPopup(Gtk.Dialog):
   def get_result(self):
     return self.result
   
-  def same_name(self,results):
+  def reload_popup(self,results):
     self.pop_lbl.set_label('Name Already Exists')
     self.tag_name.set_text('')
     val = 0
@@ -1838,7 +1838,7 @@ class AddConnectionPopup(Gtk.Dialog):
     self.build_base()
     self.build_footer()
     if self.params:
-      self.same_name(self.params)
+      self.reload_popup(self.params)
     self.show_all()
 
   def build_header(self,*args):
@@ -1911,9 +1911,6 @@ class AddConnectionPopup(Gtk.Dialog):
     self.add_style(self.conx_descr,["entry","font-12"])
     self.conx_descr.connect("notify::text-length", self.enable_new)
     self.grid.attach(self.conx_descr,1,3,2,1)  
-    
-    sep = Gtk.Label(height_request=3)
-    self.dialog_window.pack_start(sep,1,1,1)
 
   def build_footer(self):
     #CANCEL Button
@@ -1974,12 +1971,15 @@ class AddConnectionPopup(Gtk.Dialog):
     self.result['connection_type'] = self.conx_driver.get_active_text()
     self.result['description'] = self.conx_descr.get_text ()
     #####Check Results /Save
-    dup = False
+    if self.result['id'] ==  '':
+      dup = True
+    else:
+      dup = False
     for conx_id,conx_obj in self.app.link.get('connections').items():
       if conx_id == self.result['id']:
         dup = True
     if dup:
-      self.same_name(self.result)
+      self.reload_popup(self.result)
     else:
       self.close_popup(False)
       self.parent.create_connection(self.result)
@@ -2009,7 +2009,7 @@ class AddConnectionPopup(Gtk.Dialog):
   def get_result(self):
     return self.result
   
-  def same_name(self,results):
+  def reload_popup(self,results):
     self.pop_lbl.set_label('Name Already Exists')
     self.conx_name.set_text('')
     val = 0
@@ -2098,8 +2098,6 @@ class ConnectionSettingsPopup(Gtk.Dialog):
 
   def build_base(self,*args):
     row = 0
-    #grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
-    #self.dialog_window.pack_start(grid,1,1,1)
 
     #Connection name entry
     lbl = Gtk.Label('Connection Name')
@@ -2128,7 +2126,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     #Pollrate
     if 'pollrate' in self.params.keys():    
       db_poll_rate = str(self.params['pollrate'])
-      lbl = Gtk.Label('Connection Pollrate')
+      lbl = Gtk.Label('Connection Pollrate (sec)')
       self.add_style(lbl,["Label","font-16",'font-bold'])
       self.grid.attach(lbl,0,row,1,1) 
       but = Gtk.Button(width_request = 100)
@@ -2138,7 +2136,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
       but.add(self.pollrate)
       sc = but.get_style_context()
       sc.add_class('ctrl-button')
-      but.connect('clicked',self.open_numpad,self.pollrate,{'min':-32768,'max':32768,'type':float,'polarity':True})
+      but.connect('clicked',self.open_numpad,self.pollrate,{'min':0.001,'max':10000.0,'type':float,'polarity':True})
       self.grid.attach(but,1,row,2,1)
       row+=1 
 
