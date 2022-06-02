@@ -21,6 +21,7 @@ SOFTWARE.
 """
 
 from enum import auto
+from http.client import PARTIAL_CONTENT
 from logging.config import valid_ident
 from pkgutil import iter_modules
 
@@ -119,6 +120,7 @@ class BaseSettingsPopoup(Gtk.Dialog):
 ################################ TRY TO CUT AND PASTE FROM EXCEL INTO TAG SPREADSHEET
 ################################ Verify that user can't leave any boxes blank
 ################################ Still need to create ledgend on popout
+################################ Add duplicate button on tag settings popup
 
 class PenSettingsPopup(BaseSettingsPopoup):
 
@@ -995,12 +997,12 @@ class TagMainPopup(Gtk.Dialog):
       return False
 
   def add_tag_popup(self,button,duplicate_name_params,*args):
-    popup = AddTagPopup(self,duplicate_name_params,self.connections_available)
+    popup = AddTagPopup(self,duplicate_name_params,self.app,self.connections_available)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
-      results = (popup.get_result())
-      self.check_duplicate_name(results)
+      #results = (popup.get_result())
+      #self.check_duplicate_name(results)
       return True
     else:
       return False
@@ -1031,19 +1033,13 @@ class TagMainPopup(Gtk.Dialog):
 
   def open_settings_popup(self,tag_id,conx_id,*args):
     params = self.get_tag_params(tag_id,conx_id)
-    popup = TagSettingsPopup(self,params)
+    popup = TagSettingsPopup(self,params,self.app)
     response = popup.run()
     popup.destroy()
-    if response == Gtk.ResponseType.YES:
-      results = (popup.get_result())
-      self.update_tag(results)
-      self.remove_all_rows()
-      self.get_available_tags('c_id')
-      self.add_tag_rows(self.tag_filter_val)
-      self.show_all()
-      return True
-    else:
-      return False
+    self.remove_all_rows()
+    self.get_available_tags('c_id')
+    self.add_tag_rows(self.tag_filter_val)
+    self.show_all()
 
   def create_tag(self,params,*args):
     #sNEED TO HAVE IT PASS IN SOMEThing FOR THE ADDRESS EXCEPT 12
@@ -1052,7 +1048,7 @@ class TagMainPopup(Gtk.Dialog):
                             "connection_id": params['connection_id'],
                             "description": params['description'],
                             "datatype": params['datatype'],
-                            "address": 12
+                            "address": '12'
     })
     tag_obj = conx_obj.get('tags').get(params['id'])
     if tag_obj != None:
@@ -1097,11 +1093,12 @@ class TagMainPopup(Gtk.Dialog):
 
 
 class AddTagPopup(Gtk.Dialog):
-  def __init__(self, parent,params,conx_type):
+  def __init__(self, parent,params,app,conx_type):
     Gtk.Dialog.__init__(self, '',parent, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_SAVE, Gtk.ResponseType.YES,
-                          Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
+                        ()
                         )
+    self.parent = parent
+    self.app = app
     self.params = params
     self.conx_type = conx_type
     self.datatypes = ['INT','FLOAT','DINT','UINT','BOOLEAN','SINT']
@@ -1112,90 +1109,197 @@ class AddTagPopup(Gtk.Dialog):
     self.set_keep_above(True)
     self.set_decorated(False)
     self.connect("response", self.on_response)
-    self.content_area = self.get_content_area()
     self.result = {}
 
+    self.content_area = self.get_content_area()
     self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
+    self.content_area.add(self.dialog_window )
+    ### - Title Bar- ###
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
 
-    #header
+    ### - Base Area- ###
+    self.grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
+
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
+    self.load_settings()
+    self.build_header()
+    self.build_base()
+    self.build_footer()
+    if self.params:
+      self.reload_popup(self.params)
+    self.show_all()
+
+  def build_header(self,*args):
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    #self.title_bar.pack_start(bx,0,0,0)
+    self.save_button.connect('clicked',self.save_settings,False)
+
+    #title
     title = Gtk.Label(label='Create New Tag')
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
     sc.add_class('font-bold')
     self.title_bar.pack_start(title,1,1,1)
-    self.pin_button = Gtk.Button(width_request = 20)
-    self.pin_button.connect('clicked',self.close_popup)
+
+    #exit button
+    self.exit_button = Gtk.Button(width_request = 20)
+    self.exit_button.connect('clicked',self.close_popup)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
-    self.pin_button.add(image)
-    self.title_bar.pack_end(self.pin_button,0,0,1)
-    sc = self.pin_button.get_style_context()
+    self.exit_button.add(image)
+    #self.title_bar.pack_end(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    #self.dialog_window.pack_start(divider,0,0,1)
-    self.content_area.add(self.dialog_window )
-    self.build_base()
-    if self.params:
-      self.reload_popup(self.params)
-    self.show_all()
 
   def build_base(self,*args):
-    grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
     self.pop_lbl = Gtk.Label('')
     self.add_style(self.pop_lbl,['text-red-color','font-14','font-bold'])
-    grid.attach(self.pop_lbl,0,0,3,1)
-    self.dialog_window.pack_start(grid,1,1,1)
+    self.grid.attach(self.pop_lbl,0,0,3,1)
 
     #Tag name entry
     lbl = Gtk.Label('Tag Name')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,1,1,1) 
+    self.grid.attach(lbl,0,1,1,1) 
     self.tag_name = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.tag_name.set_placeholder_text('Enter Tag Name')
     self.tag_name.set_alignment(0.5)
     self.add_style(self.tag_name,["entry","font-12"])
     self.tag_name.connect("notify::text-length", self.enable_new)
-    grid.attach(self.tag_name,1,1,2,1)    
+    self.grid.attach(self.tag_name,1,1,2,1)    
 
     #Connection Driver
     lbl = Gtk.Label('Connection Driver')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,2,1,1) 
+    self.grid.attach(lbl,0,2,1,1) 
     self.conx_driver = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
     self.add_style(self.conx_driver,["font-18","list-select","font-bold"])
     for conx in self.conx_type:
        self.conx_driver.append_text(self.conx_type[conx]['id'])
     self.conx_driver.set_active(0)
-    grid.attach(self.conx_driver,1,2,2,1)
+    self.grid.attach(self.conx_driver,1,2,2,1)
 
    #Tag description entry
     lbl = Gtk.Label('Tag Description')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,3,1,1) 
+    self.grid.attach(lbl,0,3,1,1) 
     self.tag_descr = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.tag_descr.set_placeholder_text('Enter Tag Description')
     self.tag_descr.set_alignment(0.5)
     self.add_style(self.tag_descr,["entry","font-12"])
     self.tag_descr.connect("notify::text-length", self.enable_new)
-    grid.attach(self.tag_descr,1,3,2,1)
+    self.grid.attach(self.tag_descr,1,3,2,1)
 
     #Tag Datatype
     lbl = Gtk.Label('Tag Datatype')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,4,1,1) 
+    self.grid.attach(lbl,0,4,1,1) 
     self.tag_datatype = Gtk.ComboBoxText(width_request = 200,height_request = 30,halign = Gtk.Align.CENTER)#hexpand = True
     self.add_style(self.tag_datatype,["font-18","list-select","font-bold"])
     for dt in self.datatypes:
        self.tag_datatype.append_text(dt)
     self.tag_datatype.set_active(0)
-    grid.attach(self.tag_datatype,1,4,2,1)    
+    self.grid.attach(self.tag_datatype,1,4,2,1)    
     sep = Gtk.Label(height_request=3)
     self.dialog_window.pack_start(sep,1,1,1)
+
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+  def load_settings(self,*args):
+    pass
+
+  def save_settings(self,button,auto_close,*args):
+    ####Get Results
+    #{'id': '2', 'connection_type': 4, 'description': 'EthernetIP'}
+    self.result['id'] = self.tag_name.get_text ()
+    self.result['connection_id'] = self.conx_driver.get_active_text()
+    self.result['description'] = self.tag_descr.get_text ()
+    self.result['datatype'] = self.tag_datatype.get_active_text()
+    #####Check Results /Save
+    if self.result['id'] ==  '':
+      dup = True
+    else:
+      dup = False
+
+    conx_obj = self.app.link.get('connections').get(self.result['connection_id'])
+    if conx_obj != None:
+      for tag_id,tag_obj in conx_obj.get('tags').items():
+          if tag_id == self.result['id']:
+            dup = True
+    if dup:
+      self.reload_popup(self.result)
+      #self.add_tag_popup(None,self.result,self.connections_available)
+    else:
+      self.close_popup(False)
+      self.parent.create_tag(self.result)
+      self.parent.open_settings_popup(self.result['id'],self.result['connection_id'])
 
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -1241,11 +1345,12 @@ class AddTagPopup(Gtk.Dialog):
 
 
 class TagSettingsPopup(Gtk.Dialog):
-  def __init__(self, parent,params):
+  def __init__(self, parent,params,app):
     Gtk.Dialog.__init__(self, '',parent, Gtk.DialogFlags.MODAL,
-                        (Gtk.STOCK_SAVE, Gtk.ResponseType.YES)
+                        ()
                         )
     self.params = params
+    self.app = app
     self.datatypes = ['INT','FLOAT','DINT','UINT','BOOLEAN','SINT']
     self.set_default_size(500, 400)
     self.set_border_width(10)
@@ -1253,14 +1358,48 @@ class TagSettingsPopup(Gtk.Dialog):
     sc.add_class("dialog-border")
     self.set_keep_above(True)
     self.set_decorated(False)
-    self.connect("response", self.on_response)
-    self.content_area = self.get_content_area()
     self.result = {}
 
+    self.content_area = self.get_content_area()
     self.dialog_window = Gtk.Box(width_request=500,orientation=Gtk.Orientation.VERTICAL)
-    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=500)
+    self.content_area.add(self.dialog_window)
+    ### -title bar- ####
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    ### - Base Area- ###
+    self.grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
 
-    #header
+    self.build_header()
+    self.build_base()
+    self.build_footer()
+    self.show_all()
+
+  def build_header(self):
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    #self.title_bar.pack_start(bx,0,0,0)
+    self.save_button.connect('clicked',self.save_settings,False)
+
+    #title
     tit = self.params['tag_type']
     title = Gtk.Label(label=f'{tit} - Tag')
     sc = title.get_style_context()
@@ -1268,44 +1407,36 @@ class TagSettingsPopup(Gtk.Dialog):
     sc.add_class('font-18')
     sc.add_class('font-bold')
     self.title_bar.pack_start(title,1,1,1)
-    self.pin_button = Gtk.Button(width_request = 20)
-    self.pin_button.connect('clicked',self.close_popup)
+
+    #exit button
+    self.exit_button = Gtk.Button(width_request = 20)
+    self.exit_button.connect('clicked',self.close_popup)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
-    self.pin_button.add(image)
-    #self.title_bar.pack_end(self.pin_button,0,0,1)
-    sc = self.pin_button.get_style_context()
+    self.exit_button.add(image)
+    #self.title_bar.pack_end(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
     sc.add_class('exit-button')
-    self.dialog_window.pack_start(self.title_bar,0,0,1)
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    sc = divider.get_style_context()
-    sc.add_class('Hdivider')
-    self.dialog_window.pack_start(divider,0,0,1)
-    self.content_area.add(self.dialog_window )
-    self.build_base()
-    self.show_all()
 
   def build_base(self,*args):
     row = 0
-    grid = Gtk.Grid(column_spacing=4, row_spacing=4, column_homogeneous=True, row_homogeneous=True,)
-    self.dialog_window.pack_start(grid,1,1,1)
 
     #Tag name entry
     lbl = Gtk.Label('Tag Name')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,row,1,1) 
+    self.grid.attach(lbl,0,row,1,1) 
     self.conx_name = Gtk.Label(width_request = 300,height_request = 30)
     self.conx_name.set_text(self.params['id'])
     self.conx_name.set_alignment(0.5,0.5)
     self.add_style(self.conx_name,["label","font-18","font-bold"])
     #self.conx_name.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_name,1,row,2,1)   
+    self.grid.attach(self.conx_name,1,row,2,1)   
     row+=1 
 
     #Tag description entry
     lbl = Gtk.Label('Tag Description')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,row,1,1) 
+    self.grid.attach(lbl,0,row,1,1) 
     #self.conx_descr = Gtk.Label(width_request = 300,height_request = 30)
     self.conx_descr = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
     self.conx_descr.set_alignment(0.5)
@@ -1313,14 +1444,14 @@ class TagSettingsPopup(Gtk.Dialog):
     self.add_style(self.conx_descr,["entry","font-18","font-bold"])
     self.conx_descr.set_text(self.params['description'])
     #self.conx_descr.connect("notify::text-length", self.enable_new)
-    grid.attach(self.conx_descr,1,row,2,1) 
+    self.grid.attach(self.conx_descr,1,row,2,1) 
     row+=1 
 
     #Tag Datatype
     db_dt = str(self.params['datatype'])
     lbl = Gtk.Label('Tag Datatype')
     self.add_style(lbl,["Label","font-16",'font-bold'])
-    grid.attach(lbl,0,row,1,1) 
+    self.grid.attach(lbl,0,row,1,1) 
     self.tag_datatype = Gtk.ComboBoxText(width_request = 200,height_request = 30,halign = Gtk.Align.CENTER)#hexpand = True
     self.add_style(self.tag_datatype,["font-18","list-select","font-bold"])
     found = None
@@ -1334,7 +1465,7 @@ class TagSettingsPopup(Gtk.Dialog):
       self.tag_datatype.set_active(found)
     else:
       self.tag_datatype.set_active(0)
-    grid.attach(self.tag_datatype,1,row,2,1)
+    self.grid.attach(self.tag_datatype,1,row,2,1)
     row+=1
 
     #Tag Address entry
@@ -1342,12 +1473,12 @@ class TagSettingsPopup(Gtk.Dialog):
       db_host = str(self.params['address'])
       lbl = Gtk.Label('Tag Address')
       self.add_style(lbl,["Label","font-16",'font-bold'])
-      grid.attach(lbl,0,row,1,1) 
+      self.grid.attach(lbl,0,row,1,1) 
       self.tag_address = Gtk.Entry(max_length = 100,width_request = 300,height_request = 30)
       self.tag_address.set_alignment(0.5)
       self.add_style(self.tag_address,["entry","font-18","font-bold"])
       self.tag_address.set_text(db_host)
-      grid.attach(self.tag_address,1,row,2,1)
+      self.grid.attach(self.tag_address,1,row,2,1)
       row+=1 
 
     #Bit
@@ -1355,7 +1486,7 @@ class TagSettingsPopup(Gtk.Dialog):
       db_tag_bit = str(self.params['baudrate'])
       lbl = Gtk.Label('Baudrate')
       self.add_style(lbl,["Label","font-16",'font-bold'])
-      grid.attach(lbl,0,row,1,1) 
+      self.grid.attach(lbl,0,row,1,1) 
       self.tag_bit = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
       self.add_style(self.tag_bit,["font-18","list-select","font-bold"])
       br = None
@@ -1370,7 +1501,7 @@ class TagSettingsPopup(Gtk.Dialog):
         self.tag_bit.set_active(br)
       else:
         self.tag_bit.set_active(0)
-      grid.attach(self.tag_bit,1,row,2,1)
+      self.grid.attach(self.tag_bit,1,row,2,1)
       row+=1 
 
     #Word Swap
@@ -1378,14 +1509,14 @@ class TagSettingsPopup(Gtk.Dialog):
       db_word_swapped = str(self.params['word_swapped'])
       lbl = Gtk.Label('Word Swapped')
       self.add_style(lbl,["Label","font-16",'font-bold'])
-      grid.attach(lbl,0,row,1,1) 
+      self.grid.attach(lbl,0,row,1,1) 
       bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, halign = Gtk.Align.CENTER)
       p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
       image = Gtk.Image(pixbuf=p_buf)
       wid =CheckBoxWidget(30,30,image,db_word_swapped)
       self.word_swapped = wid.return_self()
       bx.pack_start(self.word_swapped,0,0,0)
-      grid.attach(bx,1,row,2,1)
+      self.grid.attach(bx,1,row,2,1)
       row+=1
 
     #Byte Swap
@@ -1393,19 +1524,64 @@ class TagSettingsPopup(Gtk.Dialog):
       db_byte_swapped = str(self.params['byte_swapped'])
       lbl = Gtk.Label('Byte Swapped')
       self.add_style(lbl,["Label","font-16",'font-bold'])
-      grid.attach(lbl,0,row,1,1) 
+      self.grid.attach(lbl,0,row,1,1) 
       bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, halign = Gtk.Align.CENTER)
       p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
       image = Gtk.Image(pixbuf=p_buf)
       wid =CheckBoxWidget(30,30,image,db_byte_swapped)
       self.byte_swapped = wid.return_self()
       bx.pack_start(self.byte_swapped,0,0,0)
-      grid.attach(bx,1,row,2,1)
+      self.grid.attach(bx,1,row,2,1)
       row+=1
 
-    
-    sep = Gtk.Label(height_request=3)
-    self.dialog_window.pack_start(sep,1,1,1)
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
 
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -1421,8 +1597,9 @@ class TagSettingsPopup(Gtk.Dialog):
 
   def close_popup(self, button):
     self.destroy()
-  
-  def on_response(self, widget, response_id):
+
+  def save_settings(self,button,auto_close,*args):
+    ###Get tag values
     self.result['id'] = self.conx_name.get_text()
     self.result['connection_id'] = self.params['connection_id']
     self.result['description'] = self.conx_descr.get_text ()
@@ -1446,7 +1623,22 @@ class TagSettingsPopup(Gtk.Dialog):
       self.result['byte_swapped'] = self.byte_swapped.get_active()
     else:
       self.result['byte_swapped'] = None
-  
+    ###Update tag value
+    conx_obj = self.app.link.get('connections').get(self.result['connection_id'])
+    if conx_obj != None:
+      tag_obj = conx_obj.get('tags').get(self.result['id'])
+      if tag_obj != None:
+        for key, val in self.result.items():
+          if key == 'id' or key == 'connection_id' or val == None:
+            pass
+          else:
+            try:
+              tag_obj.set(key,val)
+            except KeyError as e:
+              print(e,key)
+        self.app.link.save_tag(tag_obj)
+    self.close_popup(False)
+
   def get_result(self):
     return self.result
 
@@ -1503,12 +1695,12 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
     self.dialog_window.pack_start(self.footer_bar,0,0,1)
 
-    self.build_header("Connection Settings")
+    self.build_header()
     self.build_base()
     self.build_footer()
     self.show_all()
 
-  def build_header(self,title):
+  def build_header(self):
     #header
     self.add_button2 = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/AddConnection.png', 30, -1, True)
@@ -1519,7 +1711,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.title_bar.pack_start(self.add_button2,0,0,0)
     self.add_button2.connect('clicked',self.add_connection_popup,None,self.conx_type)
 
-    title = Gtk.Label(label=title,width_request = 500)
+    title = Gtk.Label(label="Connection Settings",width_request = 500)
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-18')
