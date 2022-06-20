@@ -112,8 +112,6 @@ class BaseSettingsPopoup(Gtk.Dialog):
   def build_footer(self):
     pass
 
-#build calendar picker, chart settings popup, time window / range to display,
-
 ################################ Fix OK button to save before closing
 ################################ Popup opening / closing / saving consistency buttons 
 ################################ When deleting a connection the row stays in the connection specific table
@@ -874,21 +872,53 @@ class TagMainPopup(Gtk.Dialog):
     tree_model, tree_iter = selection.get_selected()
 
   def build_footer(self):
-    self.ok_button = Gtk.Button(width_request = 100)
-    self.ok_button.connect('clicked',self.close_popup)
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     box = Gtk.Box()
     lbl = Gtk.Label('OK')
     sc = lbl.get_style_context()
-    sc.add_class('font-14')
-    sc.add_class('font-bold')
+    sc.add_class('font-16')
     box.pack_start(lbl,1,1,1)
-    box.pack_start(image,0,0,0)
+    #box.pack_start(image,0,0,0)
     self.ok_button.add(box)
-    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    #self.footer_bar.pack_end(self.ok_button,0,0,1)
     sc = self.ok_button.get_style_context()
-    sc.add_class('ctrl-button')
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
 
   def add_tag_rows(self,filter,*args):
     tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
@@ -1030,6 +1060,9 @@ class TagMainPopup(Gtk.Dialog):
     else:
       self.create_tag(results)
       self.open_settings_popup(results['id'],results['connection_id'])
+
+  def save_settings(self,button,auto_close,*args):
+    pass
 
   def open_settings_popup(self,tag_id,conx_id,*args):
     params = self.get_tag_params(tag_id,conx_id)
@@ -1660,7 +1693,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.unsaved_changes_present = False
     self.unsaved_conn_rows = {}
     self.conn_column_names = ['id', 'connection_type', 'description']
-    #self.connections_available = {}
+    self.connections_available = {}
     self.app = app
     self.conx_type = self.app.link.get('connection_types')
     self.app = app
@@ -1671,6 +1704,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
     sc = self.get_style_context()
     sc.add_class("dialog-border")
     self.content_area = self.get_content_area()
+    self.conn_filter_val = ''
+    self.get_available_connections()
 
     self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
@@ -1696,7 +1731,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.dialog_window.pack_start(self.footer_bar,0,0,1)
 
     self.build_header()
-    self.build_base()
+    self.build_base2()
     self.build_footer()
     self.show_all()
 
@@ -1737,22 +1772,221 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.add_connection_rows()
     self.show_all()
 
+  def build_base2(self):
+    self.connection_settings = []  
+    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
+    self.treeview = Gtk.TreeView(self.liststore)
+    self.treeview.connect('button-press-event' , self.tree_item_clicked)
+    self.treeview.set_rules_hint( True )
+    self.add_style(self.treeview,['treeview'])
+
+    #Generate Columns
+    columns = {0:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
+               1:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               2:{'name':'Driver Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               3:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+              }
+    for c in columns:
+      col = Gtk.TreeViewColumn(columns[c]['name'])
+      self.treeview.append_column(col)
+      col.pack_start(columns[c]['cell'], columns[c]['expand'])
+      # Allow sorting on the column
+      col.set_sort_column_id(c)
+      if columns[c]['type'] == 'pixbuf':
+        col.set_attributes(columns[c]['cell'],pixbuf=c)
+        col.set_max_width(columns[c]['width'])
+      else:
+        col.set_attributes(columns[c]['cell'],text=c)
+        col.set_expand(True)
+
+    #Add settings button setup
+    self.cell_settings = Gtk.CellRendererPixbuf()                         # create a CellRenderers to render the data
+    self.tvcolumn_settings = Gtk.TreeViewColumn('')
+    self.treeview.append_column(self.tvcolumn_settings)
+    self.tvcolumn_settings.pack_end(self.cell_settings, False)
+    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
+    self.tvcolumn_settings.set_max_width(30)
+    #Add delete button setup
+    self.cell_delete = Gtk.CellRendererPixbuf()
+    self.tvcolumn_delete = Gtk.TreeViewColumn('')
+    self.treeview.append_column(self.tvcolumn_delete)
+    self.tvcolumn_delete.pack_end(self.cell_delete, False)
+    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
+    self.tvcolumn_delete.set_max_width(30)
+
+    # make treeview searchable
+    self.treeview.set_search_column(2)
+    # Allow drag and drop reordering of rows
+    self.treeview.set_reorderable(True)
+    #Add treeview to base window
+    self.base_area.add(self.treeview)
+
+    #header
+    self.add_conx_rows(self.conn_filter_val)
+    self.show_all()
+
   def build_footer(self):
-    self.ok_button = Gtk.Button(width_request = 100)
-    self.ok_button.connect('clicked',self.close_popup)
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     box = Gtk.Box()
     lbl = Gtk.Label('OK')
     sc = lbl.get_style_context()
-    sc.add_class('font-14')
-    sc.add_class('font-bold')
+    sc.add_class('font-16')
     box.pack_start(lbl,1,1,1)
-    box.pack_start(image,0,0,0)
+    #box.pack_start(image,0,0,0)
     self.ok_button.add(box)
-    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    #self.footer_bar.pack_end(self.ok_button,0,0,1)
     sc = self.ok_button.get_style_context()
-    sc.add_class('ctrl-button')
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+  def tree_item_clicked(self, treeview, event):
+    pthinfo = treeview.get_path_at_pos(event.x, event.y)
+    if event.button == 1: #left click
+      if pthinfo != None:
+        path,column,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,column,0)
+        print(column.get_title())
+        #update currently active display
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        #If selected column is delete icon then initiate delete of tag
+        if tree_iter != None:
+          #gathers the Tag name/Connection column text in the row clicked on
+          t_id = tree_model[tree_iter][1]
+          c_id = tree_model[tree_iter][2]
+          #checks if it is a delete or settings button click
+          if column is self.tvcolumn_delete:
+            self.confirm_delete('',t_id,c_id,tree_iter)
+          elif column is self.tvcolumn_settings:
+            self.open_settings_popup(t_id,c_id)
+      else:
+        #unselect row in treeview
+        selection = treeview.get_selection()
+        selection.unselect_all()
+    elif event.button == 3: #right click
+      if pthinfo != None:
+        path,col,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,col,0)
+        rect = Gdk.Rectangle()
+        rect.x = event.x
+        rect.y = event.y + 10
+        rect.width = rect.height = 1
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        popover = Gtk.Popover(width_request = 200)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        if tree_iter is not None:
+          #gathers the Tag name/Connection column text in the row clicked on
+          t_id = tree_model[tree_iter][1]
+          c_id = tree_model[tree_iter][2]
+          #popover to add display
+          edit_btn = Gtk.ModelButton(label="Edit", name=t_id)
+          #cb = lambda btn: self.open_widget_popup(btn)
+          #edit_btn.connect("clicked", cb)
+          vbox.pack_start(edit_btn, False, True, 10)
+          delete_btn = Gtk.ModelButton(label="Delete", name=t_id)
+          cb = lambda btn:self.confirm_delete('',t_id,c_id,tree_iter)
+          delete_btn.connect("clicked", cb)
+          vbox.pack_start(delete_btn, False, True, 10)
+        popover.add(vbox)
+        popover.set_position(Gtk.PositionType.RIGHT)
+        popover.set_relative_to(treeview)
+        popover.set_pointing_to(rect)
+        popover.show_all()
+        sc = popover.get_style_context()
+        sc.add_class('popover-bg')
+        sc.add_class('font-16')
+        return
+      else:
+        return
+    selection = treeview.get_selection()
+    tree_model, tree_iter = selection.get_selected()
+
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    #self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
 
   def remove_all_rows(self,*args):
     rows = self.conn_grid.get_children()
@@ -1768,6 +2002,9 @@ class ConnectionsMainPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     self.conn_grid.attach(self.delete_button,5,row,1,1)
     self.delete_button.connect('clicked',self.confirm_delete,conx_id)
+
+  def save_settings(self,button,auto_close,*args):
+    pass
 
   def add_connection_rows(self,*args):
     new_params = {}
@@ -1785,7 +2022,22 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.conn_grid.set_column_homogeneous(True)
     else:
       self.conn_grid.set_column_homogeneous(False)
-  
+
+  def add_conx_rows(self,filter,*args):
+    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 25, 25)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 25, 25)
+    for conx_num in self.connections_available:
+      if filter == '' or filter == self.connections_available[conx_num]['id']:
+        self.liststore.append([connection_icon,
+                                self.connections_available[conx_num]['id'],
+                                self.connections_available[conx_num]['connection_type'],
+                                self.connections_available[conx_num]['description'],
+                                settings_icon,
+                                delete_icon
+                                        ])
+    self.show_all()
+
   def insert_connection_row(self,button,params,*args):
     #if params = None then insert blank row
     self.conn_grid.set_column_homogeneous(False) 
@@ -1795,6 +2047,19 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.conn_row_num += 1
     self.connection_settings.append(row)
     self.show_all()
+  
+  def get_available_connections(self,*args):
+
+    conx_items = ['id', 'connection_type', 'description']
+    new_params = {}
+    count = 0
+    #self.connections_available = {0: {'id': '', 'connection_type': '', 'description': ''}}
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      for c in conx_items:
+        new_params[c] = getattr(conx_obj, c)
+      self.connections_available[count] = new_params
+      new_params = {}
+      count += 1
 
   def add_column_names(self,*args):
     labels = ['','Connection Name', 'Connection Driver', 'Connection Description', '',''] # may want to create a table in the db for column names
@@ -1876,17 +2141,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     conx_obj = self.app.link.get("connections").get(conx_id)
     if conx_obj != None:
       return self.app.link.get_connection_params(conx_obj,conx_id)
-
-  # def check_duplicate_name(self,results,*args):
-  #   dup = False
-  #   for conx_id,conx_obj in self.app.link.get('connections').items():
-  #     if conx_id == results['id']:
-  #       dup = True
-  #   if dup:
-  #     self.add_connection_popup(None,results,self.conx_type)
-  #   else:
-  #     self.create_connection(results)
-  #     self.open_settings_popup(results['id'])
   
   def open_settings_popup(self,conx_id,*args):
     params = self.get_connection_params(conx_id)
