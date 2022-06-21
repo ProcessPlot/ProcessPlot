@@ -971,7 +971,7 @@ class TagMainPopup(Gtk.Dialog):
     self.listbox.add(l_row)
 
   def get_available_tags(self,c_id,*args):
-    self.tags_available = {}
+    #self.tags_available = {}
     new_params = {}
     count = 1
     self.conx_tags = {}
@@ -1731,7 +1731,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.dialog_window.pack_start(self.footer_bar,0,0,1)
 
     self.build_header()
-    self.build_base2()
+    self.build_base()
     self.build_footer()
     self.show_all()
 
@@ -1763,18 +1763,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
     sc.add_class('exit-button')
 
   def build_base(self):
-    self.connection_settings = []
-    self.conn_row_num = 1
-    self.conn_grid = Gtk.Grid(column_homogeneous=False,column_spacing=5,row_spacing=5)
-    self.base_area.add(self.conn_grid)
-    #header
-    self.add_column_names()
-    self.add_connection_rows()
-    self.show_all()
-
-  def build_base2(self):
     self.connection_settings = []  
-    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str , GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
+    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
     self.treeview.set_rules_hint( True )
@@ -1804,14 +1794,14 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_settings = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_settings)
     self.tvcolumn_settings.pack_end(self.cell_settings, False)
-    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
+    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=4)
     self.tvcolumn_settings.set_max_width(30)
     #Add delete button setup
     self.cell_delete = Gtk.CellRendererPixbuf()
     self.tvcolumn_delete = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_delete)
     self.tvcolumn_delete.pack_end(self.cell_delete, False)
-    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
+    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=5)
     self.tvcolumn_delete.set_max_width(30)
 
     # make treeview searchable
@@ -1885,16 +1875,16 @@ class ConnectionsMainPopup(Gtk.Dialog):
         #update currently active display
         selection = treeview.get_selection()
         tree_model, tree_iter = selection.get_selected()
-        #If selected column is delete icon then initiate delete of tag
+        #If selected column is delete icon then initiate delete of connection
         if tree_iter != None:
-          #gathers the Tag name/Connection column text in the row clicked on
-          t_id = tree_model[tree_iter][1]
-          c_id = tree_model[tree_iter][2]
+          #gathers the Connection column name and connection type in the row clicked on
+          c_id = tree_model[tree_iter][1]
+          c_type = tree_model[tree_iter][2]
           #checks if it is a delete or settings button click
           if column is self.tvcolumn_delete:
-            self.confirm_delete('',t_id,c_id,tree_iter)
+            self.confirm_delete('',c_id,tree_iter)
           elif column is self.tvcolumn_settings:
-            self.open_settings_popup(t_id,c_id)
+            self.open_settings_popup(c_id)
       else:
         #unselect row in treeview
         selection = treeview.get_selection()
@@ -1914,15 +1904,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         if tree_iter is not None:
           #gathers the Tag name/Connection column text in the row clicked on
-          t_id = tree_model[tree_iter][1]
-          c_id = tree_model[tree_iter][2]
+          c_id = tree_model[tree_iter][1]
+          c_type = tree_model[tree_iter][2]
           #popover to add display
-          edit_btn = Gtk.ModelButton(label="Edit", name=t_id)
+          edit_btn = Gtk.ModelButton(label="Edit", name=c_id)
           #cb = lambda btn: self.open_widget_popup(btn)
           #edit_btn.connect("clicked", cb)
           vbox.pack_start(edit_btn, False, True, 10)
-          delete_btn = Gtk.ModelButton(label="Delete", name=t_id)
-          cb = lambda btn:self.confirm_delete('',t_id,c_id,tree_iter)
+          delete_btn = Gtk.ModelButton(label="Delete", name=c_id)
+          cb = lambda btn:self.confirm_delete('',c_id,tree_iter)
           delete_btn.connect("clicked", cb)
           vbox.pack_start(delete_btn, False, True, 10)
         popover.add(vbox)
@@ -1988,11 +1978,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     sc = self.apply_button.get_style_context()
     sc.add_class('ctrl-button-footer')
 
-  def remove_all_rows(self,*args):
-    rows = self.conn_grid.get_children()
-    for items in rows:
-      self.conn_grid.remove(items)
-
   def create_delete_button(self,conx_id,row,*args):
     self.delete_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
@@ -2006,27 +1991,10 @@ class ConnectionsMainPopup(Gtk.Dialog):
   def save_settings(self,button,auto_close,*args):
     pass
 
-  def add_connection_rows(self,*args):
-    new_params = {}
-    for conx_id,conx_obj in self.app.link.get('connections').items():
-      for c in self.conn_column_names:
-        new_params[c] = getattr(conx_obj, c)
-      row = Connection_row(new_params,self.conn_grid,self.conn_row_num,self.app,self,self.conx_type)
-      self.create_delete_button(new_params['id'],self.conn_row_num)
-      new_params.clear()
-      self.conn_row_num += 1
-      self.connection_settings.append(row)
-    self.show_all()
-    #Spaces out column headers when no data available
-    if len(new_params) != 0:
-      self.conn_grid.set_column_homogeneous(True)
-    else:
-      self.conn_grid.set_column_homogeneous(False)
-
   def add_conx_rows(self,filter,*args):
-    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
-    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 25, 25)
-    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 25, 25)
+    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
     for conx_num in self.connections_available:
       if filter == '' or filter == self.connections_available[conx_num]['id']:
         self.liststore.append([connection_icon,
@@ -2034,18 +2002,21 @@ class ConnectionsMainPopup(Gtk.Dialog):
                                 self.connections_available[conx_num]['connection_type'],
                                 self.connections_available[conx_num]['description'],
                                 settings_icon,
-                                delete_icon
+                                delete_icon,
                                         ])
     self.show_all()
 
   def insert_connection_row(self,button,params,*args):
-    #if params = None then insert blank row
-    self.conn_grid.set_column_homogeneous(False) 
-    self.conn_grid.insert_row(1)
-    row = Connection_row(params,self.conn_grid,1,self.app,self,self.conx_type)
-    self.create_delete_button(None,1)
-    self.conn_row_num += 1
-    self.connection_settings.append(row)
+    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
+    self.liststore.insert(0,[connection_icon,
+                            params['id'],
+                            params['connection_type'],
+                            params['description'],
+                            settings_icon,
+                            delete_icon,
+                                    ])
     self.show_all()
   
   def get_available_connections(self,*args):
@@ -2060,16 +2031,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.connections_available[count] = new_params
       new_params = {}
       count += 1
-
-  def add_column_names(self,*args):
-    labels = ['','Connection Name', 'Connection Driver', 'Connection Description', '',''] # may want to create a table in the db for column names
-    for l_idx in range(len(labels)):
-        l = Gtk.Label(labels[l_idx])
-        sc = l.get_style_context()
-        sc.add_class('text-black-color')
-        sc.add_class('font-14')
-        sc.add_class('font-bold')
-        self.conn_grid.attach(l, l_idx, 0, 1, 1)
   
   def scroll_to_bottom(self, adjust):
     max = adjust.get_upper()
@@ -2083,12 +2044,13 @@ class ConnectionsMainPopup(Gtk.Dialog):
     for sty in style:
       sc.add_class(sty)
 
-  def confirm_delete(self, button,conx_id,msg="Are you sure you want to delete this connection?", args=[]):
+  def confirm_delete(self, button,conx_id,tree_iter,msg="Are you sure you want to delete this connection?", args=[]):
     popup = PopupConfirm(self, msg=msg)
     response = popup.run()
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       self.delete_row(conx_id)
+      self.liststore.remove(tree_iter)
       return True
     else:
       return False
@@ -2097,9 +2059,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     conx_obj = self.app.link.get("connections").get(id)
     if conx_obj != None:
       self.app.link.delete_connection(conx_obj,id)
-    self.remove_all_rows()
-    self.add_column_names()
-    self.add_connection_rows()
     self.show_all()
 
   def create_connection(self,params,*args):
@@ -2156,87 +2115,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def close_popup(self, button):
     self.destroy()
-
-
-class Connection_row(object):
-  def __init__(self,params,conn_grid,row_num,app,parent,conx_types,*args):
-    self.app = app
-    self.parent = parent
-    self.conx_type = conx_types
-    self.conn_grid = conn_grid
-    self.conn_row_num = row_num
-    self.params = params
-    if self.params != None:
-      self.id = self.params['id']
-    self.unsaved_changes = False      #Need to pass this up so that confirm closing popup with unsaved changes
-    self.build_row()
-    #Rows start at 1 because row 0 is titles
-    #Grid : Left,Top,Width,Height
-    #{'id': '2', 'connection_type': 4, 'description': 'EthernetIP'}
-
-  def build_row(self,*args):
-    #icon
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Connect.png', 25, -1, True)
-    icon = Gtk.Image(pixbuf=p_buf,height_request = 30)
-    self.conn_grid.attach(icon,0,self.conn_row_num,1,1)
-
-    #Connection name entry
-    db_conx_name = str(self.params['id'])
-    self.conx_name = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
-    self.conx_name.set_label(db_conx_name)
-    self.add_style(self.conx_name,["font-18","ctrl-lbl","font-bold"])
-    self.conn_grid.attach(self.conx_name,1,self.conn_row_num,1,1)    
-
-    #Connection Driver
-    #self.conx_Typedata = {0:'', 1: 'Local', 2: 'ModbusTCP', 3: 'ModbusRTU', 4: 'EthernetIP', 5: 'ADS', 6: 'GRBL', 7: 'OPCUA'}
-    db_conx_driver = self.params['connection_type']
-    self.conx_driver = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
-    #if db_conx_driver in self.conx_Typedata.keys():
-    self.conx_driver.set_label(db_conx_driver)
-    self.add_style(self.conx_driver,["font-18","ctrl-lbl","font-bold"])
-    self.conn_grid.attach(self.conx_driver,2,self.conn_row_num,1,1)
-
-    #Connection Description
-    db_conx_desc = self.params['description']
-    self.conx_desc = Gtk.Label(width_request = 200,height_request = 25)#hexpand = True
-    self.conx_desc.set_label(db_conx_desc)
-    self.add_style(self.conx_desc,["font-18","ctrl-lbl","font-bold"])
-    self.conn_grid.attach(self.conx_desc,3,self.conn_row_num,1,1)
-    
-    #Connection Settings Button
-    self.driver_settings_button = Gtk.Button(height_request = 25)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/settings.png', 25, -1, True)
-    icon = Gtk.Image(pixbuf=p_buf)
-    self.driver_settings_button.add(icon)
-    self.parent.add_style(self.driver_settings_button,["ctrl-button"])
-    self.driver_settings_button.connect("clicked", self.open_settings)
-    self.conn_grid.attach(self.driver_settings_button,4,self.conn_row_num,1,1)
-    if self.params != None:
-      self.driver_settings_button.set_sensitive(True)
-    else:
-      self.driver_settings_button.set_sensitive(False)
-
-  def enable_new(self, obj, prop):
-    enable = (obj.get_property('text-length') > 0)
-    self.save_button.set_sensitive(enable)
-    if enable:
-      self.parent.add_style(self.conx_name,["entry","font-18","font-bold"])
-    else:
-      self.parent.add_style(self.conx_name,["entry","font-12"])
-
-  def driver_selected(self,obj,*args):
-    if not obj.get_active_text():
-      self.driver_settings_button.set_sensitive(False)
-    else:
-      self.driver_settings_button.set_sensitive(True)
-
-  def open_settings(self,button,*args):
-    self.parent.open_settings_popup(self.id)
-
-  def add_style(self, item,style):
-    sc = item.get_style_context()
-    for sty in style:
-      sc.add_class(sty)
 
 
 class AddConnectionPopup(Gtk.Dialog):
