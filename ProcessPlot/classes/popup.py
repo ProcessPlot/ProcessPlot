@@ -115,7 +115,7 @@ class BaseSettingsPopoup(Gtk.Dialog):
   def build_footer(self):
     pass
 
-################################ 
+################################ change styling of connect toggle button , add connect to conx database
 ################################ 
 ################################ When deleting a connection the row stays in the connection specific table
 ################################ Create import export tags to excel button
@@ -1811,17 +1811,24 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def build_base(self):
     self.connection_settings = []  
-    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
+    self.liststore = Gtk.ListStore(bool,GdkPixbuf.Pixbuf, str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
     self.treeview.set_rules_hint( True )
     self.add_style(self.treeview,['treeview'])
 
+    #Add toggle button
+    renderer_toggle = Gtk.CellRendererToggle()
+    self.tvcolumn_toggle = Gtk.TreeViewColumn("", renderer_toggle, active=0)
+    renderer_toggle.connect("toggled", self.conx_connect_toggle)
+    self.treeview.append_column(self.tvcolumn_toggle)
+    self.tvcolumn_toggle.set_max_width(30)
+
     #Generate Columns
-    columns = {0:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
-               1:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               2:{'name':'Driver Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               3:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+    columns = {1:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
+               2:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               3:{'name':'Driver Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               4:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
               }
     for c in columns:
       col = Gtk.TreeViewColumn(columns[c]['name'])
@@ -1841,14 +1848,14 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_settings = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_settings)
     self.tvcolumn_settings.pack_end(self.cell_settings, False)
-    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=4)
+    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
     self.tvcolumn_settings.set_max_width(30)
     #Add delete button setup
     self.cell_delete = Gtk.CellRendererPixbuf()
     self.tvcolumn_delete = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_delete)
     self.tvcolumn_delete.pack_end(self.cell_delete, False)
-    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=5)
+    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
     self.tvcolumn_delete.set_max_width(30)
 
     # make treeview searchable
@@ -1955,8 +1962,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
           c_type = tree_model[tree_iter][2]
           #popover to add display
           edit_btn = Gtk.ModelButton(label="Edit", name=c_id)
-          #cb = lambda btn: self.open_widget_popup(btn)
-          #edit_btn.connect("clicked", cb)
+          cb = lambda btn: self.open_settings_popup(c_id)
+          edit_btn.connect("clicked", cb)
           vbox.pack_start(edit_btn, False, True, 10)
           delete_btn = Gtk.ModelButton(label="Delete", name=c_id)
           cb = lambda btn:self.confirm_delete('',c_id,tree_iter)
@@ -2025,15 +2032,9 @@ class ConnectionsMainPopup(Gtk.Dialog):
     sc = self.apply_button.get_style_context()
     sc.add_class('ctrl-button-footer')
 
-  def create_delete_button(self,conx_id,row,*args):
-    self.delete_button = Gtk.Button(width_request = 30)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Delete.png', 30, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    self.delete_button.add(image)
-    sc = self.delete_button.get_style_context()
-    sc.add_class('ctrl-button')
-    self.conn_grid.attach(self.delete_button,5,row,1,1)
-    self.delete_button.connect('clicked',self.confirm_delete,conx_id)
+  def conx_connect_toggle(self, widget, path):
+    self.liststore[path][0] = not self.liststore[path][0]
+    print('toggled')
 
   def save_settings(self,button,auto_close,*args):
     pass
@@ -2044,7 +2045,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
     for conx_num in self.connections_available:
       if filter == '' or filter == self.connections_available[conx_num]['id']:
-        self.liststore.append([connection_icon,
+        self.liststore.append([ False,
+                                connection_icon,
                                 self.connections_available[conx_num]['id'],
                                 self.connections_available[conx_num]['connection_type'],
                                 self.connections_available[conx_num]['description'],
