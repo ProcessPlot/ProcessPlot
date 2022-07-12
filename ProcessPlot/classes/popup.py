@@ -1819,6 +1819,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
     #Add toggle button
     renderer_toggle = Gtk.CellRendererToggle()
+    renderer_toggle.set_property('cell-background','gray')
     self.tvcolumn_toggle = Gtk.TreeViewColumn("", renderer_toggle, active=0)
     renderer_toggle.connect("toggled", self.conx_connect_toggle)
     self.treeview.append_column(self.tvcolumn_toggle)
@@ -1831,7 +1832,14 @@ class ConnectionsMainPopup(Gtk.Dialog):
                4:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
               }
     for c in columns:
-      col = Gtk.TreeViewColumn(columns[c]['name'])
+      if columns[c]['name'] != '':
+        col = Gtk.TreeViewColumn(columns[c]['name'])
+      else:
+        connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
+        # Create column.
+        renderer = Gtk.CellRendererPixbuf()
+        col = Gtk.TreeViewColumn(columns[c]['name'])
+
       self.treeview.append_column(col)
       col.pack_start(columns[c]['cell'], columns[c]['expand'])
       # Allow sorting on the column

@@ -11,6 +11,16 @@
   transition: all 0.3s ease 0s;
 }
 
+.toggle {
+  padding: 2px;
+  text-decoration: none;
+  color: #C0C0C0;
+  background-image: linear-gradient(#8f8f8f, #555555);
+  border: 4px solid #002aff;
+  border-radius: 10px;
+  transition: all 0.3s ease 0s;
+}
+
 .ctrl-button-footer {
   padding: 2px;
   text-decoration: none;
