@@ -119,7 +119,7 @@ class BaseSettingsPopoup(Gtk.Dialog):
 ################################ 
 ################################ When deleting a connection the row stays in the connection specific table
 ################################ Create import export tags to excel button
-################################ 
+################################ Need to update connection toggle buttons on regular basis and when building page
 ################################ Still need to create ledgend on popout
 ################################ Add duplicate button on tag settings popup
 ################################ Need a button for connections to open connect and one for connect all
@@ -1739,12 +1739,14 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.unsaved_conn_rows = {}
     self.conn_column_names = ['id', 'connection_type', 'description']
     self.connections_available = {}
+    self.conx_obj_available = {}
     self.app = app
     self.conx_type = self.app.link.get('connection_types')
     self.build_window()
     self.content_area = self.get_content_area()
     self.conn_filter_val = ''
     self.get_available_connections()
+    self.get_conx_polling_status('Turbine')
 
     self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
@@ -1821,7 +1823,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     renderer_toggle = Gtk.CellRendererToggle()
     renderer_toggle.set_property('cell-background','gray')
     self.tvcolumn_toggle = Gtk.TreeViewColumn("", renderer_toggle, active=0)
-    renderer_toggle.connect("toggled", self.conx_connect_toggle)
+    #renderer_toggle.connect("toggled", self.conx_connect_toggle)
     self.treeview.append_column(self.tvcolumn_toggle)
     self.tvcolumn_toggle.set_max_width(30)
 
@@ -1940,13 +1942,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
         #If selected column is delete icon then initiate delete of connection
         if tree_iter != None:
           #gathers the Connection column name and connection type in the row clicked on
-          c_id = tree_model[tree_iter][1]
-          c_type = tree_model[tree_iter][2]
+          c_id = tree_model[tree_iter][2]
+          c_type = tree_model[tree_iter][3]
           #checks if it is a delete or settings button click
           if column is self.tvcolumn_delete:
             self.confirm_delete('',c_id,tree_iter)
           elif column is self.tvcolumn_settings:
             self.open_settings_popup(c_id)
+          elif column is self.tvcolumn_toggle:
+            self.conx_connect_toggle('button',path,c_id)
       else:
         #unselect row in treeview
         selection = treeview.get_selection()
@@ -1966,8 +1970,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         if tree_iter is not None:
           #gathers the Tag name/Connection column text in the row clicked on
-          c_id = tree_model[tree_iter][1]
-          c_type = tree_model[tree_iter][2]
+          c_id = tree_model[tree_iter][2]
+          c_type = tree_model[tree_iter][3]
           #popover to add display
           edit_btn = Gtk.ModelButton(label="Edit", name=c_id)
           cb = lambda btn: self.open_settings_popup(c_id)
@@ -2040,9 +2044,10 @@ class ConnectionsMainPopup(Gtk.Dialog):
     sc = self.apply_button.get_style_context()
     sc.add_class('ctrl-button-footer')
 
-  def conx_connect_toggle(self, widget, path):
+  def conx_connect_toggle(self, widget, path,id):
     self.liststore[path][0] = not self.liststore[path][0]
-    print('toggled')
+    poll = self.conx_obj_available[id].polling  #check current polling status
+    self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
   def save_settings(self,button,auto_close,*args):
     pass
@@ -2067,7 +2072,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
-    self.liststore.insert(0,[connection_icon,
+    self.liststore.insert(0,[False,
+                            connection_icon,
                             params['id'],
                             params['connection_type'],
                             params['description'],
@@ -2077,17 +2083,24 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.show_all()
   
   def get_available_connections(self,*args):
-
     conx_items = ['id', 'connection_type', 'description']
     new_params = {}
+    self.connections_available = {}   #Clears out old list
+    self.conx_obj_available = {}   #Clears out old list
     count = 0
-    #self.connections_available = {0: {'id': '', 'connection_type': '', 'description': ''}}
     for conx_id,conx_obj in self.app.link.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
       self.connections_available[count] = new_params
+      self.conx_obj_available[conx_id] = conx_obj   #Hold reference to all conx objects
       new_params = {}
       count += 1
+  
+  def get_conx_polling_status(self, id,*args):
+    #This method uses the stored conx objects to access polling status of connections
+    obj = self.conx_obj_available[id]
+    print(id,obj.polling)
+    return obj.polling
   
   def scroll_to_bottom(self, adjust):
     max = adjust.get_upper()
@@ -2108,6 +2121,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     if response == Gtk.ResponseType.YES:
       self.delete_row(conx_id)
       self.liststore.remove(tree_iter)
+      self.get_available_connections()
       return True
     else:
       return False
@@ -2127,7 +2141,10 @@ class ConnectionsMainPopup(Gtk.Dialog):
     conx_obj = self.app.link.get("connections").get(params['id'])
     if conx_obj != None:
       self.app.link.save_connection(conx_obj)
-    self.insert_connection_row(None,params)
+      self.insert_connection_row(None,params)
+      self.get_available_connections()
+    else:
+      print('connection creation failed')
 
   def update_connection(self,params,*args):
     conx_obj = self.app.link.get("connections").get(params['id'])
