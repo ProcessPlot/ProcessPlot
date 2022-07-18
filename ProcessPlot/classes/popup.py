@@ -1820,9 +1820,16 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.add_style(self.treeview,['treeview'])
 
     #Add toggle button
+    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
+    image = Gtk.Image(pixbuf=connection_icon)
     renderer_toggle = Gtk.CellRendererToggle()
     renderer_toggle.set_property('cell-background','gray')
-    self.tvcolumn_toggle = Gtk.TreeViewColumn("", renderer_toggle, active=0)
+    self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=0)
+    h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
+    c = h_but.get_child()
+    c.add(image)  #add image to column header button
+    c.show_all()
+
     #renderer_toggle.connect("toggled", self.conx_connect_toggle)
     self.treeview.append_column(self.tvcolumn_toggle)
     self.tvcolumn_toggle.set_max_width(30)
@@ -1834,14 +1841,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
                4:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
               }
     for c in columns:
-      if columns[c]['name'] != '':
-        col = Gtk.TreeViewColumn(columns[c]['name'])
-      else:
-        connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
-        # Create column.
-        renderer = Gtk.CellRendererPixbuf()
-        col = Gtk.TreeViewColumn(columns[c]['name'])
-
+      col = Gtk.TreeViewColumn(columns[c]['name'])
       self.treeview.append_column(col)
       col.pack_start(columns[c]['cell'], columns[c]['expand'])
       # Allow sorting on the column
