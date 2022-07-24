@@ -116,7 +116,7 @@ class BaseSettingsPopoup(Gtk.Dialog):
     pass
 
 ################################ change styling of connect toggle button , add connect to conx database
-################################ 
+################################ create import/export popups
 ################################ When deleting a connection the row stays in the connection specific table
 ################################ Create import export tags to excel button
 ################################ Need to update connection toggle buttons on regular basis and when building page
@@ -774,6 +774,23 @@ class TagMainPopup(Gtk.Dialog):
     sc.add_class('ctrl-button')
     self.title_bar.pack_start(self.add_button2,0,0,0)
     self.add_button2.connect('clicked',self.add_tag_popup,None,self.connections_available)
+
+    tag_import = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Import.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    tag_import.add(image)
+    sc = tag_import.get_style_context()
+    sc.add_class('ctrl-button')
+    self.title_bar.pack_start(tag_import,0,0,0)
+    #tag_import.connect('clicked',self.add_tag_popup,None,self.connections_available)
+    tag_export = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Export.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    tag_export.add(image)
+    sc = tag_export.get_style_context()
+    sc.add_class('ctrl-button')
+    self.title_bar.pack_start(tag_export,0,0,0)
+    #tag_export.connect('clicked',self.add_tag_popup,None,self.connections_available)
 
     title = Gtk.Label(label=title,width_request = 500)
     sc = title.get_style_context()
@@ -1813,7 +1830,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def build_base(self):
     self.connection_settings = []  
-    self.liststore = Gtk.ListStore(bool,GdkPixbuf.Pixbuf, str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
+    self.liststore = Gtk.ListStore(bool,str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
     self.treeview.set_rules_hint( True )
@@ -1835,10 +1852,9 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_toggle.set_max_width(30)
 
     #Generate Columns
-    columns = {1:{'name':'','cell':Gtk.CellRendererPixbuf(),'width':30,'expand':False,'type':'pixbuf'},
-               2:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               3:{'name':'Driver Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               4:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+    columns = {1:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               2:{'name':'Driver Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               3:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
               }
     for c in columns:
       col = Gtk.TreeViewColumn(columns[c]['name'])
@@ -1858,18 +1874,18 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_settings = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_settings)
     self.tvcolumn_settings.pack_end(self.cell_settings, False)
-    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
+    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=4)
     self.tvcolumn_settings.set_max_width(30)
     #Add delete button setup
     self.cell_delete = Gtk.CellRendererPixbuf()
     self.tvcolumn_delete = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_delete)
     self.tvcolumn_delete.pack_end(self.cell_delete, False)
-    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
+    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=5)
     self.tvcolumn_delete.set_max_width(30)
 
     # make treeview searchable
-    self.treeview.set_search_column(2)
+    self.treeview.set_search_column(1)
     # Allow drag and drop reordering of rows
     self.treeview.set_reorderable(True)
     #Add treeview to base window
@@ -1942,8 +1958,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
         #If selected column is delete icon then initiate delete of connection
         if tree_iter != None:
           #gathers the Connection column name and connection type in the row clicked on
-          c_id = tree_model[tree_iter][2]
-          c_type = tree_model[tree_iter][3]
+          c_id = tree_model[tree_iter][1]
+          c_type = tree_model[tree_iter][2]
           #checks if it is a delete or settings button click
           if column is self.tvcolumn_delete:
             self.confirm_delete('',c_id,tree_iter)
@@ -1970,8 +1986,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         if tree_iter is not None:
           #gathers the Tag name/Connection column text in the row clicked on
-          c_id = tree_model[tree_iter][2]
-          c_type = tree_model[tree_iter][3]
+          c_id = tree_model[tree_iter][1]
+          c_type = tree_model[tree_iter][2]
           #popover to add display
           edit_btn = Gtk.ModelButton(label="Edit", name=c_id)
           cb = lambda btn: self.open_settings_popup(c_id)
@@ -2059,7 +2075,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     for conx_num in self.connections_available:
       if filter == '' or filter == self.connections_available[conx_num]['id']:
         self.liststore.append([ False,
-                                connection_icon,
                                 self.connections_available[conx_num]['id'],
                                 self.connections_available[conx_num]['connection_type'],
                                 self.connections_available[conx_num]['description'],
@@ -2073,7 +2088,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
     self.liststore.insert(0,[False,
-                            connection_icon,
                             params['id'],
                             params['connection_type'],
                             params['description'],
