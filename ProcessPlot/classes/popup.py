@@ -24,6 +24,8 @@ from enum import auto
 from http.client import PARTIAL_CONTENT
 from logging.config import valid_ident
 from pkgutil import iter_modules
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 
 from urllib.parse import non_hierarchical
 import gi, os, json, datetime, time
@@ -790,7 +792,7 @@ class TagMainPopup(Gtk.Dialog):
     sc = tag_export.get_style_context()
     sc.add_class('ctrl-button')
     self.title_bar.pack_start(tag_export,0,0,0)
-    #tag_export.connect('clicked',self.add_tag_popup,None,self.connections_available)
+    tag_export.connect('clicked',self.export_tags_popup)
 
     title = Gtk.Label(label=title,width_request = 500)
     sc = title.get_style_context()
@@ -861,6 +863,72 @@ class TagMainPopup(Gtk.Dialog):
     #header
     self.add_tag_rows(self.tag_filter_val)
     self.show_all()
+
+  def export_tags_popup(self, callback, filt_pattern = ["*.csv"]):
+    #self.destroy()       #Closes Current Open Window
+    save_dialog = Gtk.FileChooserDialog("Save As", self,
+                                        Gtk.FileChooserAction.SAVE,
+                                        (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+                                          Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+    save_dialog.set_current_name('Tags_Export')
+    filter = Gtk.FileFilter()
+    filter.set_name("All files")
+    for pat in filt_pattern:
+        filter.add_pattern(pat)
+    # filter.add_pattern("*.zip")
+    # filter.add_pattern("*.rdd")
+    save_dialog.add_filter(filter)
+    #save_dialog.connect("response", self.export_tags)
+    response = save_dialog.run()
+    if response == Gtk.ResponseType.OK:
+        self.export_tags(save_dialog.get_filename())
+    else:
+        # don't bother building the window
+        self.destroy()
+    save_dialog.destroy()
+  
+  def export_tags(self,directory_name,*args):
+    #Need to deal with tag filter
+    #Need to deal with only importing tags to connections which are stopped
+    conx = []
+    for c in self.connections_available:
+      if self.connections_available[c]['id']: #watches for blank connection IDs
+        conx.append(self.connections_available[c]['id'])
+    #print('Current Filter:',self.tags_available)
+    file_name_suffix = 'xlsx'
+    dest_filename = os.path.join(directory_name +"." + file_name_suffix)
+    wb = Workbook()
+    # ws1 = wb.active
+    # ws1.title = "range names"
+    # for row in range(1, 40):
+    #   ws1.append(range(600))
+    for name in conx:
+      #print(self.tags_available[name])
+      if self.tags_available[name]: #checks if dictionary of tags is not empty
+        sheet = wb.create_sheet(title=name)
+        for t in self.tags_available[name]:
+          columns = list(self.tags_available[name][t].keys())
+          #print("columns",columns)
+          #print("length",(self.tags_available[name][t]))
+          c = 1
+          for header in columns:
+            sheet.cell(column=c, row=1, value=header)
+            for x in range(2):
+              sheet.cell(column=c, row=(x+2), value=self.tags_available[name][t][header])
+            c+=1
+
+
+    #ws2 = wb.create_sheet(title="Sht2")
+    #ws2['A1'] = 69
+    #ws3 = wb.create_sheet(title="Data")
+    #for row in range(10, 20):
+    #  for col in range(27, 54):
+    #    _ = ws3.cell(column=col, row=row, value="{0}".format(get_column_letter(col)))
+    #print(ws3['AA10'].value)
+    try:
+      wb.save(filename = dest_filename)
+    except:
+      print('Save Failed')
 
   def tree_item_clicked(self, treeview, event):
     pthinfo = treeview.get_path_at_pos(event.x, event.y)
