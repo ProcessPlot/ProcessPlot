@@ -802,7 +802,8 @@ class TagMainPopup(Gtk.Dialog):
     sc = tag_import.get_style_context()
     sc.add_class('ctrl-button')
     self.title_bar.pack_start(tag_import,0,0,0)
-    #tag_import.connect('clicked',self.add_tag_popup,None,self.connections_available)
+    tag_import.connect('clicked',self.import_popup)
+
     tag_export = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Export.png', 30, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
@@ -810,7 +811,7 @@ class TagMainPopup(Gtk.Dialog):
     sc = tag_export.get_style_context()
     sc.add_class('ctrl-button')
     self.title_bar.pack_start(tag_export,0,0,0)
-    tag_export.connect('clicked',self.fileChooser_save)
+    tag_export.connect('clicked',self.export_popup)
 
     title = Gtk.Label(label=title,width_request = 500)
     sc = title.get_style_context()
@@ -882,8 +883,56 @@ class TagMainPopup(Gtk.Dialog):
     self.add_tag_rows(self.tag_filter_val)
     self.show_all()
 
-  def fileChooser_save(self, callback, filt_pattern = ["*.xsls"]):
-    #Need to update to use callback instead of export tags and then add to base as just fileChooser_save
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.ok_button.connect('clicked',self.save_settings,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    #self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.apply_button.connect('clicked',self.save_settings,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+  def fileChooser_save(self,conx_sel,filt_pattern = ["*.xlsx"]):
     save_dialog = Gtk.FileChooserDialog("Save As", self,
                                         Gtk.FileChooserAction.SAVE,
                                         (Gtk.STOCK_OK, Gtk.ResponseType.OK,
@@ -995,55 +1044,6 @@ class TagMainPopup(Gtk.Dialog):
     selection = treeview.get_selection()
     tree_model, tree_iter = selection.get_selected()
 
-  def build_footer(self):
-    #CANCEL Button
-    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.cancel_button.connect('clicked',self.close_popup)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    box = Gtk.Box()
-    lbl = Gtk.Label('Cancel')
-    sc = lbl.get_style_context()
-    sc.add_class('font-16')
-    box.pack_start(lbl,1,1,1)
-    #box.pack_start(image,0,0,0)
-    self.cancel_button.add(box)
-    self.footer_bar.pack_end(self.cancel_button,0,0,1)
-    sc = self.cancel_button.get_style_context()
-    sc.add_class('ctrl-button-footer')
-
-    #OK Button
-    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.ok_button.connect('clicked',self.save_settings,True)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    box = Gtk.Box()
-    lbl = Gtk.Label('OK')
-    sc = lbl.get_style_context()
-    sc.add_class('font-16')
-    box.pack_start(lbl,1,1,1)
-    #box.pack_start(image,0,0,0)
-    self.ok_button.add(box)
-    #self.footer_bar.pack_end(self.ok_button,0,0,1)
-    sc = self.ok_button.get_style_context()
-    sc.add_class('ctrl-button-footer')
-
-    #APPLY Button
-    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.apply_button.connect('clicked',self.save_settings,False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    box = Gtk.Box()
-    lbl = Gtk.Label('Apply')
-    sc = lbl.get_style_context()
-    sc.add_class('font-16')
-    box.pack_start(lbl,1,1,1)
-    #box.pack_start(image,0,0,0)
-    self.apply_button.add(box)
-    #self.footer_bar.pack_end(self.apply_button,0,0,1)
-    sc = self.apply_button.get_style_context()
-    sc.add_class('ctrl-button-footer')
-
   def add_tag_rows(self,filter,*args):
     tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 25, 25)
@@ -1149,6 +1149,78 @@ class TagMainPopup(Gtk.Dialog):
       return True
     else:
       return False
+
+  def export_popup(self,*args):
+    popup = Export_ImportTagsPopup(self, self.app,export = True)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      results = (popup.get_result())
+      print('Results',results)
+      self.fileChooser_save(results['conx_select'],filt_pattern = ["*.xlsx"])
+    else:
+      return False
+
+  def import_popup(self,*args):
+    popup = Export_ImportTagsPopup(self, self.app,export = False)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      results = (popup.get_result())
+      print('Results',results)
+      self.fileChooser_open(results['conx_select'],filt_pattern = ["*.xlsx"])
+    else:
+      return False
+
+  def fileChooser_open(self,conx_sel,filt_pattern = ["*.xlsx"]):
+    #Complete the import of the file, be sure to check if connection is running
+      open_dialog = Gtk.FileChooserDialog(
+          title="Please choose a file", parent=self, action=Gtk.FileChooserAction.OPEN
+      )
+      open_dialog.add_buttons(
+          Gtk.STOCK_CANCEL,
+          Gtk.ResponseType.CANCEL,
+          Gtk.STOCK_OPEN,
+          Gtk.ResponseType.OK,
+      )
+      filter = Gtk.FileFilter()
+      filter.set_name("*.xlsx")
+      for pat in filt_pattern:
+          filter.add_pattern(pat)
+      open_dialog.add_filter(filter)
+
+      response = open_dialog.run()
+      if response == Gtk.ResponseType.OK:
+          print("Open clicked")
+          print("File selected: " + open_dialog.get_filename())
+      elif response == Gtk.ResponseType.CANCEL:
+          print("Cancel clicked")
+          # don't bother building the window
+          self.destroy()
+
+      open_dialog.destroy()
+
+  def fileChooser_save(self,conx_sel,filt_pattern = ["*.xlsx"]):
+    #Need to update to use callback instead of export tags and then add to base as just fileChooser_save
+    save_dialog = Gtk.FileChooserDialog("Save As", self,
+                                        Gtk.FileChooserAction.SAVE,
+                                        (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+                                          Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+    save_dialog.set_current_name('Tags_Export')
+    filter = Gtk.FileFilter()
+    filter.set_name("*.xlsx")
+    for pat in filt_pattern:
+        filter.add_pattern(pat)
+    save_dialog.add_filter(filter)
+    response = save_dialog.run()
+    if response == Gtk.ResponseType.OK:
+        tag_filter = "Machine"
+        file_name = save_dialog.get_filename()
+        self.export_tags(file_name,tag_filter)
+    else:
+        # don't bother building the window
+        self.destroy()
+    save_dialog.destroy()
 
   def add_tag_popup(self,button,duplicate_name_params,*args):
     popup = AddTagPopup(self,duplicate_name_params,self.app,self.connections_available)
@@ -4092,7 +4164,6 @@ class TimeSpanPopup(Gtk.Dialog):
           #print("Selected: ID=%d, name=%s" % (row_id, name))
       else:
           entry = combo.get_child()
-          #print("Entered: %s" % entry.get_text())
 
   def load_settings(self,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(self.c_id)).first()
@@ -4108,8 +4179,17 @@ class TimeSpanPopup(Gtk.Dialog):
         self.months.set_active((settings.start_month))
         self.year.set_value(settings.start_year)
     else:
+      self.display_msg(msg="Chart Not Found")
       print("Chart Not Found")
-      #using default values
+
+  def display_msg(self,msg,*args):
+    popup = PopupMessage(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
 
   def save_settings(self,but,chart_id,auto_close,*args):
     settings = self.db_session.query(self.Tbl).filter(self.Tbl.id == int(chart_id)).first()
@@ -4125,7 +4205,6 @@ class TimeSpanPopup(Gtk.Dialog):
     self.app.charts[chart_id].reload_chart()
     if auto_close:
       self.close_popup()
-
 
   def show_leading_zeros(obj,spin_button,num,*args):
     adjustment = spin_button.get_adjustment()
@@ -4147,6 +4226,212 @@ class TimeSpanPopup(Gtk.Dialog):
     else:
       pass
     numpad.destroy()
+
+  def close_popup(self, *args):
+    self.destroy()
+
+
+class Export_ImportTagsPopup(Gtk.Dialog):
+  def __init__(self, parent,app,export):
+    Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
+                        (Gtk.STOCK_OK, Gtk.ResponseType.YES,
+                        Gtk.STOCK_CANCEL, Gtk.ResponseType.NO)
+                        )
+    self.app = app
+    self.parent = parent
+    self.export = export
+    self.connections_available = {}
+    self.connect("response", self.on_response)
+    self.result = {}
+    self.get_available_connections()
+    self.build_window()
+    self.content_area = self.get_content_area()
+    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.content_area.add(self.dialog_window )
+    ### - Title Bar- ###
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+
+    ### - Base Area- ###
+    self.base_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    self.dialog_window.pack_start(self.base_area, 0, 0, 0)
+
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
+    self.build_header()
+    self.build_base()
+    #self.build_footer()
+    self.load_settings()
+    self.show_all()
+
+  def build_window(self, *args):
+    self.set_default_size(200, 200)
+    self.set_decorated(False)
+    self.set_border_width(10)
+    self.set_keep_above(False)
+    sc = self.get_style_context()
+    sc.add_class("dialog-border")
+
+  def build_header(self,*args):
+    #Save Button
+    self.save_button = Gtk.Button(width_request = 30)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.save_button.add(image)
+    sc = self.save_button.get_style_context()
+    sc.add_class('ctrl-button')
+    bx = Gtk.Box()
+    bx.pack_end(self.save_button,0,0,0)
+    #self.title_bar.pack_start(bx,0,0,0)
+    #self.save_button.connect('clicked',self.save_settings,self.c_id)
+
+    #title
+    if self.export:
+      title = Gtk.Label(label='Export Tags')
+    else:
+      title = Gtk.Label(label='Import Tags')
+    sc = title.get_style_context()
+    sc.add_class('text-black-color')
+    sc.add_class('font-22')
+    sc.add_class('font-bold')
+    self.title_bar.pack_start(title,1,1,1)
+
+    #exit button
+    self.exit_button = Gtk.Button(width_request = 20)
+    self.exit_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Close.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.exit_button.add(image)
+    #self.title_bar.pack_end(self.exit_button,0,0,1)
+    sc = self.exit_button.get_style_context()
+    sc.add_class('exit-button')
+
+  def build_base(self,*args):
+
+    #Label
+    bx = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    if self.export:
+      lbl = Gtk.Label("Select Connection To Export Tags")
+    else:
+      lbl = Gtk.Label("Select Connection To Import Tags To")
+    bx.pack_start(lbl,1,1,1)
+    self.base_area.pack_start(bx,0,0,0)
+
+    self.tag_sort = Gtk.ComboBoxText()
+    self.tag_sort.set_entry_text_column(0)
+    for x in self.connections_available:
+      self.tag_sort.append_text(self.connections_available[x]['id'])
+    self.tag_sort.set_active(1)
+    sc = self.tag_sort.get_style_context()
+    sc.add_class('ctrl-combo')
+    self.base_area.pack_start(self.tag_sort,0,0,0)
+
+  def build_footer(self):
+    #CANCEL Button
+    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
+    self.cancel_button.connect('clicked',self.close_popup)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Cancel')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.cancel_button.add(box)
+    self.footer_bar.pack_end(self.cancel_button,0,0,1)
+    sc = self.cancel_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #OK Button
+    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
+    #self.ok_button.connect('clicked',self.save_settings,self.c_id,True)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('OK')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.ok_button.add(box)
+    self.footer_bar.pack_end(self.ok_button,0,0,1)
+    sc = self.ok_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+    #APPLY Button
+    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
+    #self.apply_button.connect('clicked',self.save_settings,self.c_id,False)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    box = Gtk.Box()
+    lbl = Gtk.Label('Apply')
+    sc = lbl.get_style_context()
+    sc.add_class('font-16')
+    box.pack_start(lbl,1,1,1)
+    #box.pack_start(image,0,0,0)
+    self.apply_button.add(box)
+    #self.footer_bar.pack_end(self.apply_button,0,0,1)
+    sc = self.apply_button.get_style_context()
+    sc.add_class('ctrl-button-footer')
+
+  def load_settings(self,*args):
+    pass
+
+  def display_msg(self,msg,*args):
+    popup = PopupMessage(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
+
+  def save_settings(self,but,chart_id,auto_close,*args):
+    pass
+
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
+    response = numpad.run()
+    if response == Gtk.ResponseType.NO:
+      pass
+    else:
+      pass
+    numpad.destroy()
+
+  def get_available_connections(self,*args):
+
+    conx_items = ['id', 'connection_type', 'description']
+    new_params = {}
+    count = 1
+    #self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
+    self.connections_available = {}
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      for c in conx_items:
+        new_params[c] = getattr(conx_obj, c)
+      self.connections_available[count] = new_params
+      new_params = {}
+      count += 1
+
+  def on_response(self, widget, response_id):
+    self.result['conx_select'] = self.tag_sort.get_active_text()
+  
+  def get_result(self):
+    return self.result
 
   def close_popup(self, *args):
     self.destroy()
