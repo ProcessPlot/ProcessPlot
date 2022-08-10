@@ -25,7 +25,7 @@ from http.client import PARTIAL_CONTENT
 from logging.config import valid_ident
 from pkgutil import iter_modules
 import numpy
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 
 from urllib.parse import non_hierarchical
@@ -952,10 +952,29 @@ class TagMainPopup(Gtk.Dialog):
         # don't bother building the window
         self.destroy()
     save_dialog.destroy()
+
+  def import_tags(self,directory_name,*args):
+    #Need to deal with only importing tags to connections which are stopped
+    dest_filename = os.path.join(directory_name)
+    print(dest_filename)
+    wb = load_workbook(dest_filename)
+    # for sheet in wb:
+    #   print('sheet',sheet.title)
+    ws = wb.active
+    for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
+      header_row = row
+    r = 1
+    tags = {}
+    for row in ws.values:
+      tags[r] = {}
+      col = 0
+      for i in header_row :
+        tags[r][i] = row[col]
+        col +=1
+      r += 1
+    print('tags',tags)
   
   def export_tags(self,directory_name,t_filter,*args):
-    #Need Tags export popup for selecting which connection
-    #Need to deal with only importing tags to connections which are stopped
     file_name_suffix = 'xlsx'
     dest_filename = os.path.join(directory_name +"." + file_name_suffix)
     wb = Workbook()
@@ -1156,7 +1175,6 @@ class TagMainPopup(Gtk.Dialog):
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
-      print('Results',results)
       self.fileChooser_save(results['conx_select'],filt_pattern = ["*.xlsx"])
     else:
       return False
@@ -1167,7 +1185,6 @@ class TagMainPopup(Gtk.Dialog):
     popup.destroy()
     if response == Gtk.ResponseType.YES:
       results = (popup.get_result())
-      print('Results',results)
       self.fileChooser_open(results['conx_select'],filt_pattern = ["*.xlsx"])
     else:
       return False
@@ -1191,8 +1208,9 @@ class TagMainPopup(Gtk.Dialog):
 
       response = open_dialog.run()
       if response == Gtk.ResponseType.OK:
-          print("Open clicked")
-          print("File selected: " + open_dialog.get_filename())
+          tag_filter = conx_sel
+          file_name = open_dialog.get_filename()
+          self.import_tags(file_name,tag_filter)
       elif response == Gtk.ResponseType.CANCEL:
           print("Cancel clicked")
           # don't bother building the window
@@ -1214,7 +1232,7 @@ class TagMainPopup(Gtk.Dialog):
     save_dialog.add_filter(filter)
     response = save_dialog.run()
     if response == Gtk.ResponseType.OK:
-        tag_filter = "Machine"
+        tag_filter = conx_sel
         file_name = save_dialog.get_filename()
         self.export_tags(file_name,tag_filter)
     else:
