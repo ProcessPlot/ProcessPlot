@@ -953,7 +953,7 @@ class TagMainPopup(Gtk.Dialog):
         self.destroy()
     save_dialog.destroy()
 
-  def import_tags(self,directory_name,*args):
+  def import_tags(self,directory_name,conx_selected,*args):
     #Need to deal with only importing tags to connections which are stopped
     dest_filename = os.path.join(directory_name)
     print(dest_filename)
@@ -963,16 +963,36 @@ class TagMainPopup(Gtk.Dialog):
     ws = wb.active
     for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
       header_row = row
-    r = 1
+    bad_tag = []
+    r = 0
     tags = {}
     for row in ws.values:
-      tags[r] = {}
-      col = 0
-      for i in header_row :
-        tags[r][i] = row[col]
-        col +=1
+      if r != 0:  #skip header row
+        tags[r] = {}
+        col = 0
+        if len(header_row) == len(row) and (not None in row): #check for missing element in row
+          for i in header_row :
+            tags[r][i] = row[col]
+            col +=1
+        else:
+          bad_tag.append(row[0])
       r += 1
-    print('tags',tags)
+    if bad_tag:
+      self.display_msg(msg="{} Tag(s) Were Incorectly Formated And Were Not Imported".format(str(len(bad_tag))))
+    
+    duplicate_tag = []
+    if tags:  #Are there any tags to import?
+      for k in tags.keys():
+        conx_obj = self.app.link.get('connections').get(tags[k]['connection_id'])
+        if conx_obj != None:
+          for tag_id,tag_obj in conx_obj.get('tags').items():
+              if tag_id == tags[k]['id']:
+                duplicate_tag.append(tags[k]['id'])
+        else:
+          self.create_tag(tags[k])
+     
+    if duplicate_tag:
+      self.display_msg(msg="{} Tag(s) Already Exist And Were Not Imported".format(str(len(duplicate_tag))))
   
   def export_tags(self,directory_name,t_filter,*args):
     file_name_suffix = 'xlsx'
@@ -1208,9 +1228,9 @@ class TagMainPopup(Gtk.Dialog):
 
       response = open_dialog.run()
       if response == Gtk.ResponseType.OK:
-          tag_filter = conx_sel
+          conx_name_selected = conx_sel
           file_name = open_dialog.get_filename()
-          self.import_tags(file_name,tag_filter)
+          self.import_tags(file_name,conx_name_selected)
       elif response == Gtk.ResponseType.CANCEL:
           print("Cancel clicked")
           # don't bother building the window
@@ -1298,13 +1318,14 @@ class TagMainPopup(Gtk.Dialog):
       return False
 
   def create_tag(self,params,*args):
-    #sNEED TO HAVE IT PASS IN SOMEThing FOR THE ADDRESS EXCEPT 12
+    if 'address' not in params:
+      params['address'] = '12'  # default address when not passed in because required to create connection
     conx_obj = self.app.link.get('connections').get(params['connection_id'])
     conx_obj.new_tag({"id": params['id'],
                             "connection_id": params['connection_id'],
                             "description": params['description'],
                             "datatype": params['datatype'],
-                            "address": '12'
+                            "address": params['address'],
     })
     tag_obj = conx_obj.get('tags').get(params['id'])
     if tag_obj != None:
