@@ -137,13 +137,15 @@ class BaseSettingsPopoup(Gtk.Dialog):
     numpad.destroy()
 
 ################################ change styling of connect toggle button , add connect to conx database
-################################ create import/export popups
 ################################ When deleting a connection the row stays in the connection specific table
-################################ Create import export tags to excel button
 ################################ Need to update connection toggle buttons on regular basis and when building page
 ################################ Still need to create ledgend on popout
 ################################ Add duplicate button on tag settings popup
 ################################ Need a button for connections to open connect and one for connect all
+################################ Inmport / Export pen rows and clean up popup
+################################ add pens to legend popout
+
+
 
 class PenSettingsPopup(BaseSettingsPopoup):
 
@@ -956,7 +958,6 @@ class TagMainPopup(Gtk.Dialog):
   def import_tags(self,directory_name,conx_selected,*args):
     #Need to deal with only importing tags to connections which are stopped
     dest_filename = os.path.join(directory_name)
-    print(dest_filename)
     wb = load_workbook(dest_filename)
     # for sheet in wb:
     #   print('sheet',sheet.title)
@@ -970,30 +971,40 @@ class TagMainPopup(Gtk.Dialog):
       if r != 0:  #skip header row
         tags[r] = {}
         col = 0
-        if len(header_row) == len(row) and (not None in row): #check for missing element in row
-          for i in header_row :
-            tags[r][i] = row[col]
-            col +=1
-        else:
-          bad_tag.append(row[0])
+        if row[1] == conx_selected:           #check if tags connection_id is the same is the one selected
+          if len(header_row) == len(row) and (not None in row): #check for missing element in row
+            for i in header_row :
+              tags[r][i] = str(row[col])
+              col +=1
+          else:
+            bad_tag.append(row[0])
+
       r += 1
     if bad_tag:
       self.display_msg(msg="{} Tag(s) Were Incorectly Formated And Were Not Imported".format(str(len(bad_tag))))
     
     duplicate_tag = []
+    new_tags = []
+    existing_tags = []
     if tags:  #Are there any tags to import?
-      for k in tags.keys():
-        conx_obj = self.app.link.get('connections').get(tags[k]['connection_id'])
-        if conx_obj != None:
-          for tag_id,tag_obj in conx_obj.get('tags').items():
-              if tag_id == tags[k]['id']:
-                duplicate_tag.append(tags[k]['id'])
-        else:
-          self.create_tag(tags[k])
+      conx_obj = self.app.link.get('connections').get(conx_selected)
+      if conx_obj != None:
+        for tag_id,tag_obj in conx_obj.get('tags').items():
+            existing_tags.append(tag_id)      #Collect all tags in
+        for k in tags.keys():
+          if tags[k]['id'] in existing_tags:
+            duplicate_tag.append(tags[k]['id'])
+          else:
+            self.create_tag(tags[k])
+            new_tags.append(tags[k]['id'])
      
-    if duplicate_tag:
+    if duplicate_tag and not new_tags:
       self.display_msg(msg="{} Tag(s) Already Exist And Were Not Imported".format(str(len(duplicate_tag))))
-  
+    elif new_tags:
+      self.display_msg(msg="{} Tag(s) Were Imported".format(str(len(new_tags))))
+    else:
+      self.display_msg(msg="No Tags Imported")
+
   def export_tags(self,directory_name,t_filter,*args):
     file_name_suffix = 'xlsx'
     dest_filename = os.path.join(directory_name +"." + file_name_suffix)
@@ -1349,9 +1360,9 @@ class TagMainPopup(Gtk.Dialog):
         self.app.link.save_tag(tag_obj)
 
   def insert_tag_row(self,button,params,*args):
-    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 20, 20)
-    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 20, 20)
-    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 20, 20)
+    tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
+    settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 25, 25)
+    delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 25, 25)
     if 'address' in params.keys():
       address = params['address']
     else:
