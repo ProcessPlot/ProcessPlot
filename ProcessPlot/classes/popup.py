@@ -169,6 +169,7 @@ class PenSettingsPopup(Gtk.Dialog):
     self.parent = parent
     self.tags_available = {}
     self.connections_available = {}
+    self.pens_available = {}
     self.chart_filter = 'All'
     self.unsaved_changes_present = False
     self.unsaved_pen_rows = {}
@@ -182,6 +183,7 @@ class PenSettingsPopup(Gtk.Dialog):
     self.content_area = self.get_content_area()
     self.get_available_tags('c_id')
     self.get_available_connections()
+    self.get_available_pens()
 
     self.dialog_window = Gtk.Box(width_request=600,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window)
@@ -377,28 +379,28 @@ class PenSettingsPopup(Gtk.Dialog):
     self.db_session.commit()
     self.remove_pen_rows()
     self.add_column_names()
+    self.get_available_pens()
     self.add_pen_rows(self.chart_filter)
     self.delete_pen_object(row_id,settings.chart_id)
 
   def add_pen_rows(self,chart_filter,*args):
     #pen row
-    if chart_filter == 'All':
-      settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id)
-    else:
-      settings = self.db_session.query(self.Tbl).filter(self.Tbl.chart_id == int(chart_filter)).order_by(self.Tbl.id) 
-    params = {}
-    if len(settings.all()) == 0:
+    if not self.pens_available:
       self.pen_grid.set_column_homogeneous(True)
     else:
-      self.pen_grid.set_column_homogeneous(False)      
-    for pen in settings:
-      for c in self.pen_column_names:
-        params[c] = getattr(pen, c)
-      row = Pen_row(params,self.pen_grid,self.pen_row_num,self.app,self)
-      self.create_delete_button(params['id'],self.pen_row_num)
-      params.clear()
-      self.pen_row_num += 1
-      self.pen_settings.append(row)
+      self.pen_grid.set_column_homogeneous(False)   
+    temp = {}
+    for key, pen in self.pens_available.items():
+      if chart_filter != 'All':
+        if str(pen['chart_id']) == chart_filter:
+          temp[key] = pen
+      else:
+        temp = self.pens_available
+    for key, pen in temp.items():
+        row = Pen_row(pen,self.pen_grid,self.pen_row_num,self.app,self)
+        self.create_delete_button(pen['id'],self.pen_row_num)
+        self.pen_row_num += 1
+        self.pen_settings.append(row)
     self.show_all()
 
   def remove_pen_rows(self,*args):
@@ -420,9 +422,11 @@ class PenSettingsPopup(Gtk.Dialog):
 
   def create_pen_object(self,id,chart_id,*args):
     self.app.charts[chart_id].add_pen(id)
+    self.get_available_pens()
   
   def delete_pen_object(self,id,chart_id,*args):
     self.app.charts[chart_id].delete_pen(id)
+    self.get_available_pens()
 
   def insert_pen_row(self,*args):
     self.pen_grid.set_column_homogeneous(False) 
@@ -493,7 +497,18 @@ class PenSettingsPopup(Gtk.Dialog):
       new_params = {}
       count += 1
 
-  def fileChooser_open(self,conx_sel,filt_pattern = ["*.xlsx"]):
+  def get_available_pens(self,*args):
+    params = {}
+    pen = {}
+    settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id)
+    for pen_param in settings:
+      for c in self.pen_column_names:
+        pen[c] = getattr(pen_param, c)
+      params[pen['id']] = pen
+      pen = {}
+    self.pens_available = params
+
+  def fileChooser_open(self,param,filt_pattern = ["*.xlsx"]):
     #Complete the import of the file, be sure to check if connection is running
       open_dialog = Gtk.FileChooserDialog(
           title="Please choose a file", parent=self, action=Gtk.FileChooserAction.OPEN
@@ -512,16 +527,16 @@ class PenSettingsPopup(Gtk.Dialog):
 
       response = open_dialog.run()
       if response == Gtk.ResponseType.OK:
-          conx_name_selected = conx_sel
+          passthrough = param
           file_name = open_dialog.get_filename()
-          self.import_pens(file_name,conx_name_selected)
+          self.import_pens(file_name,passthrough)
       elif response == Gtk.ResponseType.CANCEL:
         pass
         # don't bother building the window
         #self.destroy()
       open_dialog.destroy()
 
-  def fileChooser_save(self,conx_sel,filt_pattern = ["*.xlsx"]):
+  def fileChooser_save(self,param,filt_pattern = ["*.xlsx"]):
     save_dialog = Gtk.FileChooserDialog("Save As", self,
                                         Gtk.FileChooserAction.SAVE,
                                         (Gtk.STOCK_OK, Gtk.ResponseType.OK,
@@ -534,14 +549,38 @@ class PenSettingsPopup(Gtk.Dialog):
     save_dialog.add_filter(filter)
     response = save_dialog.run()
     if response == Gtk.ResponseType.OK:
-        tag_filter = conx_sel
         file_name = save_dialog.get_filename()
-        self.export_pens(file_name,tag_filter)
+        self.export_pens(file_name,param)
     else:
       pass
       # don't bother building the window
       #self.destroy()
     save_dialog.destroy()
+
+  def export_pens(self,directory_name,t_filter,*args):
+    file_name_suffix = 'xlsx'
+    dest_filename = os.path.join(directory_name +"." + file_name_suffix)
+
+    # wb = Workbook()
+    # if self.tags_available[t_filter]: #checks if dictionary of tags is not empty
+    #   sheet = wb.active
+    #   sheet.title = t_filter
+    #   for num in self.tags_available[t_filter]:
+    #       columns = list(self.tags_available[t_filter][num].keys()) #get tag column headers
+    #   sheet.append(columns)
+    #   num_tags = len(self.tags_available[t_filter])
+    #   for x in range(len(self.tags_available[t_filter])): #fill table with number of tags available in connection
+    #     row = list(self.tags_available[t_filter][x+1].values())
+    #     #sheet.cell(column=c, row=(x+2), value=self.tags_available[t_filter][x+1][header])
+    #     sheet.append(row)
+    # else:
+    #   self.display_msg(msg="No Tags In Connection To Export")
+    # try:
+    #   wb.save(filename = dest_filename)
+    #   self.display_msg(msg="Exported {} Tags To File".format(num_tags))
+    # except:
+    #   self.display_msg(msg="Save Failed")
+    #   print('Save Failed')
 
   def close_popup(self, button,msg="Abandon Pen Settings Changes?"):
     if self.unsaved_changes_present:
