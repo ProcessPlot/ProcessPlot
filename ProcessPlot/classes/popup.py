@@ -560,27 +560,73 @@ class PenSettingsPopup(Gtk.Dialog):
   def export_pens(self,directory_name,t_filter,*args):
     file_name_suffix = 'xlsx'
     dest_filename = os.path.join(directory_name +"." + file_name_suffix)
+    wb = Workbook()
+    if self.pens_available: #checks if dictionary of pens is not empty
+      sheet = wb.active
+      sheet.title = "pens"
+      for key, pen in self.pens_available.items():
+        columns = list(pen.keys()) #get pen column headers
+      sheet.append(columns)
+      num_pens = len(self.pens_available)
+      for key, pen in self.pens_available.items():
+        row = list(pen.values())
+        sheet.append(row)
+    else:
+      self.display_msg(msg="No Pens To Export")
+    try:
+      wb.save(filename = dest_filename)
+      self.display_msg(msg="Exported {} Pens To File".format(num_pens))
+    except:
+      self.display_msg(msg="Save Failed")
+      print('Save Failed')
 
-    # wb = Workbook()
-    # if self.tags_available[t_filter]: #checks if dictionary of tags is not empty
-    #   sheet = wb.active
-    #   sheet.title = t_filter
-    #   for num in self.tags_available[t_filter]:
-    #       columns = list(self.tags_available[t_filter][num].keys()) #get tag column headers
-    #   sheet.append(columns)
-    #   num_tags = len(self.tags_available[t_filter])
-    #   for x in range(len(self.tags_available[t_filter])): #fill table with number of tags available in connection
-    #     row = list(self.tags_available[t_filter][x+1].values())
-    #     #sheet.cell(column=c, row=(x+2), value=self.tags_available[t_filter][x+1][header])
-    #     sheet.append(row)
-    # else:
-    #   self.display_msg(msg="No Tags In Connection To Export")
-    # try:
-    #   wb.save(filename = dest_filename)
-    #   self.display_msg(msg="Exported {} Tags To File".format(num_tags))
-    # except:
-    #   self.display_msg(msg="Save Failed")
-    #   print('Save Failed')
+  def import_pens(self,directory_name,conx_selected,*args):
+    #Need to deal with only importing pens to connections which are stopped
+    dest_filename = os.path.join(directory_name)
+    wb = load_workbook(dest_filename)
+    ws = wb.active
+    for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
+      header_row = row
+    bad_pen = []
+    r = 0
+    pens = {}
+    for row in ws.values:
+      if r != 0:  #skip header row
+        pens[r] = {}
+        col = 0
+        if len(header_row) == len(row) and (not None in row): #check for missing element in row
+          for i in header_row :
+            pens[r][i] = str(row[col])
+            col +=1
+        else:
+          bad_pen.append(row[0])
+      r += 1
+    if bad_pen:
+      self.display_msg(msg="{} Pen(s) Were Incorectly Formated And Were Not Imported".format(str(len(bad_pen))))
+    
+    # duplicate_tag = []
+    # new_pens = []
+    # existing_pens = []
+    # if pens:  #Are there any pens to import?
+    #   conx_obj = self.app.link.get('connections').get(conx_selected)
+    #   if conx_obj != None:
+    #     for tag_id,tag_obj in conx_obj.get('pens').items():
+    #         existing_pens.append(tag_id)      #Collect all pens in
+    #     for k in pens.keys():
+    #       if pens[k]['id'] in existing_pens:
+    #         duplicate_tag.append(pens[k]['id'])
+    #       else:
+    #         self.create_tag(pens[k])
+    #         new_pens.append(pens[k]['id'])
+
+  def display_msg(self,msg,*args):
+    popup = PopupMessage(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
 
   def close_popup(self, button,msg="Abandon Pen Settings Changes?"):
     if self.unsaved_changes_present:
@@ -1134,8 +1180,6 @@ class TagMainPopup(Gtk.Dialog):
     #Need to deal with only importing tags to connections which are stopped
     dest_filename = os.path.join(directory_name)
     wb = load_workbook(dest_filename)
-    # for sheet in wb:
-    #   print('sheet',sheet.title)
     ws = wb.active
     for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
       header_row = row
@@ -1153,7 +1197,6 @@ class TagMainPopup(Gtk.Dialog):
               col +=1
           else:
             bad_tag.append(row[0])
-
       r += 1
     if bad_tag:
       self.display_msg(msg="{} Tag(s) Were Incorectly Formated And Were Not Imported".format(str(len(bad_tag))))
