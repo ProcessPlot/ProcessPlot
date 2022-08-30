@@ -523,7 +523,7 @@ class PenSettingsPopup(Gtk.Dialog):
       filter.set_name("*.xlsx")
       for pat in filt_pattern:
           filter.add_pattern(pat)
-      open_dialog.add_filter(filter)
+      #open_dialog.add_filter(filter)
 
       response = open_dialog.run()
       if response == Gtk.ResponseType.OK:
@@ -592,11 +592,11 @@ class PenSettingsPopup(Gtk.Dialog):
     pens = {}
     for row in ws.values:
       if r != 0:  #skip header row
-        pens[r] = {}
         col = 0
         if len(header_row) == len(row) and (not None in row): #check for missing element in row
+          pens[row[0]] = {} #Make key the pen ID value
           for i in header_row :
-            pens[r][i] = str(row[col])
+            pens[row[0]][i] = str(row[col])
             col +=1
         else:
           bad_pen.append(row[0])
@@ -604,20 +604,20 @@ class PenSettingsPopup(Gtk.Dialog):
     if bad_pen:
       self.display_msg(msg="{} Pen(s) Were Incorectly Formated And Were Not Imported".format(str(len(bad_pen))))
     
-    # duplicate_tag = []
-    # new_pens = []
-    # existing_pens = []
-    # if pens:  #Are there any pens to import?
-    #   conx_obj = self.app.link.get('connections').get(conx_selected)
-    #   if conx_obj != None:
-    #     for tag_id,tag_obj in conx_obj.get('pens').items():
-    #         existing_pens.append(tag_id)      #Collect all pens in
-    #     for k in pens.keys():
-    #       if pens[k]['id'] in existing_pens:
-    #         duplicate_tag.append(pens[k]['id'])
-    #       else:
-    #         self.create_tag(pens[k])
-    #         new_pens.append(pens[k]['id'])
+    existing_keys = list(self.pens_available.keys())
+    duplicate_pen = []
+    new_pens = {}
+    if pens:  #Are there any pens to import?
+      for k in pens.keys():
+        if k in existing_keys:
+          duplicate_pen.append(pens[k]['id'])
+        else:
+          #self.create_tag(pens[k])
+          new_pens[k] = pens[k]
+    print('dup',duplicate_pen)
+    print('new',new_pens)
+
+    #################################################################create the PEN
 
   def display_msg(self,msg,*args):
     popup = PopupMessage(self, msg=msg)
