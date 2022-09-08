@@ -617,27 +617,24 @@ class PenSettingsPopup(Gtk.Dialog):
         if k in existing_keys:
           duplicate_pen.append(pens[k]['id'])
         else:
-          #self.create_tag(pens[k])
+          ########################################################### NEED TO ADD SECTION TO VERIFY / CHECK PEN SETTINGS IMPORT VALUES MAKE SENSE
           new_pens[k] = pens[k]
-    print('dup',duplicate_pen)
-    print('new',new_pens)
     if new_pens:
       for k in new_pens.keys():
-        new = self.Tbl(chart_id = new_pens[k]['chart_id'])
+        new = self.Tbl(chart_id = new_pens[k]['chart_id'],id = new_pens[k]['id'])
         self.db_session.add(new)
         self.db_session.commit()    
         self.db_session.refresh(new)  #Retrieves newly created pen id from the database (new.id)
-        row = Pen_row(new_pens[k],self.pen_grid,self.pen_row_num,self.app,self)
-        self.create_delete_button(new_pens[k]['id'],self.pen_row_num)
+        row = Pen_row(new_pens[k],self.pen_grid,self.pen_row_num,self.app,self) #add row to popup
+        self.create_delete_button(new_pens[k]['id'],self.pen_row_num)           #add buttons to row
         self.pen_row_num += 1
         self.pen_settings.append(row)
-        self.create_pen_object(new_pens[k]['id'],new_pens[k]['chart_id'])
-        self.unsaved_pen_rows[new_pens[k]['id']] = row
-        self.save_settings()
-
+        self.create_pen_object(new_pens[k]['id'],new_pens[k]['chart_id'])     #add pen object to specific chart
+        row.update_db()                                                       #update pen with imported settings
     self.show_all()
+    self.display_msg(msg="{} Pen(s) Were Were Imported".format(str(len(new_pens.keys()))))
 
-    #################################################################create the PEN
+
 
   def display_msg(self,msg,*args):
     popup = PopupMessage(self, msg=msg)
@@ -875,14 +872,10 @@ class Pen_row(object):
     self.row_updated()
 
   def update_db(self,*args):
-    print('here',self.id,type(self.id))
     p_settings = {}
-    p_settings['id'] = self.id
-    print('id',p_settings)
+    p_settings['id'] = self.chart_id
     settings = self.db_settings_session.query(self.Pen_Settings_Tbl).filter(self.Pen_Settings_Tbl.id == self.id).first()  # save the current settings
-    print('settings',settings)
     if settings:
-      print('found')
       chart_id= int(self.chart_number.get_active_text())
       settings.chart_id = chart_id
       p_settings['chart_id'] = chart_id
@@ -929,7 +922,6 @@ class Pen_row(object):
       settings.scale_auto = auto
       p_settings['scale_auto'] = auto
 
-    print('p_setings',p_settings)
     self.db_settings_session.commit()
     self.update_pen_object(p_settings)
 
