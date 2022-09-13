@@ -169,6 +169,7 @@ class PenSettingsPopup(Gtk.Dialog):
     self.parent = parent
     self.tags_available = {}
     self.connections_available = {}
+    self.connections_list = []
     self.pens_available = {}
     self.chart_filter = 'All'
     self.unsaved_changes_present = False
@@ -485,7 +486,6 @@ class PenSettingsPopup(Gtk.Dialog):
       count = 1
 
   def get_available_connections(self,*args):
-
     conx_items = ['id', 'connection_type', 'description']
     new_params = {}
     count = 1
@@ -496,6 +496,9 @@ class PenSettingsPopup(Gtk.Dialog):
       self.connections_available[count] = new_params
       new_params = {}
       count += 1
+    self.connections_list = []
+    for key, conx in self.connections_available.items():
+      self.connections_list.append(conx['id'])
 
   def get_available_pens(self,*args):
     params = {}
@@ -596,12 +599,16 @@ class PenSettingsPopup(Gtk.Dialog):
         if len(header_row) == len(row) and (not None in row): #check for missing element in row
           pens[row[0]] = {} #Make key the pen ID value
           for i in header_row :
-            if i == 'id' or i == 'chart_id':
-              pens[row[0]][i] = int(row[col])
-            elif i == 'scale_lock' or i == 'scale_auto':
-              pens[row[0]][i] = bool(row[col])
-            else:
-              pens[row[0]][i] = str(row[col])
+            try:
+              ########################################NEED TO DO SOME MORE CHECKING OF BAD IMPORTING  #########
+              if i == 'id' or i == 'chart_id' or i == 'weight':
+                pens[row[0]][i] = int(row[col])
+              elif i == 'scale_lock' or i == 'scale_auto':
+                pens[row[0]][i] = bool(row[col])
+              else:
+                pens[row[0]][i] = str(row[col])
+            except:
+              bad_pen.append(row[0])
             col +=1
         else:
           bad_pen.append(row[0])
@@ -617,8 +624,9 @@ class PenSettingsPopup(Gtk.Dialog):
         if k in existing_keys:
           duplicate_pen.append(pens[k]['id'])
         else:
-          ########################################################### NEED TO ADD SECTION TO VERIFY / CHECK PEN SETTINGS IMPORT VALUES MAKE SENSE
-          new_pens[k] = pens[k]
+          valid = self.check_pen_import(pens[k])
+          if valid:
+            new_pens[k] = pens[k]
     if new_pens:
       for k in new_pens.keys():
         new = self.Tbl(chart_id = new_pens[k]['chart_id'],id = new_pens[k]['id'])
@@ -634,6 +642,30 @@ class PenSettingsPopup(Gtk.Dialog):
     self.show_all()
     self.display_msg(msg="{} Pen(s) Were Were Imported".format(str(len(new_pens.keys()))))
 
+  def check_pen_import(self,pen,*args):
+    #{'id': 10, 'chart_id': 1, 'tag_id': 'Speed', 'connection_id': 'Turbine', 'visible': 1, 'weight': '2.0', 
+    # 'color': '#865e3c', 'scale_minimum': '0.0', 'scale_maximum': '50.0', 'scale_lock': 1, 'scale_auto': 1}
+    valid = True
+    try:
+      if int(pen['chart_id'])>=1 and int(pen['chart_id'])<=16:
+        pass
+      else:
+        valid = False
+      if pen['connection_id'] in self.connections_list:
+        pass
+      else:
+        valid = False
+      if pen['visible'].isdigit() and pen['weight'].isdigit() and pen['scale_minimum'].isdigit() and pen['scale_maximum'].isdigit():
+        pass
+      else:
+        valid = False
+      if type(pen['scale_lock']) == bool and type(pen['scale_auto']) == bool:
+        pass
+      else:
+        valid = False
+    except:
+      valid = False
+    return valid
 
 
   def display_msg(self,msg,*args):
