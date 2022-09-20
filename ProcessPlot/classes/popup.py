@@ -142,26 +142,13 @@ class BaseSettingsPopoup(Gtk.Dialog):
 ################################ Need to update connection toggle buttons on regular basis and when building page
 ################################ Still need to create ledgend on popout
 ################################ Add duplicate button on tag settings popup
-################################ Need a button for connections to open connect and one for connect all
-################################ Import / Export pen rows
+################################ 
+################################ Add a confirm to close popup
 ################################ add pens to legend popout
 
 
 
 class PenSettingsPopup(Gtk.Dialog):
-#class PenSettingsPopup(BaseSettingsPopoup):
-  # def __init__(self, parent,app):
-  #   self.app = app
-  #   self.chart_filter = 'All'
-  #   self.unsaved_changes_present = False
-  #   self.unsaved_pen_rows = {}
-  #   self.pen_column_names = ['id', 'chart_id', 'tag_id', 'connection_id', 'visible', 
-  #                     'color', 'weight','scale_minimum','scale_maximum', 
-  #                     'scale_lock', 'scale_auto']
-  #   self.db_session = self.app.settings_db.session
-  #   self.db_model = self.app.settings_db.models['pen']
-  #   self.Tbl = self.db_model
-  #   super().__init__(parent,"Pen Settings",app)
 
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0) 
@@ -666,7 +653,6 @@ class PenSettingsPopup(Gtk.Dialog):
     except:
       valid = False
     return valid
-
 
   def display_msg(self,msg,*args):
     popup = PopupMessage(self, msg=msg)
