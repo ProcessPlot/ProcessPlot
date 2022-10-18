@@ -140,10 +140,9 @@ class BaseSettingsPopoup(Gtk.Dialog):
 ################################ change styling of connect toggle button , add connect to conx database
 ################################ When deleting a connection the row stays in the connection specific table
 ################################ Need to update connection toggle buttons on regular basis and when building page
-################################ Still need to create ledgend on popout
 ################################ Add duplicate button on tag settings popup
-################################ 
-################################ Add a confirm to close popup
+################################ Add ability to save data to config file and upload data back to connection from file (ConfigUtility)
+################################ Add file imports to Utility.py
 ################################ add pens to legend popout
 
 
@@ -4733,3 +4732,587 @@ class Export_ImportTagsPopup(Gtk.Dialog):
 
   def close_popup(self, *args):
     self.destroy()
+
+
+class ImportUtility(Gtk.Dialog):
+  def __init__(self, app,chart):
+    Gtk.Dialog.__init__(self, '',None, Gtk.DialogFlags.MODAL,
+                        ()
+                        )
+    self.chart = chart
+    self.c_id = self.chart.db_id
+    self.app = app
+    self.db_session = self.app.settings_db.session
+    self.db_model = self.app.settings_db.models['chart']
+    self.Tbl = self.db_model
+    self.requirements = 0
+    self.data = []
+    self.ANum = 0
+    self.DNum = 0
+    self.ch_Cfg = []
+    self.NumSamp = 0
+    self.start_time = 0.0
+    self.end_time = 0.0
+    self.big_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    self.conversion = ['Comtrade', 'SEL']
+    self.filterlist = ["*.cfg","*CEV"]
+    self.filter = ''
+    self.build_window()
+
+
+
+    self.content_area = self.get_content_area()
+    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.content_area.add(self.dialog_window )
+    ### - Title Bar- ###
+    self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
+    self.dialog_window.pack_start(self.title_bar,0,0,1)
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+
+    ### - Base Area- ###
+    self.grid = Gtk.Grid(column_spacing=3, row_spacing=4, column_homogeneous=False, row_homogeneous=True,)
+    self.dialog_window.pack_start(self.grid,1,1,1)
+
+    ### -footer- ####
+    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    sc = divider.get_style_context()
+    sc.add_class('Hdivider')
+    self.dialog_window.pack_start(divider,0,0,1)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.dialog_window.pack_start(self.footer_bar,0,0,1)
+    self.load_settings()
+    self.build_header()
+    self.build_base()
+    self.build_footer()
+    self.show_all()
+
+  def build_window(self, *args):
+    self.set_default_size(400, 400)
+    self.set_decorated(False)
+    self.set_border_width(10)
+    self.set_keep_above(False)
+    sc = self.get_style_context()
+    sc.add_class("dialog-border")
+
+class ImportUtility(Gtk.Window):
+    def __init__(self):
+        super(ImportUtility, self).__init__()
+        self.set_title("File Converter Utility")
+        self.set_default_size(700, 900)
+        self.set_border_width(10)
+        self.requirements = 0
+        self.data = []
+        self.ANum = 0
+        self.DNum = 0
+        self.ch_Cfg = []
+        self.NumSamp = 0
+        self.start_time = 0.0
+        self.end_time = 0.0
+        self.big_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.conversion = ['Comtrade', 'SEL']
+        self.filterlist = ["*.cfg","*CEV"]
+        self.filter = ''
+
+        '''_________Menu_________'''
+        mb = Gtk.MenuBar()
+
+        menu1 = Gtk.Menu()
+        file = Gtk.MenuItem("File")
+        file.set_submenu(menu1)
+        sep = Gtk.SeparatorMenuItem()
+        menu1.append(sep)
+        exit = Gtk.MenuItem("Close")
+        exit.connect("activate", self.exit_window)
+        menu1.append(exit)
+        mb.append(file)
+
+        '''menu2 = Gtk.Menu()
+        edit = Gtk.MenuItem("Commands")
+        edit.set_submenu(menu2)
+        item1 = Gtk.MenuItem("Convert")
+        item1.connect("activate", self.convert)
+        menu2.append(item1)
+        mb.append(edit)'''
+
+
+        menubox = Gtk.HBox(False, 2)
+        menubox.pack_start(mb, False, False, 0)
+
+        self.conv_type = Gtk.ComboBoxText()
+        self.conv_type.set_size_request(100, 10)
+        for item in self.conversion:
+            self.conv_type.append_text(item)
+        self.conv_type.set_active(0)
+        self.filter = self.filterlist[0]
+        self.conv_type.connect("changed", self.update_conv)
+        menubox.pack_end(self.conv_type, False, False, 0)
+
+        self.big_box.pack_start(menubox, False, False, 0)
+
+        '''_________Header_________'''
+        header = Gtk.Box(spacing=10)
+        self.Head_label = Gtk.Label()
+        temp = self.conv_type.get_active_text()
+        self.Head_label.set_markup("<big><b><u>{}</u></b></big>".format(temp+ ' File Converter'))
+        header.pack_start(self.Head_label, 1, 1, 0)
+        self.big_box.pack_start(header, False, False, 0)
+
+
+        '''_________Body__________'''
+        bbox1 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
+        l = Gtk.Label()
+        l.set_markup("<b>Comtrade File:</b>")
+        bbox1.pack_start(l, True, True, 0)
+        self.file_entry = Gtk.Entry(editable = False,width_request=300)
+        self.file_entry.set_text('Select A File First')
+        bbox1.pack_start(self.file_entry, False, False, 0)
+        but = Gtk.Button(label = '...')
+        but.set_property("width-request", 20)
+        but.connect("clicked", self.select_file)
+        bbox1.pack_start(but, False, False, 0)
+        self.big_box.pack_start(bbox1, False, False, 0)
+
+        bbox2 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
+        l = Gtk.Label()
+        l.set_markup("<b>Export To Location:</b>")
+        bbox2.pack_start(l, True, True, 0)
+        self.export_entry = Gtk.Entry(editable = False,width_request=300)
+        self.export_entry.set_text('Select an Export Location')
+        bbox2.pack_start(self.export_entry, False, False, 0)
+        but = Gtk.Button(label = '...')
+        but.set_property("width-request", 20)
+        but.connect("clicked", self.select_fold)
+        bbox2.pack_start(but, False, False, 0)
+        self.big_box.pack_start(bbox2, False, False, 0)
+        self.content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.big_box.pack_start(self.content_area, True, True, 0)
+        '''___________footer___________'''
+        self.big_box.pack_start(Gtk.Separator(), 0, 0, 1)
+        box2 = Gtk.Box(orientation='horizontal')
+        box2.set_spacing(10)
+        box2.set_property("height-request", 40)
+        button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        button_box.pack_start(Gtk.Image(stock=Gtk.STOCK_OK), 1, 1, 0)
+        button_box.pack_start(Gtk.Label("Convert"), 1, 1, 0)
+        b = Gtk.Button()
+        b.add(button_box)
+        b.connect("clicked", self.convert)
+        b.set_property("width-request", 80)
+        box2.pack_end(b, False, True, 0)
+        self.big_box.pack_start(box2, 0, 0, 1)
+
+        self.add(self.big_box)
+        self.connect("destroy", Gtk.main_quit)
+        self.show_all()
+
+    def update_conv(self,*args):
+        self.Head_label.set_markup("<big><b><u>{}</u></b></big>".format(self.conv_type.get_active_text()+ ' File Converter'))
+        for item in range(len(self.conversion)):
+            if self.conversion[item] == self.conv_type.get_active_text():
+                self.filter = self.filterlist[item]
+
+    def select_file(self,*args):
+        dialog = Gtk.FileChooserDialog("Open a file", self,
+                                       Gtk.FileChooserAction.OPEN,
+                                       (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+                                        Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        filter = Gtk.FileFilter()
+        filter.add_pattern(self.filter)
+        dialog.set_title('Select a ' + self.conv_type.get_active_text() +' File to Open')
+        filter.set_name("All files")
+        dialog.add_filter(filter)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            self.fn = dialog.get_filename()
+            if self.conv_type.get_active_text() == 'Comtrade':
+                self.comtrade_import(self.fn)
+            elif self.conv_type.get_active_text() == 'SEL':
+                self.sel_import(self.fn)
+            self.requirements +=1
+        dialog.destroy()
+
+    def select_fold(self,*args):
+        dialog = Gtk.FileChooserDialog("Open a file", self,
+                                       Gtk.FileChooserAction.SELECT_FOLDER,
+                                       (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+                                        Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        dialog.set_title('Select an Export Location')
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            self.foldname = dialog.get_filename()
+            self.export_entry.set_text(self.foldname)
+            self.requirements +=1
+        dialog.destroy()
+
+    def comtrade_import(self, *args):
+        analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
+        try:
+            with open(self.fn,'r') as f:
+                rows = f.readlines()
+        except IOError as e:
+            self.display_msg(msg='File Read Error: '+str(e))
+        try:
+            self.ANum = int((rows[1].split(',')[1]).replace('A', ''))      #Extract Number of Analogs from File
+            self.DNum = int((rows[1].split(',')[2]).replace('D', ''))      #Extract Number of Digitals from File
+            self.NumSamp = int((rows[4 + self.ANum + self.DNum].split(',')[1]).replace('/n', ''))
+            for analog_chan in range(self.ANum):
+                self.ch_Cfg.append(dict(zip(analog_dict, list(cell for cell in rows[2 + analog_chan].split(',')))))
+                self.ch_Cfg[analog_chan]['AD'] = 'A'
+                self.ch_Cfg[analog_chan]['Select'] = Gtk.CheckButton()
+                name_ent = Gtk.Entry()
+                name_ent.set_text(str(self.ch_Cfg[analog_chan]['Name']))
+                name_ent.connect('changed', self.name_change, name_ent)
+                name_ent.set_tooltip_text("Enter New Name")
+                self.ch_Cfg[analog_chan]['NameBox'] = name_ent
+                sc = Gtk.Entry()
+                sc.set_tooltip_text("Change Tag Scale")
+                sc.set_text('1.0')
+                sc.connect('changed', self.check_num, sc)
+                self.ch_Cfg[analog_chan]['SBox'] = sc
+            for dig_chan in range(self.DNum):
+                self.ch_Cfg.append(
+                    dict(zip(analog_dict, list(cell for cell in rows[2 + self.ANum + dig_chan].split(',')))))
+                self.ch_Cfg[dig_chan+self.ANum]['AD'] = 'D'
+                self.ch_Cfg[dig_chan+self.ANum]['Select'] = Gtk.CheckButton()
+                name_ent = Gtk.Entry()
+                name_ent.set_text(str(self.ch_Cfg[dig_chan+self.ANum]['Name']))
+                name_ent.connect('changed', self.name_change, name_ent)
+                name_ent.set_tooltip_text("Enter New Name")
+                self.ch_Cfg[dig_chan+self.ANum]['NameBox'] = name_ent
+                sc = Gtk.Label('Digital Channel')
+                self.ch_Cfg[dig_chan+self.ANum]['SBox'] = sc
+            '''Start time'''
+            day, month, year = str((rows[5 + self.ANum + self.DNum].split(',')[0])).split('/')
+            hour, minute, temp = str((rows[5 + self.ANum + self.DNum].split(',')[1])).split(':')
+            second, ms = temp.split('.')
+            ms = '0.' + ms
+            t = (int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, 0)
+            self.start_time = time.mktime(t) + float(ms)  # seconds after POSIX epoch
+            '''Event time'''
+            day, month, year = str((rows[6 + self.ANum + self.DNum].split(',')[0])).split('/')
+            hour, minute, temp = str((rows[6 + self.ANum + self.DNum].split(',')[1])).split(':')
+            second, ms = temp.split('.')
+            ms = '0.' + ms
+            t = (int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, 0)
+            #test = (self.ch_Cfg[0]['Select'])
+            #print(test.get_active())
+        except:
+            self.display_msg(msg='File Header Corrupted')
+            self.start_time = '0.0'
+            self.NumSamp = 0
+
+        try:
+            with open(self.fn.replace('.cfg', '.dat'), 'r') as f:
+                dfile = f.readlines()
+            if len(dfile) != self.NumSamp:
+                self.display_msg(msg='ComTradeObj: Data file samples do not match config. dat file may be corrupt. Using samples in data file')
+                self.NumSamp = len(dfile)
+            # time between samples is 1/Hz Sammple rate
+            self.data.append(list((int(dfile[sample_num].split(',')[1]) * 0.000001) + self.start_time for sample_num in
+                                  range(self.NumSamp)))  # 2nd cell is microseconds after the start
+            self.end_time = (self.data[0][-1])
+            for item in range(len(self.ch_Cfg)):
+                scaling = float(self.ch_Cfg[item]['Scale'])
+                cell_num = 2 + item
+                self.data.append(
+                    list(float(dfile[sample_num].split(',')[cell_num]) * scaling for sample_num in range(self.NumSamp)))
+            self.file_entry.set_text(self.fn)
+            self.build_popup()
+            #self.build_popup(self.fn,self.start_time,self.NumSamp,self.ch_Cfg)
+
+        except IOError as e:
+            self.display_msg(msg='Data File (.dat) Missing or not in cfg directory: ' + str(e))
+
+    def sel_import(self, *args):
+        analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
+        try:
+            with open(self.fn,'r') as f:
+                rows = f.readlines()
+        except IOError as e:
+            self.display_msg(msg='File Read Error: ' + str(e))
+
+        '''Start time'''
+        month, day, year, hour, minute, second, ms,na = str(rows[3]).split(',')
+        t = (int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, 0)
+        # self.start_timestamp = time.mktime(t) + float(ms)  # seconds after POSIX epoch
+        self.start_time = time.mktime(t) + float(ms)  # seconds after POSIX epoch
+        '''Config Data'''
+        rec_num, a_num, d_num, freqx, freqy, n_freq, acycles, samp_cycleD,numcycles,primvalue,na = str(rows[5]).split(',')
+        self.ANum = int(a_num)
+        self.DNum = int(d_num)
+        NumSamp = (int(acycles) * int(numcycles))
+        time_between_samples = (
+            1.0 / (float(NumSamp - 16.0)))  # time between samples is total number of samples in 16 cycles
+        '''Time between samples is 1/NumSamp'''
+        time_data = []
+        for num in range(NumSamp):
+            time_data.append((float(num) * time_between_samples) + self.start_time)
+        self.data.append(time_data)
+        '''create list for analog channel names'''
+        x=1
+        for analog_chan in range(self.ANum):
+            self.ch_Cfg.append(dict(zip(analog_dict,(str(x),(str(rows[6]).split(',')[analog_chan]).replace('"',''),'','','',1.0,'','','','','A' ))))
+            self.ch_Cfg[analog_chan]['Select'] = Gtk.CheckButton()
+            name_ent = Gtk.Entry()
+            name_ent.set_text(str(self.ch_Cfg[analog_chan]['Name']))
+            name_ent.connect('changed', self.name_change, name_ent)
+            name_ent.set_tooltip_text("Enter New Name")
+            self.ch_Cfg[analog_chan]['NameBox'] = name_ent
+            sc = Gtk.Entry()
+            sc.set_tooltip_text("Change Tag Scale")
+            sc.set_text('1.0')
+            sc.connect('changed', self.check_num, sc)
+            self.ch_Cfg[analog_chan]['SBox'] = sc
+            x+=1
+        if self.DNum != 0:
+            temp = (str(rows[6]).split(',')[-2])
+        '''create list for digital channel names'''
+        for dig_chan in range(self.DNum):
+            #self.AnalNames.append(str(temp).split(' ')[item])
+            self.ch_Cfg.append(dict(zip(analog_dict, (str(x), str(temp).split(' ')[dig_chan], '', '', '', 1.0, '', '', '','','D'))))
+            self.ch_Cfg[dig_chan + self.ANum]['Select'] = Gtk.CheckButton()
+            name_ent = Gtk.Entry()
+            name_ent.set_text(str(self.ch_Cfg[dig_chan + self.ANum]['Name']))
+            name_ent.connect('changed', self.name_change, name_ent)
+            name_ent.set_tooltip_text("Enter New Name")
+            self.ch_Cfg[dig_chan + self.ANum]['NameBox'] = name_ent
+            sc = Gtk.Label('Digital Channel')
+            self.ch_Cfg[dig_chan + self.ANum]['SBox'] = sc
+            x += 1
+        '''Bring Analog data into list of lists in self.data'''
+        a_data = [[] for _ in range(self.ANum)]  # list of lists for all of the data +1 for the time
+        for row in range(7, NumSamp + 7):
+            for item in range(self.ANum):
+                a_data[item].append(float(((str(rows[row]).split(',')[item]).replace('"', ''))))
+        for item in range(self.ANum):
+            self.data.append(a_data[item])
+        d_data = []  # list of lists for all of the digital data, Contains all digital data as a large binary number
+        for row in range(7, NumSamp + 7):
+            d_data.append(((str(rows[row]).split(',')[self.ANum + 1]).replace("'", ' ').replace('"','')))
+        '''convert hex to binary for digital status'''
+        for row in range(len(d_data)):
+            d_data[row] = bin(int(d_data[row], 16))[2:].zfill(len(d_data[row]) * 4)
+            # section corrects for error in file when missing bytes
+            if len(d_data[row]) != self.DNum:
+                if row == 0:
+                    d_data[row] = d_data[row + 1]
+                else:
+                    d_data[row] = d_data[row - 1]
+        self.data.append(d_data)
+        try:
+            with open(self.fn.replace('.CEV', '.dat'),'w') as f:
+                temp = ''
+                for row in range(len(self.data[0])):
+                    temp += str(row)+','
+                    for col in range(self.ANum+1):
+                        temp += str(self.data[col][row])+','
+                    for z in range(self.DNum):
+                        temp += str(self.data[self.ANum+1][row])[z] + ','
+                    rows = f.writelines(temp + "\n")
+                    temp = ''
+            self.file_entry.set_text(self.fn)
+            self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
+        except IOError as e:
+            self.display_msg(msg='File Write Error: '+str(e))
+
+    def display_msg(self,msg,*args):
+      popup = PopupMessage(self, msg=msg)
+      response = popup.run()
+      popup.destroy()
+      if response == Gtk.ResponseType.YES:
+        return True
+      else:
+        return False
+
+    def convert(self,*args):
+        found = 0
+        for item in range(len(self.ch_Cfg)):
+            if self.ch_Cfg[item]['Select'].get_active():
+                found += 1
+        if found == 0:
+            self.display_msg(msg='No Items Selected')
+        if self.requirements <2:
+            self.display_msg(msg='Verify File Selected and Export Location Selected')
+        if found >=1 and self.requirements >=2:
+            pass
+            #push to database
+
+    def build_popup(self, *args):
+        try:
+            temp = time.localtime(self.start_time)
+            t_msec = (self.start_time) % 1
+            t_msec = int(t_msec * 1000)
+            file_time = str(temp.tm_mon) + '/' + str(temp.tm_mday) + '/' + str(
+                temp.tm_year) + ' - ' + str(temp.tm_hour) + ':' + str(temp.tm_min) + ':' + str(temp.tm_sec) + '.' + str(
+                t_msec).zfill(3)
+        except:
+            file_time = '0/0/0 - 00:00:00.0'
+        header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header.set_property("height-request", 40)
+        label = Gtk.Label()
+        label.set_markup("<big><b>File Time Stamp</b></big>")
+        header.pack_start(label, 1, 1, 0)
+        self.content_area.pack_start(header, 0, 0, 0)
+        s = Gtk.Separator()
+        self.content_area.pack_start(s, 0, 0, 0)
+        box = Gtk.Box()
+        box.set_homogeneous(True)
+        box.set_halign(Gtk.Align.CENTER)
+        box.set_spacing(10)
+        box.set_property("height-request", 40)
+        self.content_area.pack_start(box, 0, 0, 0)
+
+        r_time = Gtk.Label()
+        r_time.set_markup("<b>Record Time: </b>")
+        r_time.set_property("height-request", 25)
+        box.add(r_time)
+        l_time = Gtk.Label(label=file_time)
+        l_time.set_size_request(80, 25)
+        box.add(l_time)
+        l_off = Gtk.Label()
+        l_off.set_markup("<b>Time Offset in (ms)</b>")
+        l_off.set_property("height-request", 25)
+        box.add(l_off)
+        self.time_offset = Gtk.Entry()
+        self.time_offset.set_text('0')
+        self.time_offset.set_tooltip_text("Enter A Time Correction Factor To The New File")
+        self.time_offset.connect('changed', self.on_changed)
+        self.time_offset.set_property("height-request", 25)
+        box.add(self.time_offset)
+        self.content_area.pack_start(Gtk.Separator(), 0, 0, 0)
+
+        header2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header2.set_property("height-request", 40)
+        label = Gtk.Label()
+        label.set_markup("<big><b>Available Tags</b></big>")
+        header2.pack_start(label, 1, 1, 0)
+        self.content_area.pack_start(header2, 0, 0, 0)
+        s = Gtk.Separator()
+        self.content_area.pack_start(s, 0, 0, 0)
+        #_______________________
+        box_h = Gtk.Box()
+        box_h.set_property("height-request", 30)
+        box_h.set_homogeneous(True)
+        test = Gtk.Box()
+        test.set_spacing(3)
+        but = Gtk.Image(stock=Gtk.STOCK_ADD)
+        b = Gtk.Button()
+        b.set_property("width-request", 20)
+        b.add(but)
+        b.connect("clicked", self.select_all)
+        b.set_tooltip_text("Select All Channels for Import")
+        test.pack_start(b, 0, 1, 0)
+        but = Gtk.Image(stock=Gtk.STOCK_CLOSE)
+        b = Gtk.Button()
+        b.set_property("width-request", 20)
+        b.add(but)
+        b.connect("clicked", self.clear_all)
+        b.set_tooltip_text("Clear All Channels from Import")
+        test.pack_start(b, 0, 1, 0)
+        l = Gtk.Label()
+        l.set_markup("<b>Import</b>")
+        test.pack_start(l, 0, 1, 0)
+
+        box_h.pack_start(test, True, True, 0)
+        l = Gtk.Label()
+        l.set_markup("<b>Channel Name</b>")
+        box_h.pack_start(l, True, True, 0)
+        l = Gtk.Label()
+        l.set_markup("<b>Scaler</b>")
+        box_h.pack_start(l, True, True, 0)
+        l = Gtk.Label()
+        self.content_area.pack_start(box_h, 0, 0, 0)
+        self.content_area.pack_start(Gtk.Separator(), 0, 0, 0)
+        #_______________________
+        scrolledwindow = Gtk.ScrolledWindow()
+        scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.sc_box = Gtk.Box(orientation='vertical')
+        self.sc_box.set_vexpand(True)
+        scrolledwindow.add(self.sc_box)
+        self.content_area.pack_start(scrolledwindow, 1, 1, 0)
+        for item in range(len(self.ch_Cfg)):
+            GObject.idle_add(self.build_imp_row, item, self.ch_Cfg, priority=GLib.PRIORITY_LOW)
+            # row = self.build_imp_row(item,self.ch_Cfg)
+            # self.content_area.add(row)'''
+        #____________________
+        self.content_area.pack_start(Gtk.Separator(), 0, 0, 1)
+        self.wait_lab = Gtk.Label('Loading......')
+        self.content_area.add(self.wait_lab)
+        self.show_all()
+
+    def build_imp_row(self,item,ch_cfg,*args):
+        temp = len(ch_cfg)
+        b = Gtk.Box(orientation='horizontal')
+        b.set_homogeneous(True)
+        cb = (ch_cfg[item]['Select'])
+        cb.set_halign(Gtk.Align.CENTER)
+
+        name_ent = ch_cfg[item]['NameBox']
+        name_ent.set_alignment(xalign=0.5)
+        sc = ch_cfg[item]['SBox']
+        if type(sc) == Gtk.Entry:
+            sc.set_alignment(xalign=0.5)
+
+        b.pack_start(cb, 1, 1, 0)
+        b.pack_start(name_ent, 1, 1, 0)
+        b.pack_start(sc, 1, 1, 0)
+        #return b
+        self.sc_box.add(b)
+        self.show_all()
+        if len(ch_cfg) == (item +1):
+            self.content_area.remove(self.wait_lab)
+            #self.show_all()
+
+    def on_changed(self, *args):
+        text = self.time_offset.get_text().strip()
+        self.time_offset.set_text(''.join([i for i in text if i in '0123456789']))
+
+    def name_check(self, name_entry, *args):
+        text = name_entry.get_text().strip()
+        name_entry.set_text(
+            ''.join([i for i in text if i in 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ1234567890_-']))
+
+    def check_num(self, sc, *args):
+        t = sc.get_text()
+        try:
+            if t.replace('.', '', 1).replace('-', '', 1).isdigit():
+                pass
+            else:
+                t = t[:-1]
+            sc.set_text(str(t))
+        except ValueError as e:
+            self.display_msg(msg='Enter Valid Number: ' + e)
+            sc.set_text(str(''))
+
+    def check_int(self, button,sc,n_rows, *args):
+        text = sc.get_text().strip()
+        n_text = (''.join([i for i in text if i in '0123456789']))
+        if n_text == '':
+            n_text = '1'
+        if int(n_text) > n_rows:
+            sc.set_text(str(n_rows))
+        else:
+            sc.set_text(n_text)
+
+    def name_change(self, name, *args):
+        n = name.get_text()
+        name.set_text(n)
+
+    def reset_value(self, button,e_row,n_rows, *args):
+        e_row.set_text(str(n_rows))
+
+    def select_all(self, *args):
+        for item in range(len(self.ch_Cfg)):
+            cb =  self.ch_Cfg[item]['Select']
+            cb.set_active(True)
+
+    def clear_all(self, *args):
+        for item in range(len(self.ch_Cfg)):
+            cb =  self.ch_Cfg[item]['Select']
+            cb.set_active(False)
+
+    def close_popup(self, *args):
+        self.destroy()
