@@ -8,7 +8,7 @@ from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
 from classes.chart import *
-from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup, TimeSpanPopup, PopupConfirm, PopupMessage
+from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup, TimeSpanPopup, PopupConfirm, PopupMessage, ImportUtility
 from Public.widgets.checkbox import CheckBoxWidget
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
@@ -30,6 +30,7 @@ class MainWindow(Gtk.Window):
       "point": TagMainPopup,
       "connection": ConnectionsMainPopup,
       "timespan":TimeSpanPopup,
+      "data":ImportUtility,
     }
     #settings
     self.application_settings = Gtk.Settings.get_default()
@@ -138,6 +139,15 @@ class MainWindow(Gtk.Window):
     self.pen_settings_button.add(image)
     self.titlebar.pack_start(self.pen_settings_button,0,0,1)
     sc = self.pen_settings_button.get_style_context()
+    sc.add_class('ctrl-button')
+    #Import Data Button
+    self.import_data_button = Gtk.Button(width_request = 30)
+    self.import_data_button.connect('clicked',self.open_popup,"data",self.app)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Import.png'), 30, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    self.import_data_button.add(image)
+    self.titlebar.pack_start(self.import_data_button,0,0,1)
+    sc = self.import_data_button.get_style_context()
     sc.add_class('ctrl-button')
 
     title = Gtk.Label(label = 'ProcessPlot')
