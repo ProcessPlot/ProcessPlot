@@ -4752,11 +4752,11 @@ class ImportUtility(Gtk.Dialog):
     self.big_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     self.conversion = ['Comtrade', 'SEL']
     self.filterlist = ["*.cfg","*CEV"]
-    self.filter = ''
+    self.filter = {'Comtrade':'*cfg'}
     
     self.build_window()
     self.content_area = self.get_content_area()
-    self.dialog_window = Gtk.Box(width_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.dialog_window = Gtk.Box(height_request=300,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window )
     ### - Title Bar- ###
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
@@ -4768,10 +4768,7 @@ class ImportUtility(Gtk.Dialog):
 
     ### - Base Area- ###
     self.base_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    self.dialog_window.pack_start(self.base_area, 0, 0, 0)
-
-    ### -footer- ####
-    divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+    self.dialog_window.pack_start(self.base_area, 1, 1, 1)
 
     ### -footer- ####
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
@@ -4787,7 +4784,7 @@ class ImportUtility(Gtk.Dialog):
     self.show_all()
 
   def build_window(self, *args):
-    self.set_default_size(400, 400)
+    self.set_default_size(200, 200)
     self.set_decorated(False)
     self.set_border_width(10)
     self.set_keep_above(False)
@@ -4800,7 +4797,6 @@ class ImportUtility(Gtk.Dialog):
     for item in self.conversion:
         self.conv_type.append_text(item)
     self.conv_type.set_active(0)
-    self.filter = self.filterlist[0]
     self.conv_type.connect("changed", self.update_conv)
     self.title_bar.pack_start(self.conv_type,0,0,0)
     #Save Button
@@ -4836,28 +4832,30 @@ class ImportUtility(Gtk.Dialog):
   def build_base(self,*args):
     '''_________Body__________'''
     bbox1 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
-    l = Gtk.Label()
-    l.set_markup("<b>Comtrade File:</b>")
+    l = Gtk.Label('Import File')
+    sc = l.get_style_context()
+    sc.add_class('font-bold')
     bbox1.pack_start(l, True, True, 0)
     self.file_entry = Gtk.Entry(editable = False,width_request=300)
-    self.file_entry.set_text('Select A File First')
+    self.file_entry.set_text('Select A File')
     bbox1.pack_start(self.file_entry, False, False, 0)
     but = Gtk.Button(label = '...')
     but.set_property("width-request", 20)
-    but.connect("clicked", self.fileChooser_open)
+    but.connect("clicked", self.fileChooser_open,None,self.filter)
     bbox1.pack_start(but, False, False, 0)
     self.base_area.pack_start(bbox1, False, False, 0)
 
     bbox2 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
-    l = Gtk.Label()
-    l.set_markup("<b>Export To Location:</b>")
+    l = Gtk.Label('Export File')
+    sc = l.get_style_context()
+    sc.add_class('font-bold')
     bbox2.pack_start(l, True, True, 0)
     self.export_entry = Gtk.Entry(editable = False,width_request=300)
     self.export_entry.set_text('Select an Export Location')
     bbox2.pack_start(self.export_entry, False, False, 0)
     but = Gtk.Button(label = '...')
     but.set_property("width-request", 20)
-    but.connect("clicked", self.fileChooser_save)
+    but.connect("clicked", self.fileChooser_save,None,self.filter)
     bbox2.pack_start(but, False, False, 0)
     self.base_area.pack_start(bbox2, False, False, 0)
     self.base_content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -4916,13 +4914,12 @@ class ImportUtility(Gtk.Dialog):
     pass
 
   def update_conv(self,*args):
-      self.Head_label.set_markup("<big><b><u>{}</u></b></big>".format(self.conv_type.get_active_text()+ ' File Converter'))
       for item in range(len(self.conversion)):
           if self.conversion[item] == self.conv_type.get_active_text():
-              self.filter = self.filterlist[item]
+              self.filter[self.conversion[item]] = self.filterlist[item]
 
-  def fileChooser_open(self,conx_sel,filt_pattern = ["*.xlsx"]):
-    #Complete the import of the file, be sure to check if connection is running
+  def fileChooser_open(self,button,conx_sel,filt_pattern = ["*.xlsx"]):
+      #Complete the import of the file, be sure to check if connection is running
       open_dialog = Gtk.FileChooserDialog(
           title="Please choose a file", parent=self, action=Gtk.FileChooserAction.OPEN
       )
@@ -4933,10 +4930,11 @@ class ImportUtility(Gtk.Dialog):
           Gtk.ResponseType.OK,
       )
       filter = Gtk.FileFilter()
-      filter.set_name("*.xlsx")
+      #filter.set_name("*.xlsx")
       for pat in filt_pattern:
-          filter.add_pattern(pat)
-      #open_dialog.add_filter(filter)
+          filter.set_name(pat)
+          filter.add_pattern(filt_pattern[pat])
+      open_dialog.add_filter(filter)
 
       response = open_dialog.run()
       if response == Gtk.ResponseType.OK:
@@ -4948,178 +4946,27 @@ class ImportUtility(Gtk.Dialog):
         self.requirements +=1
       open_dialog.destroy()
 
-  def fileChooser_save(self,conx_sel,filt_pattern = ["*.xlsx"]):
+  def fileChooser_save(self,button,conx_sel,filt_pattern = ["*.xlsx"]):
     save_dialog = Gtk.FileChooserDialog("Save As", self,
                                         Gtk.FileChooserAction.SAVE,
                                         (Gtk.STOCK_OK, Gtk.ResponseType.OK,
                                           Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
     save_dialog.set_current_name('Tags_Export')
     filter = Gtk.FileFilter()
-    filter.set_name("*.xlsx")
+    #filter.set_name("*.xlsx")
     for pat in filt_pattern:
-        filter.add_pattern(pat)
+        filter.set_name(pat)
+        filter.add_pattern(filt_pattern[pat])
     #save_dialog.add_filter(filter)
     response = save_dialog.run()
     if response == Gtk.ResponseType.OK:
-        self.foldname = dialog.get_filename()
+        self.foldname = save_dialog.get_filename()
         self.export_entry.set_text(self.foldname)
         self.requirements +=1
     else:
         # don't bother building the window
         self.destroy()
     save_dialog.destroy()
-
-
-# class ImportUtility(Gtk.Window):
-#     def __init__(self):
-#         super(ImportUtility, self).__init__()
-#         self.set_title("File Converter Utility")
-#         self.set_default_size(700, 900)
-#         self.set_border_width(10)
-#         self.requirements = 0
-#         self.data = []
-#         self.ANum = 0
-#         self.DNum = 0
-#         self.ch_Cfg = []
-#         self.NumSamp = 0
-#         self.start_time = 0.0
-#         self.end_time = 0.0
-#         self.big_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-#         self.conversion = ['Comtrade', 'SEL']
-#         self.filterlist = ["*.cfg","*CEV"]
-#         self.filter = ''
-
-#         '''_________Menu_________'''
-#         mb = Gtk.MenuBar()
-
-#         menu1 = Gtk.Menu()
-#         file = Gtk.MenuItem("File")
-#         file.set_submenu(menu1)
-#         sep = Gtk.SeparatorMenuItem()
-#         menu1.append(sep)
-#         exit = Gtk.MenuItem("Close")
-#         exit.connect("activate", self.exit_window)
-#         menu1.append(exit)
-#         mb.append(file)
-
-#         '''menu2 = Gtk.Menu()
-#         edit = Gtk.MenuItem("Commands")
-#         edit.set_submenu(menu2)
-#         item1 = Gtk.MenuItem("Convert")
-#         item1.connect("activate", self.convert)
-#         menu2.append(item1)
-#         mb.append(edit)'''
-
-
-#         menubox = Gtk.HBox(False, 2)
-#         menubox.pack_start(mb, False, False, 0)
-
-#         self.conv_type = Gtk.ComboBoxText()
-#         self.conv_type.set_size_request(100, 10)
-#         for item in self.conversion:
-#             self.conv_type.append_text(item)
-#         self.conv_type.set_active(0)
-#         self.filter = self.filterlist[0]
-#         self.conv_type.connect("changed", self.update_conv)
-#         menubox.pack_end(self.conv_type, False, False, 0)
-
-#         self.big_box.pack_start(menubox, False, False, 0)
-
-#         '''_________Header_________'''
-#         header = Gtk.Box(spacing=10)
-#         self.Head_label = Gtk.Label()
-#         temp = self.conv_type.get_active_text()
-#         self.Head_label.set_markup("<big><b><u>{}</u></b></big>".format(temp+ ' File Converter'))
-#         header.pack_start(self.Head_label, 1, 1, 0)
-#         self.big_box.pack_start(header, False, False, 0)
-
-
-#         '''_________Body__________'''
-#         bbox1 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
-#         l = Gtk.Label()
-#         l.set_markup("<b>Comtrade File:</b>")
-#         bbox1.pack_start(l, True, True, 0)
-#         self.file_entry = Gtk.Entry(editable = False,width_request=300)
-#         self.file_entry.set_text('Select A File First')
-#         bbox1.pack_start(self.file_entry, False, False, 0)
-#         but = Gtk.Button(label = '...')
-#         but.set_property("width-request", 20)
-#         but.connect("clicked", self.select_file)
-#         bbox1.pack_start(but, False, False, 0)
-#         self.big_box.pack_start(bbox1, False, False, 0)
-
-#         bbox2 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
-#         l = Gtk.Label()
-#         l.set_markup("<b>Export To Location:</b>")
-#         bbox2.pack_start(l, True, True, 0)
-#         self.export_entry = Gtk.Entry(editable = False,width_request=300)
-#         self.export_entry.set_text('Select an Export Location')
-#         bbox2.pack_start(self.export_entry, False, False, 0)
-#         but = Gtk.Button(label = '...')
-#         but.set_property("width-request", 20)
-#         but.connect("clicked", self.select_fold)
-#         bbox2.pack_start(but, False, False, 0)
-#         self.big_box.pack_start(bbox2, False, False, 0)
-#         self.base_content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-#         self.big_box.pack_start(self.base_content_area, True, True, 0)
-
-#         '''___________footer___________'''
-#         self.big_box.pack_start(Gtk.Separator(), 0, 0, 1)
-#         box2 = Gtk.Box(orientation='horizontal')
-#         box2.set_spacing(10)
-#         box2.set_property("height-request", 40)
-#         button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-#         button_box.pack_start(Gtk.Image(stock=Gtk.STOCK_OK), 1, 1, 0)
-#         button_box.pack_start(Gtk.Label("Convert"), 1, 1, 0)
-#         b = Gtk.Button()
-#         b.add(button_box)
-#         b.connect("clicked", self.convert)
-#         b.set_property("width-request", 80)
-#         box2.pack_end(b, False, True, 0)
-#         self.big_box.pack_start(box2, 0, 0, 1)
-
-#         self.add(self.big_box)
-#         self.connect("destroy", Gtk.main_quit)
-#         self.show_all()
-
-#     def update_conv(self,*args):
-#         self.Head_label.set_markup("<big><b><u>{}</u></b></big>".format(self.conv_type.get_active_text()+ ' File Converter'))
-#         for item in range(len(self.conversion)):
-#             if self.conversion[item] == self.conv_type.get_active_text():
-#                 self.filter = self.filterlist[item]
-
-#     def select_file(self,*args):
-#         dialog = Gtk.FileChooserDialog("Open a file", self,
-#                                        Gtk.FileChooserAction.OPEN,
-#                                        (Gtk.STOCK_OK, Gtk.ResponseType.OK,
-#                                         Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-#         filter = Gtk.FileFilter()
-#         filter.add_pattern(self.filter)
-#         dialog.set_title('Select a ' + self.conv_type.get_active_text() +' File to Open')
-#         filter.set_name("All files")
-#         dialog.add_filter(filter)
-#         response = dialog.run()
-#         if response == Gtk.ResponseType.OK:
-#             self.fn = dialog.get_filename()
-#             if self.conv_type.get_active_text() == 'Comtrade':
-#                 self.comtrade_import(self.fn)
-#             elif self.conv_type.get_active_text() == 'SEL':
-#                 self.sel_import(self.fn)
-#             self.requirements +=1
-#         dialog.destroy()
-
-#     def select_fold(self,*args):
-#         dialog = Gtk.FileChooserDialog("Open a file", self,
-#                                        Gtk.FileChooserAction.SELECT_FOLDER,
-#                                        (Gtk.STOCK_OK, Gtk.ResponseType.OK,
-#                                         Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-#         dialog.set_title('Select an Export Location')
-#         response = dialog.run()
-#         if response == Gtk.ResponseType.OK:
-#             self.foldname = dialog.get_filename()
-#             self.export_entry.set_text(self.foldname)
-#             self.requirements +=1
-#         dialog.destroy()
 
   def comtrade_import(self, *args):
       analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
