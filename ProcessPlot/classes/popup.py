@@ -4751,8 +4751,8 @@ class ImportUtility(Gtk.Dialog):
     self.end_time = 0.0
     self.big_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     self.conversion = ['Comtrade', 'SEL']
-    self.filterlist = ["*.cfg","*CEV"]
-    self.filter = {'Comtrade':'*cfg'}
+    self.filterlist = ["*.cfg","*.CEV"]
+    self.filter = {'Comtrade':'*.cfg'}
     
     self.build_window()
     self.content_area = self.get_content_area()
@@ -4951,7 +4951,7 @@ class ImportUtility(Gtk.Dialog):
                                         Gtk.FileChooserAction.SAVE,
                                         (Gtk.STOCK_OK, Gtk.ResponseType.OK,
                                           Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-    save_dialog.set_current_name('Tags_Export')
+    save_dialog.set_current_name('File_Export')
     filter = Gtk.FileFilter()
     #filter.set_name("*.xlsx")
     for pat in filt_pattern:
@@ -5048,6 +5048,104 @@ class ImportUtility(Gtk.Dialog):
           self.display_msg(msg='Data File (.dat) Missing or not in cfg directory: ' + str(e))
 
   def sel_import(self, *args):
+      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
+      try:
+          with open(self.fn,'r') as f:
+              rows = f.readlines()
+      except IOError as e:
+          self.display_msg(msg='File Read Error: ' + str(e))
+
+      try:
+        '''Start time'''
+        #"MONTH","DAY","YEAR","HOUR","MIN","SEC","MSEC","0ACA"
+        month, day, year, hour, minute, second, ms, na = str(rows[3]).split(',')
+        t = (int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, 0)
+        # self.start_timestamp = time.mktime(t) + float(ms)  # seconds after POSIX epoch
+        self.start_time = time.mktime(t) + float(ms)  # seconds after POSIX epoch
+        '''Config Data'''
+        REC_NUM, REF_NUM, NUM_CH_A, NUM_CH_D, FREQ, NFREQ, SAM_CYC_A, SAM_CYC_D, NUM_OF_CYC, PRIM_VAL, CTR_IA, CTR_IB, CTR_IC, CTR_IN, CTR_IG, PTR_VA, PTR_VB, PTR_VC, PTR_VS, EVENT, LOCATION, GROUP, IA_A, IB_A, IC_A, IN_A, IG_A, VA_V, VB_V, VC_V, VG_V, VS_V, VDC_V, WDG_C, BRG_C, AMB_C, OTH_C, na = str(rows[5]).split(',')
+        #rec_num, a_num, d_num, freqx, freqy, n_freq, acycles, samp_cycleD,numcycles,primvalue,na = str(rows[5]).split(',')
+        self.ANum = int(NUM_CH_A)
+        self.DNum = int(NUM_CH_D)
+        self.DNum = 0   ####NEED TO REMOVE TO ADD DIGITAL DATA BACK IN
+        NumSamp = (int(SAM_CYC_A) * int(NUM_OF_CYC))
+        time_between_samples = (
+            1.0 / (float(NumSamp - 16.0)))  # time between samples is total number of samples in 16 cycles
+        '''Time between samples is 1/NumSamp'''
+        time_data = []
+        for num in range(NumSamp):
+            time_data.append((float(num) * time_between_samples) + self.start_time)
+        self.data.append(time_data)
+        '''create list for analog channel names'''
+        x=1
+        for analog_chan in range(self.ANum):
+            self.ch_Cfg.append(dict(zip(analog_dict,(str(x),(str(rows[6]).split(',')[analog_chan]).replace('"',''),'','','',1.0,'','','','','A' ))))
+            self.ch_Cfg[analog_chan]['Select'] = Gtk.CheckButton()
+            name_ent = Gtk.Entry()
+            name_ent.set_text(str(self.ch_Cfg[analog_chan]['Name']))
+            name_ent.connect('changed', self.name_change, name_ent)
+            name_ent.set_tooltip_text("Enter New Name")
+            self.ch_Cfg[analog_chan]['NameBox'] = name_ent
+            sc = Gtk.Entry()
+            sc.set_tooltip_text("Change Tag Scale")
+            sc.set_text('1.0')
+            sc.connect('changed', self.check_num, sc)
+            self.ch_Cfg[analog_chan]['SBox'] = sc
+            x+=1
+        if self.DNum != 0:
+            temp = (str(rows[6]).split(',')[-2])
+        '''create list for digital channel names'''
+        for dig_chan in range(self.DNum):
+            #self.AnalNames.append(str(temp).split(' ')[item])
+            self.ch_Cfg.append(dict(zip(analog_dict, (str(x), str(temp).split(' ')[dig_chan], '', '', '', 1.0, '', '', '','','D'))))
+            self.ch_Cfg[dig_chan + self.ANum]['Select'] = Gtk.CheckButton()
+            name_ent = Gtk.Entry()
+            name_ent.set_text(str(self.ch_Cfg[dig_chan + self.ANum]['Name']))
+            name_ent.connect('changed', self.name_change, name_ent)
+            name_ent.set_tooltip_text("Enter New Name")
+            self.ch_Cfg[dig_chan + self.ANum]['NameBox'] = name_ent
+            sc = Gtk.Label('Digital Channel')
+            self.ch_Cfg[dig_chan + self.ANum]['SBox'] = sc
+            x += 1
+        '''Bring Analog data into list of lists in self.data'''
+        a_data = [[] for _ in range(self.ANum)]  # list of lists for all of the data +1 for the time
+        for row in range(7, NumSamp + 7):
+            for item in range(self.ANum):
+                a_data[item].append(float(((str(rows[row]).split(',')[item]).replace('"', ''))))
+        for item in range(self.ANum):
+            self.data.append(a_data[item])
+        d_data = []  # list of lists for all of the digital data, Contains all digital data as a large binary number
+        for row in range(7, NumSamp + 7):
+            d_data.append(((str(rows[row]).split(',')[self.ANum + 1]).replace("'", ' ').replace('"','')))
+        '''convert hex to binary for digital status'''
+        for row in range(len(d_data)):
+            d_data[row] = bin(int(d_data[row], 16))[2:].zfill(len(d_data[row]) * 4)
+            # section corrects for error in file when missing bytes
+            if len(d_data[row]) != self.DNum:
+                if row == 0:
+                    d_data[row] = d_data[row + 1]
+                else:
+                    d_data[row] = d_data[row - 1]
+        self.data.append(d_data)\
+      except:
+        pass
+      try:
+          with open(self.fn.replace('.CEV', '.dat'),'w') as f:
+              temp = ''
+              for row in range(len(self.data[0])):
+                  temp += str(row)+','
+                  for col in range(self.ANum+1):
+                      temp += str(self.data[col][row])+','
+                  for z in range(self.DNum):
+                      temp += str(self.data[self.ANum+1][row])[z] + ','
+                  rows = f.writelines(temp + "\n")
+                  temp = ''
+          self.file_entry.set_text(self.fn)
+          #self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
+      except IOError as e:
+          self.display_msg(msg='File Write Error: '+str(e))
+
+  def sel_import_old(self, *args):
       analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
       try:
           with open(self.fn,'r') as f:
