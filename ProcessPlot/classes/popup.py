@@ -4857,7 +4857,7 @@ class ImportUtility(Gtk.Dialog):
     but.set_property("width-request", 20)
     but.connect("clicked", self.fileChooser_save,None,self.filter)
     bbox2.pack_start(but, False, False, 0)
-    self.base_area.pack_start(bbox2, False, False, 0)
+    #self.base_area.pack_start(bbox2, False, False, 0)
     self.base_content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     self.base_area.pack_start(self.base_content_area, True, True, 0)
 
@@ -5048,6 +5048,7 @@ class ImportUtility(Gtk.Dialog):
           self.display_msg(msg='Data File (.dat) Missing or not in cfg directory: ' + str(e))
 
   def sel_import(self, *args):
+      print('sel import')
       analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
       try:
           with open(self.fn,'r') as f:
@@ -5063,12 +5064,20 @@ class ImportUtility(Gtk.Dialog):
         # self.start_timestamp = time.mktime(t) + float(ms)  # seconds after POSIX epoch
         self.start_time = time.mktime(t) + float(ms)  # seconds after POSIX epoch
         '''Config Data'''
-        REC_NUM, REF_NUM, NUM_CH_A, NUM_CH_D, FREQ, NFREQ, SAM_CYC_A, SAM_CYC_D, NUM_OF_CYC, PRIM_VAL, CTR_IA, CTR_IB, CTR_IC, CTR_IN, CTR_IG, PTR_VA, PTR_VB, PTR_VC, PTR_VS, EVENT, LOCATION, GROUP, IA_A, IB_A, IC_A, IN_A, IG_A, VA_V, VB_V, VC_V, VG_V, VS_V, VDC_V, WDG_C, BRG_C, AMB_C, OTH_C, na = str(rows[5]).split(',')
+        #REC_NUM, REF_NUM, NUM_CH_A, NUM_CH_D, FREQ, NFREQ, SAM_CYC_A, SAM_CYC_D, NUM_OF_CYC, PRIM_VAL, CTR_IA, CTR_IB, CTR_IC, CTR_IN, CTR_IG, PTR_VA, PTR_VB, PTR_VC, PTR_VS, EVENT, LOCATION, GROUP, IA_A, IB_A, IC_A, IN_A, IG_A, VA_V, VB_V, VC_V, VG_V, VS_V, VDC_V, WDG_C, BRG_C, AMB_C, OTH_C, na = str(rows[5]).split(',')
         #rec_num, a_num, d_num, freqx, freqy, n_freq, acycles, samp_cycleD,numcycles,primvalue,na = str(rows[5]).split(',')
-        self.ANum = int(NUM_CH_A)
-        self.DNum = int(NUM_CH_D)
-        self.DNum = 0   ####NEED TO REMOVE TO ADD DIGITAL DATA BACK IN
-        NumSamp = (int(SAM_CYC_A) * int(NUM_OF_CYC))
+        rec_names = []
+        rec_names = str(rows[4]).split(',')    
+        rec_num = []
+        rec_num = str(rows[5]).split(',')
+        rec_data = {}
+        for x in range(len(rec_names)):
+          rec_data[rec_names[x].replace('"','')] = rec_num[x]
+        print(rec_data)
+        self.ANum = int(rec_data['NUM_CH_A'])
+        self.DNum = int(rec_data['NUM_CH_D'])
+        self.DNum = 0   ######################################NEED TO REMOVE TO ADD DIGITAL DATA BACK IN
+        NumSamp = (int(rec_data['SAM/CYC_A']) * int(rec_data['NUM_OF_CYC']))
         time_between_samples = (
             1.0 / (float(NumSamp - 16.0)))  # time between samples is total number of samples in 16 cycles
         '''Time between samples is 1/NumSamp'''
@@ -5126,7 +5135,7 @@ class ImportUtility(Gtk.Dialog):
                     d_data[row] = d_data[row + 1]
                 else:
                     d_data[row] = d_data[row - 1]
-        self.data.append(d_data)\
+        self.data.append(d_data)
       except:
         pass
       try:
@@ -5141,7 +5150,7 @@ class ImportUtility(Gtk.Dialog):
                   rows = f.writelines(temp + "\n")
                   temp = ''
           self.file_entry.set_text(self.fn)
-          #self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
+          self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
       except IOError as e:
           self.display_msg(msg='File Write Error: '+str(e))
 
@@ -5353,9 +5362,10 @@ class ImportUtility(Gtk.Dialog):
       scrolledwindow.add(self.sc_box)
       self.base_content_area.pack_start(scrolledwindow, 1, 1, 0)
       for item in range(len(self.ch_Cfg)):
-          GObject.idle_add(self.build_imp_row, item, self.ch_Cfg, priority=GLib.PRIORITY_LOW)
-          # row = self.build_imp_row(item,self.ch_Cfg)
-          # self.base_content_area.add(row)'''
+          #GObject.idle_add(self.build_imp_row, item, self.ch_Cfg, priority=GLib.PRIORITY_LOW)
+          #row = self.build_imp_row(item,self.ch_Cfg)
+          #self.base_content_area.add(row)
+          pass
       #____________________
       self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 1)
       self.wait_lab = Gtk.Label('Loading......')
