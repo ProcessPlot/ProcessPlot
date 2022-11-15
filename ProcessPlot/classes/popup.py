@@ -5048,14 +5048,12 @@ class ImportUtility(Gtk.Dialog):
           self.display_msg(msg='Data File (.dat) Missing or not in cfg directory: ' + str(e))
 
   def sel_import(self, *args):
-      print('sel import')
       analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
       try:
           with open(self.fn,'r') as f:
               rows = f.readlines()
       except IOError as e:
           self.display_msg(msg='File Read Error: ' + str(e))
-
       try:
         '''Start time'''
         #"MONTH","DAY","YEAR","HOUR","MIN","SEC","MSEC","0ACA"
@@ -5073,10 +5071,9 @@ class ImportUtility(Gtk.Dialog):
         rec_data = {}
         for x in range(len(rec_names)):
           rec_data[rec_names[x].replace('"','')] = rec_num[x]
-        print(rec_data)
         self.ANum = int(rec_data['NUM_CH_A'])
         self.DNum = int(rec_data['NUM_CH_D'])
-        self.DNum = 0   ######################################NEED TO REMOVE TO ADD DIGITAL DATA BACK IN
+        self.DNum = 0     #############################################NEED TO REMOVE IF YOU WANT DIGITALS TO BE IMPORTED
         NumSamp = (int(rec_data['SAM/CYC_A']) * int(rec_data['NUM_OF_CYC']))
         time_between_samples = (
             1.0 / (float(NumSamp - 16.0)))  # time between samples is total number of samples in 16 cycles
@@ -5136,23 +5133,21 @@ class ImportUtility(Gtk.Dialog):
                 else:
                     d_data[row] = d_data[row - 1]
         self.data.append(d_data)
-      except:
-        pass
-      try:
-          with open(self.fn.replace('.CEV', '.dat'),'w') as f:
-              temp = ''
-              for row in range(len(self.data[0])):
-                  temp += str(row)+','
-                  for col in range(self.ANum+1):
-                      temp += str(self.data[col][row])+','
-                  for z in range(self.DNum):
-                      temp += str(self.data[self.ANum+1][row])[z] + ','
-                  rows = f.writelines(temp + "\n")
-                  temp = ''
-          self.file_entry.set_text(self.fn)
-          self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
+        #Write data to temporary file
+        with open(self.fn.replace('.CEV', '.dat'),'w') as f:
+            temp = ''
+            for row in range(len(self.data[0])):
+                temp += str(row)+','
+                for col in range(self.ANum+1):
+                    temp += str(self.data[col][row])+','
+                for z in range(self.DNum):
+                    temp += str(self.data[self.ANum+1][row])[z] + ','
+                rows = f.writelines(temp + "\n")
+                temp = ''
+        self.file_entry.set_text(self.fn)
+        self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
       except IOError as e:
-          self.display_msg(msg='File Write Error: '+str(e))
+          self.display_msg(msg='File Import Error: '+str(e))
 
   def sel_import_old(self, *args):
       analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
@@ -5280,8 +5275,10 @@ class ImportUtility(Gtk.Dialog):
           file_time = '0/0/0 - 00:00:00.0'
       header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
       header.set_property("height-request", 40)
-      label = Gtk.Label()
-      label.set_markup("<big><b>File Time Stamp</b></big>")
+      label = Gtk.Label('File Time Stamp')
+      sc = label.get_style_context()
+      sc.add_class('font-bold')
+      sc.add_class('font-18')
       header.pack_start(label, 1, 1, 0)
       self.base_content_area.pack_start(header, 0, 0, 0)
       s = Gtk.Separator()
@@ -5294,7 +5291,8 @@ class ImportUtility(Gtk.Dialog):
       self.base_content_area.pack_start(box, 0, 0, 0)
 
       r_time = Gtk.Label()
-      r_time.set_markup("<b>Record Time: </b>")
+      sc = r_time.get_style_context()
+      sc.add_class('font-bold')
       r_time.set_property("height-request", 25)
       box.add(r_time)
       l_time = Gtk.Label(label=file_time)
@@ -5363,9 +5361,9 @@ class ImportUtility(Gtk.Dialog):
       self.base_content_area.pack_start(scrolledwindow, 1, 1, 0)
       for item in range(len(self.ch_Cfg)):
           #GObject.idle_add(self.build_imp_row, item, self.ch_Cfg, priority=GLib.PRIORITY_LOW)
+          self.build_imp_row(item,self.ch_Cfg)
           #row = self.build_imp_row(item,self.ch_Cfg)
           #self.base_content_area.add(row)
-          pass
       #____________________
       self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 1)
       self.wait_lab = Gtk.Label('Loading......')
@@ -5392,8 +5390,11 @@ class ImportUtility(Gtk.Dialog):
       self.sc_box.add(b)
       self.show_all()
       if len(ch_cfg) == (item +1):
-          self.content_area.remove(self.wait_lab)
-          #self.show_all()
+        #########################Remove the loading label
+        ########################################update the building of popup
+        #################make popup get bigger when importing
+          #self.base_content_area.remove(self.wait_lab)
+          self.show_all()
 
   def on_changed(self, *args):
       text = self.time_offset.get_text().strip()
