@@ -2456,55 +2456,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     selection = treeview.get_selection()
     tree_model, tree_iter = selection.get_selected()
 
-  def build_footer(self):
-    #CANCEL Button
-    self.cancel_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.cancel_button.connect('clicked',self.close_popup)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    box = Gtk.Box()
-    lbl = Gtk.Label('Cancel')
-    sc = lbl.get_style_context()
-    sc.add_class('font-16')
-    box.pack_start(lbl,1,1,1)
-    #box.pack_start(image,0,0,0)
-    self.cancel_button.add(box)
-    self.footer_bar.pack_end(self.cancel_button,0,0,1)
-    sc = self.cancel_button.get_style_context()
-    sc.add_class('ctrl-button-footer')
-
-    #OK Button
-    self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.ok_button.connect('clicked',self.save_settings,True)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    box = Gtk.Box()
-    lbl = Gtk.Label('OK')
-    sc = lbl.get_style_context()
-    sc.add_class('font-16')
-    box.pack_start(lbl,1,1,1)
-    #box.pack_start(image,0,0,0)
-    self.ok_button.add(box)
-    #self.footer_bar.pack_end(self.ok_button,0,0,1)
-    sc = self.ok_button.get_style_context()
-    sc.add_class('ctrl-button-footer')
-
-    #APPLY Button
-    self.apply_button = Gtk.Button(width_request = 100, height_request = 30)
-    self.apply_button.connect('clicked',self.save_settings,False)
-    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
-    image = Gtk.Image(pixbuf=p_buf)
-    box = Gtk.Box()
-    lbl = Gtk.Label('Apply')
-    sc = lbl.get_style_context()
-    sc.add_class('font-16')
-    box.pack_start(lbl,1,1,1)
-    #box.pack_start(image,0,0,0)
-    self.apply_button.add(box)
-    #self.footer_bar.pack_end(self.apply_button,0,0,1)
-    sc = self.apply_button.get_style_context()
-    sc.add_class('ctrl-button-footer')
-
   def conx_connect_toggle(self, widget, path,id):
     self.liststore[path][0] = not self.liststore[path][0]
     poll = self.conx_obj_available[id].polling  #check current polling status
@@ -4756,7 +4707,7 @@ class ImportUtility(Gtk.Dialog):
     
     self.build_window()
     self.content_area = self.get_content_area()
-    self.dialog_window = Gtk.Box(height_request=300,orientation=Gtk.Orientation.VERTICAL)
+    self.dialog_window = Gtk.Box(height_request=800,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window )
     ### - Title Bar- ###
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
@@ -4784,7 +4735,7 @@ class ImportUtility(Gtk.Dialog):
     self.show_all()
 
   def build_window(self, *args):
-    self.set_default_size(200, 200)
+    self.set_default_size(200, 800)
     self.set_decorated(False)
     self.set_border_width(10)
     self.set_keep_above(False)
@@ -5263,6 +5214,11 @@ class ImportUtility(Gtk.Dialog):
           pass
           #push to database
 
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for sty in style:
+      sc.add_class(sty)
+
   def build_popup(self, *args):
       try:
           temp = time.localtime(self.start_time)
@@ -5275,11 +5231,9 @@ class ImportUtility(Gtk.Dialog):
           file_time = '0/0/0 - 00:00:00.0'
       header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
       header.set_property("height-request", 40)
-      label = Gtk.Label('File Time Stamp')
-      sc = label.get_style_context()
-      sc.add_class('font-bold')
-      sc.add_class('font-18')
-      header.pack_start(label, 1, 1, 0)
+      lbl = Gtk.Label('File Time Stamp')
+      self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
+      header.pack_start(lbl, 1, 1, 0)
       self.base_content_area.pack_start(header, 0, 0, 0)
       s = Gtk.Separator()
       self.base_content_area.pack_start(s, 0, 0, 0)
@@ -5290,31 +5244,27 @@ class ImportUtility(Gtk.Dialog):
       box.set_property("height-request", 40)
       self.base_content_area.pack_start(box, 0, 0, 0)
 
-      r_time = Gtk.Label()
-      sc = r_time.get_style_context()
-      sc.add_class('font-bold')
-      r_time.set_property("height-request", 25)
-      box.add(r_time)
+      lbl = Gtk.Label('File Time:')
+      self.add_style(lbl,["Label","font-14",'font-bold','text-black-color'])
+      box.add(lbl)
       l_time = Gtk.Label(label=file_time)
       l_time.set_size_request(80, 25)
       box.add(l_time)
-      l_off = Gtk.Label()
-      l_off.set_markup("<b>Time Offset in (ms)</b>")
-      l_off.set_property("height-request", 25)
-      box.add(l_off)
+      lbl = Gtk.Label('Time Offset in (ms):')
+      self.add_style(lbl,["Label","font-14",'font-bold','text-black-color'])
+      box.add(lbl)
       self.time_offset = Gtk.Entry()
       self.time_offset.set_text('0')
       self.time_offset.set_tooltip_text("Enter A Time Correction Factor To The New File")
       self.time_offset.connect('changed', self.on_changed)
-      self.time_offset.set_property("height-request", 25)
       box.add(self.time_offset)
       self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 0)
 
       header2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
       header2.set_property("height-request", 40)
-      label = Gtk.Label()
-      label.set_markup("<big><b>Available Tags</b></big>")
-      header2.pack_start(label, 1, 1, 0)
+      lbl = Gtk.Label('Available Tags')
+      self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
+      header2.pack_start(lbl, 1, 1, 0)
       self.base_content_area.pack_start(header2, 0, 0, 0)
       s = Gtk.Separator()
       self.base_content_area.pack_start(s, 0, 0, 0)
@@ -5391,6 +5341,7 @@ class ImportUtility(Gtk.Dialog):
       self.show_all()
       if len(ch_cfg) == (item +1):
         #########################Remove the loading label
+        #########################Replace custom table with treeview
         ########################################update the building of popup
         #################make popup get bigger when importing
           #self.base_content_area.remove(self.wait_lab)
