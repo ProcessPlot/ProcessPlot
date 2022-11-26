@@ -4718,8 +4718,11 @@ class ImportUtility(Gtk.Dialog):
     self.dialog_window.pack_start(divider,0,0,1)
 
     ### - Base Area- ###
-    self.base_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    self.dialog_window.pack_start(self.base_area, 1, 1, 1)
+    self.base_area = Gtk.Box(spacing = 10,orientation=Gtk.Orientation.VERTICAL,margin = 20)
+    self.scroll = Gtk.ScrolledWindow(width_request = 800,height_request = 600)
+    self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+    self.scroll.add(self.base_area)
+    self.dialog_window.pack_start(self.scroll,1,1,1)
 
     ### -footer- ####
     divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
@@ -5266,59 +5269,73 @@ class ImportUtility(Gtk.Dialog):
       self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
       header2.pack_start(lbl, 1, 1, 0)
       self.base_content_area.pack_start(header2, 0, 0, 0)
-      s = Gtk.Separator()
-      self.base_content_area.pack_start(s, 0, 0, 0)
-      #_______________________
-      box_h = Gtk.Box()
-      box_h.set_property("height-request", 30)
-      box_h.set_homogeneous(True)
-      test = Gtk.Box()
-      test.set_spacing(3)
-      but = Gtk.Image(stock=Gtk.STOCK_ADD)
-      b = Gtk.Button()
-      b.set_property("width-request", 20)
-      b.add(but)
-      b.connect("clicked", self.select_all)
-      b.set_tooltip_text("Select All Channels for Import")
-      test.pack_start(b, 0, 1, 0)
-      but = Gtk.Image(stock=Gtk.STOCK_CLOSE)
-      b = Gtk.Button()
-      b.set_property("width-request", 20)
-      b.add(but)
-      b.connect("clicked", self.clear_all)
-      b.set_tooltip_text("Clear All Channels from Import")
-      test.pack_start(b, 0, 1, 0)
-      l = Gtk.Label()
-      l.set_markup("<b>Import</b>")
-      test.pack_start(l, 0, 1, 0)
 
-      box_h.pack_start(test, True, True, 0)
-      l = Gtk.Label()
-      l.set_markup("<b>Channel Name</b>")
-      box_h.pack_start(l, True, True, 0)
-      l = Gtk.Label()
-      l.set_markup("<b>Scaler</b>")
-      box_h.pack_start(l, True, True, 0)
-      l = Gtk.Label()
-      self.base_content_area.pack_start(box_h, 0, 0, 0)
-      self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 0)
-      #_______________________
+      #_____________________ Import list
+      self.liststore = Gtk.ListStore(bool,str , str)
+      self.treeview = Gtk.TreeView(self.liststore)
+      #Watch for user clicks
+      #self.treeview.connect('button-press-event' , self.tree_item_clicked)
+      self.treeview.set_rules_hint( True )
+      self.add_style(self.treeview,['treeview'])
+
+      #Add toggle button
+      connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
+      image = Gtk.Image(pixbuf=connection_icon)
+      renderer_toggle = Gtk.CellRendererToggle()
+      renderer_toggle.set_property('cell-background','gray')
+      self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=0)
+      h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
+      c = h_but.get_child()
+      c.add(image)  #add image to column header button
+      c.show_all()
+
+      #renderer_toggle.connect("toggled", self.conx_connect_toggle)
+      self.treeview.append_column(self.tvcolumn_toggle)
+      self.tvcolumn_toggle.set_max_width(30)
+
+      #Add Channel Name
+      self.c_name = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
+      self.c_name.set_property("editable", True)
+      col = Gtk.TreeViewColumn('Channel Name')
+      self.treeview.append_column(col)
+      col.set_min_width(200)
+      col.pack_start(self.c_name, True)
+      col.set_sort_column_id(1)
+      col.set_attributes(self.c_name,text=1)
+
+      #Add Scaler
+      self.scale = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
+      self.scale.set_property("editable", True)
+      col = Gtk.TreeViewColumn('Scaler')
+      self.treeview.append_column(col)
+      col.pack_start(self.scale, True)
+      col.set_sort_column_id(2)
+      col.set_attributes(self.scale,text=2)
+
+      # make treeview searchable
+      self.treeview.set_search_column(1)
+      # Allow drag and drop reordering of rows
+      self.treeview.set_reorderable(True)
+      #Add treeview to base window
       scrolledwindow = Gtk.ScrolledWindow()
       scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
       self.sc_box = Gtk.Box(orientation='vertical')
       self.sc_box.set_vexpand(True)
       scrolledwindow.add(self.sc_box)
       self.base_content_area.pack_start(scrolledwindow, 1, 1, 0)
-      for item in range(len(self.ch_Cfg)):
-          #GObject.idle_add(self.build_imp_row, item, self.ch_Cfg, priority=GLib.PRIORITY_LOW)
-          self.build_imp_row(item,self.ch_Cfg)
-          #row = self.build_imp_row(item,self.ch_Cfg)
-          #self.base_content_area.add(row)
-      #____________________
-      self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 1)
-      self.wait_lab = Gtk.Label('Loading......')
-      self.base_content_area.add(self.wait_lab)
+      self.sc_box.add(self.treeview)
+
+      self.add_import_rows()
       self.show_all()
+
+
+  def add_import_rows(self,*args):
+    for item in range(len(self.ch_Cfg)):
+      self.liststore.append([ False,
+                              self.ch_Cfg[item]['Name'],
+                              str(self.ch_Cfg[item]['Scale']),
+                                      ])
+    self.show_all()
 
   def build_imp_row(self,item,ch_cfg,*args):
       temp = len(ch_cfg)
@@ -5341,7 +5358,9 @@ class ImportUtility(Gtk.Dialog):
       self.show_all()
       if len(ch_cfg) == (item +1):
         #########################Remove the loading label
-        #########################Replace custom table with treeview
+        #########################Make new treeview functional
+        #########################Build full import popup but don't fill it till after file is open
+
         ########################################update the building of popup
         #################make popup get bigger when importing
           #self.base_content_area.remove(self.wait_lab)
