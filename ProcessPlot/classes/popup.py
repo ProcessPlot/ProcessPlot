@@ -4707,7 +4707,7 @@ class ImportUtility(Gtk.Dialog):
     
     self.build_window()
     self.content_area = self.get_content_area()
-    self.dialog_window = Gtk.Box(height_request=800,orientation=Gtk.Orientation.VERTICAL)
+    self.dialog_window = Gtk.Box(height_request=800,width_request = 600,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window )
     ### - Title Bar- ###
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
@@ -4719,7 +4719,7 @@ class ImportUtility(Gtk.Dialog):
 
     ### - Base Area- ###
     self.base_area = Gtk.Box(spacing = 10,orientation=Gtk.Orientation.VERTICAL,margin = 20)
-    self.scroll = Gtk.ScrolledWindow(width_request = 800,height_request = 600)
+    self.scroll = Gtk.ScrolledWindow(width_request = 600,height_request = 600)
     self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     self.scroll.add(self.base_area)
     self.dialog_window.pack_start(self.scroll,1,1,1)
@@ -4729,7 +4729,7 @@ class ImportUtility(Gtk.Dialog):
     sc = divider.get_style_context()
     sc.add_class('Hdivider')
     self.dialog_window.pack_start(divider,0,0,1)
-    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=600)
+    self.footer_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=800)
     self.dialog_window.pack_start(self.footer_bar,0,0,1)
     self.load_settings()
     self.build_header()
@@ -4738,7 +4738,7 @@ class ImportUtility(Gtk.Dialog):
     self.show_all()
 
   def build_window(self, *args):
-    self.set_default_size(200, 800)
+    self.set_default_size(800, 800)
     self.set_decorated(False)
     self.set_border_width(10)
     self.set_keep_above(False)
@@ -5287,18 +5287,27 @@ class ImportUtility(Gtk.Dialog):
       h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
       c = h_but.get_child()
       c.add(image)  #add image to column header button
+      #self.add_style(c,['treeview-header']) #add color to header
       c.show_all()
 
-      #renderer_toggle.connect("toggled", self.conx_connect_toggle)
+      renderer_toggle.connect("toggled", self.tag_import_toggle)
       self.treeview.append_column(self.tvcolumn_toggle)
       self.tvcolumn_toggle.set_max_width(30)
 
       #Add Channel Name
       self.c_name = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
       self.c_name.set_property("editable", True)
+      self.c_name.set_property("xalign",0.5)
+      #self.c_name.set_property("background",'white')
+      self.c_name.set_property("foreground",'black')
       col = Gtk.TreeViewColumn('Channel Name')
+      c_but = col.get_button() #Get reference to column header button
+      c = c_but.get_child()
+      self.add_style(c,['treeview-header'])
       self.treeview.append_column(col)
-      col.set_min_width(200)
+      #col.set_expand(True)
+      col.set_min_width(600)
+      col.set_alignment(0.5)
       col.pack_start(self.c_name, True)
       col.set_sort_column_id(1)
       col.set_attributes(self.c_name,text=1)
@@ -5306,9 +5315,17 @@ class ImportUtility(Gtk.Dialog):
       #Add Scaler
       self.scale = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
       self.scale.set_property("editable", True)
+      self.scale.set_property("xalign",0.5)
+      #self.scale.set_property("background",'white')
+      self.scale.set_property("foreground",'black')
       col = Gtk.TreeViewColumn('Scaler')
+      s_but = col.get_button() #Get reference to column header button
+      c = s_but.get_child()
+      self.add_style(c,['treeview-header'])
       self.treeview.append_column(col)
-      col.pack_start(self.scale, True)
+      col.pack_start(self.scale, False)
+      col.set_expand(False)
+      col.set_alignment(0.5)
       col.set_sort_column_id(2)
       col.set_attributes(self.scale,text=2)
 
@@ -5337,6 +5354,9 @@ class ImportUtility(Gtk.Dialog):
                                       ])
     self.show_all()
 
+  def tag_import_toggle(self, *args):
+    print(args)
+    
   def build_imp_row(self,item,ch_cfg,*args):
       temp = len(ch_cfg)
       b = Gtk.Box(orientation='horizontal')
