@@ -3427,6 +3427,8 @@ class ValueEnter(Gtk.Dialog):
         value = self.params['type'](self.widget_obj.get_label())
       if isinstance(self.widget_obj, Gtk.Entry):
         value = self.params['type'](self.widget_obj.get_text())
+      if isinstance(self.widget_obj,Gtk.CellRendererText):
+        value = self.params['value']
       self.initial_value = value
     except ValueError:
       value = 0
@@ -4746,13 +4748,6 @@ class ImportUtility(Gtk.Dialog):
     sc.add_class("dialog-border")
 
   def build_header(self,*args):
-    self.conv_type = Gtk.ComboBoxText()
-    self.conv_type.set_size_request(100, 10)
-    for item in self.conversion:
-        self.conv_type.append_text(item)
-    self.conv_type.set_active(0)
-    self.conv_type.connect("changed", self.update_conv)
-    self.title_bar.pack_start(self.conv_type,0,0,0)
     #Save Button
     self.save_button = Gtk.Button(width_request = 30)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Save.png', 30, -1, True)
@@ -4766,7 +4761,7 @@ class ImportUtility(Gtk.Dialog):
     #self.save_button.connect('clicked',self.save_settings,self.c_id)
 
     #title
-    title = Gtk.Label(label='File Converter Utility')
+    title = Gtk.Label(label='File Import Utility')
     sc = title.get_style_context()
     sc.add_class('text-black-color')
     sc.add_class('font-22')
@@ -4786,12 +4781,26 @@ class ImportUtility(Gtk.Dialog):
   def build_base(self,*args):
     '''_________Body__________'''
     bbox1 = Gtk.Box(spacing = 10, orientation = Gtk.Orientation.HORIZONTAL)
-    l = Gtk.Label('Import File')
-    sc = l.get_style_context()
+    lbl = Gtk.Label('File Type')
+    sc = lbl.get_style_context()
     sc.add_class('font-bold')
-    bbox1.pack_start(l, True, True, 0)
-    self.file_entry = Gtk.Entry(editable = False,width_request=300)
+    bbox1.pack_start(lbl, True, True, 0)
+    self.conv_type = Gtk.ComboBoxText()
+    self.conv_type.set_size_request(100, 10)
+    for item in self.conversion:
+        self.conv_type.append_text(item)
+    self.conv_type.set_active(0)
+    self.conv_type.connect("changed", self.update_conv)
+    bbox1.pack_start(self.conv_type,0,0,0)
+
+    lbl = Gtk.Label('Import File')
+    sc = lbl.get_style_context()
+    sc.add_class('font-bold')
+    bbox1.pack_start(lbl, True, True, 0)
+    self.file_entry = Gtk.Label(width_request=300)
     self.file_entry.set_text('Select A File')
+    sc = self.file_entry.get_style_context()
+    sc.add_class('label-box')
     bbox1.pack_start(self.file_entry, False, False, 0)
     but = Gtk.Button(label = '...')
     but.set_property("width-request", 20)
@@ -4814,6 +4823,45 @@ class ImportUtility(Gtk.Dialog):
     #self.base_area.pack_start(bbox2, False, False, 0)
     self.base_content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     self.base_area.pack_start(self.base_content_area, True, True, 0)
+
+    file_time = '0/0/0 - 00:00:00.0'
+    header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    header.set_property("height-request", 40)
+    lbl = Gtk.Label('File Time Stamp')
+    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
+    header.pack_start(lbl, 1, 1, 0)
+    self.base_content_area.pack_start(header, 0, 0, 0)
+    s = Gtk.Separator()
+    self.base_content_area.pack_start(s, 0, 0, 0)
+    box = Gtk.Box()
+    box.set_homogeneous(True)
+    box.set_halign(Gtk.Align.CENTER)
+    box.set_spacing(10)
+    box.set_property("height-request", 40)
+    self.base_content_area.pack_start(box, 0, 0, 0)
+
+    lbl = Gtk.Label('File Time:')
+    self.add_style(lbl,["Label","font-14",'font-bold','text-black-color'])
+    box.add(lbl)
+    self.file_time = Gtk.Label(label=file_time)
+    self.file_time.set_size_request(80, 25)
+    box.add(self.file_time)
+    lbl = Gtk.Label('Time Offset in (ms):')
+    self.add_style(lbl,["Label","font-14",'font-bold','text-black-color'])
+    box.add(lbl)
+    self.time_offset = Gtk.Entry()
+    self.time_offset.set_text('0')
+    self.time_offset.set_tooltip_text("Enter A Time Correction Factor To The New File")
+    self.time_offset.connect('changed', self.on_changed)
+    box.add(self.time_offset)
+    self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 0)
+
+    header2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    header2.set_property("height-request", 40)
+    lbl = Gtk.Label('Available Tags')
+    self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
+    header2.pack_start(lbl, 1, 1, 0)
+    self.base_content_area.pack_start(header2, 0, 0, 0)
 
   def build_footer(self):
     #CANCEL Button
@@ -4995,8 +5043,8 @@ class ImportUtility(Gtk.Dialog):
               self.data.append(
                   list(float(dfile[sample_num].split(',')[cell_num]) * scaling for sample_num in range(self.NumSamp)))
           self.file_entry.set_text(self.fn)
-          self.build_popup()
-          #self.build_popup(self.fn,self.start_time,self.NumSamp,self.ch_Cfg)
+          self.build_tree()
+          #self.build_tree(self.fn,self.start_time,self.NumSamp,self.ch_Cfg)
 
       except IOError as e:
           self.display_msg(msg='Data File (.dat) Missing or not in cfg directory: ' + str(e))
@@ -5099,7 +5147,7 @@ class ImportUtility(Gtk.Dialog):
                 rows = f.writelines(temp + "\n")
                 temp = ''
         self.file_entry.set_text(self.fn)
-        self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
+        self.build_tree(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
       except IOError as e:
           self.display_msg(msg='File Import Error: '+str(e))
 
@@ -5191,7 +5239,7 @@ class ImportUtility(Gtk.Dialog):
                   rows = f.writelines(temp + "\n")
                   temp = ''
           self.file_entry.set_text(self.fn)
-          self.build_popup(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
+          self.build_tree(self.fn.replace('.CEV', '.dat'), self.start_time, NumSamp, self.ch_Cfg)
       except IOError as e:
           self.display_msg(msg='File Write Error: '+str(e))
 
@@ -5222,7 +5270,7 @@ class ImportUtility(Gtk.Dialog):
     for sty in style:
       sc.add_class(sty)
 
-  def build_popup(self, *args):
+  def build_tree(self, *args):
       try:
           temp = time.localtime(self.start_time)
           t_msec = (self.start_time) % 1
@@ -5232,49 +5280,13 @@ class ImportUtility(Gtk.Dialog):
               t_msec).zfill(3)
       except:
           file_time = '0/0/0 - 00:00:00.0'
-      header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-      header.set_property("height-request", 40)
-      lbl = Gtk.Label('File Time Stamp')
-      self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
-      header.pack_start(lbl, 1, 1, 0)
-      self.base_content_area.pack_start(header, 0, 0, 0)
-      s = Gtk.Separator()
-      self.base_content_area.pack_start(s, 0, 0, 0)
-      box = Gtk.Box()
-      box.set_homogeneous(True)
-      box.set_halign(Gtk.Align.CENTER)
-      box.set_spacing(10)
-      box.set_property("height-request", 40)
-      self.base_content_area.pack_start(box, 0, 0, 0)
-
-      lbl = Gtk.Label('File Time:')
-      self.add_style(lbl,["Label","font-14",'font-bold','text-black-color'])
-      box.add(lbl)
-      l_time = Gtk.Label(label=file_time)
-      l_time.set_size_request(80, 25)
-      box.add(l_time)
-      lbl = Gtk.Label('Time Offset in (ms):')
-      self.add_style(lbl,["Label","font-14",'font-bold','text-black-color'])
-      box.add(lbl)
-      self.time_offset = Gtk.Entry()
-      self.time_offset.set_text('0')
-      self.time_offset.set_tooltip_text("Enter A Time Correction Factor To The New File")
-      self.time_offset.connect('changed', self.on_changed)
-      box.add(self.time_offset)
-      self.base_content_area.pack_start(Gtk.Separator(), 0, 0, 0)
-
-      header2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-      header2.set_property("height-request", 40)
-      lbl = Gtk.Label('Available Tags')
-      self.add_style(lbl,["Label","font-18",'font-bold','text-black-color'])
-      header2.pack_start(lbl, 1, 1, 0)
-      self.base_content_area.pack_start(header2, 0, 0, 0)
+      self.file_time.set_text(file_time)
 
       #_____________________ Import list
       self.liststore = Gtk.ListStore(bool,str , str)
       self.treeview = Gtk.TreeView(self.liststore)
       #Watch for user clicks
-      #self.treeview.connect('button-press-event' , self.tree_item_clicked)
+      self.treeview.connect('button-press-event' , self.tree_item_clicked)
       self.treeview.set_rules_hint( True )
       self.add_style(self.treeview,['treeview'])
 
@@ -5290,7 +5302,7 @@ class ImportUtility(Gtk.Dialog):
       #self.add_style(c,['treeview-header']) #add color to header
       c.show_all()
 
-      renderer_toggle.connect("toggled", self.tag_import_toggle)
+      #renderer_toggle.connect("toggled", self.tag_import_toggle)
       self.treeview.append_column(self.tvcolumn_toggle)
       self.tvcolumn_toggle.set_max_width(30)
 
@@ -5300,6 +5312,7 @@ class ImportUtility(Gtk.Dialog):
       self.c_name.set_property("xalign",0.5)
       #self.c_name.set_property("background",'white')
       self.c_name.set_property("foreground",'black')
+      self.c_name.connect('edited', self.name_check)
       col = Gtk.TreeViewColumn('Channel Name')
       c_but = col.get_button() #Get reference to column header button
       c = c_but.get_child()
@@ -5318,6 +5331,7 @@ class ImportUtility(Gtk.Dialog):
       self.scale.set_property("xalign",0.5)
       #self.scale.set_property("background",'white')
       self.scale.set_property("foreground",'black')
+      self.scale.connect('edited',self.change_num)
       col = Gtk.TreeViewColumn('Scaler')
       s_but = col.get_button() #Get reference to column header button
       c = s_but.get_child()
@@ -5345,6 +5359,9 @@ class ImportUtility(Gtk.Dialog):
       self.add_import_rows()
       self.show_all()
 
+  def change_num(self, widget, path, text):
+    params = {'min':0.0,'max':100000.0,'type':float,'polarity':False,'name':'Scale','value':text}
+    self.open_numpad('',widget,params)
 
   def add_import_rows(self,*args):
     for item in range(len(self.ch_Cfg)):
@@ -5354,46 +5371,58 @@ class ImportUtility(Gtk.Dialog):
                                       ])
     self.show_all()
 
-  def tag_import_toggle(self, *args):
-    print(args)
-    
-  def build_imp_row(self,item,ch_cfg,*args):
-      temp = len(ch_cfg)
-      b = Gtk.Box(orientation='horizontal')
-      b.set_homogeneous(True)
-      cb = (ch_cfg[item]['Select'])
-      cb.set_halign(Gtk.Align.CENTER)
+  #########################Make new treeview functional
+  #########################Build full import popup but don't fill it till after file is open
 
-      name_ent = ch_cfg[item]['NameBox']
-      name_ent.set_alignment(xalign=0.5)
-      sc = ch_cfg[item]['SBox']
-      if type(sc) == Gtk.Entry:
-          sc.set_alignment(xalign=0.5)
+  ########################################update the building of popup
+  #################
 
-      b.pack_start(cb, 1, 1, 0)
-      b.pack_start(name_ent, 1, 1, 0)
-      b.pack_start(sc, 1, 1, 0)
-      #return b
-      self.sc_box.add(b)
-      self.show_all()
-      if len(ch_cfg) == (item +1):
-        #########################Remove the loading label
-        #########################Make new treeview functional
-        #########################Build full import popup but don't fill it till after file is open
+  def tree_item_clicked(self, treeview, event):
+    pthinfo = treeview.get_path_at_pos(event.x, event.y)
+    if event.button == 1: #left click
+      if pthinfo != None:
+        path,column,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,column,0)
+        print(column.get_title())
+        #update currently active display
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        #If selected column is delete icon then initiate delete of connection
+        if tree_iter != None:
+          #gathers the Connection column name and connection type in the row clicked on
+          t_id = tree_model[tree_iter][1]
+          #checks if it is a toggle button click
+          if column is self.tvcolumn_toggle:
+            self.conx_connect_toggle('button',path,t_id)
 
-        ########################################update the building of popup
-        #################make popup get bigger when importing
-          #self.base_content_area.remove(self.wait_lab)
-          self.show_all()
+      else:
+        #unselect row in treeview
+        selection = treeview.get_selection()
+        selection.unselect_all()
+    elif event.button == 3: #right click
+      #no right click functions
+      pass
+
+  def conx_connect_toggle(self, widget, path,id):
+    self.liststore[path][0] = not self.liststore[path][0]
 
   def on_changed(self, *args):
       text = self.time_offset.get_text().strip()
       self.time_offset.set_text(''.join([i for i in text if i in '0123456789']))
 
-  def name_check(self, name_entry, *args):
-      text = name_entry.get_text().strip()
-      name_entry.set_text(
-          ''.join([i for i in text if i in 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ1234567890_-']))
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
+    response = numpad.run()
+    if response == Gtk.ResponseType.NO:
+      pass
+    else:
+      pass
+    numpad.destroy()
+
+  def name_check(self, widget, path, text):
+    temp = ''.join([i for i in text if i in 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ1234567890_-()'])
+    self.liststore[path][1] = temp
 
   def check_num(self, sc, *args):
       t = sc.get_text()

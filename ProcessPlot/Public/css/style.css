@@ -130,6 +130,14 @@
   border-radius: 10px;
 }
 
+.label-box {
+  padding: 2px;
+  text-decoration: none;
+  color: black; /* text color */
+  background: white;
+  border: 1px solid #24252A;
+}
+
 .list-select{
   color: black;
   padding: 2px;
