@@ -3590,8 +3590,6 @@ class ValueEnter(Gtk.Dialog):
         val = str(num)
       else:
         val = old_val+str(num)
-    
-    
     if self.check_limits(val):
       self.val_label.set_text(val)
   
@@ -3645,6 +3643,9 @@ class ValueEnter(Gtk.Dialog):
         value = self.val_label.get_text()
       if isinstance(self.widget_obj, Gtk.Entry):
         self.widget_obj.set_text(str(self.val_label.get_text()))
+        value = self.val_label.get_text()
+      if isinstance(self.widget_obj,Gtk.CellRendererText):
+        self.params['ref_val'][2] = (str(self.val_label.get_text()))
         value = self.val_label.get_text()
       else:
         value = 0
@@ -4882,7 +4883,7 @@ class ImportUtility(Gtk.Dialog):
 
     #OK Button
     self.ok_button = Gtk.Button(width_request = 100, height_request = 30)
-    #self.ok_button.connect('clicked',self.save_settings,self.c_id,True)
+    self.ok_button.connect('clicked',self.convert)
     p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale('./ProcessPlot/Public/images/Return.png', 20, -1, True)
     image = Gtk.Image(pixbuf=p_buf)
     box = Gtk.Box()
@@ -4985,28 +4986,11 @@ class ImportUtility(Gtk.Dialog):
               self.ch_Cfg.append(dict(zip(analog_dict, list(cell for cell in rows[2 + analog_chan].split(',')))))
               self.ch_Cfg[analog_chan]['AD'] = 'A'
               self.ch_Cfg[analog_chan]['Select'] = Gtk.CheckButton()
-              name_ent = Gtk.Entry()
-              name_ent.set_text(str(self.ch_Cfg[analog_chan]['Name']))
-              name_ent.connect('changed', self.name_change, name_ent)
-              name_ent.set_tooltip_text("Enter New Name")
-              self.ch_Cfg[analog_chan]['NameBox'] = name_ent
-              sc = Gtk.Entry()
-              sc.set_tooltip_text("Change Tag Scale")
-              sc.set_text('1.0')
-              sc.connect('changed', self.check_num, sc)
-              self.ch_Cfg[analog_chan]['SBox'] = sc
           for dig_chan in range(self.DNum):
               self.ch_Cfg.append(
                   dict(zip(analog_dict, list(cell for cell in rows[2 + self.ANum + dig_chan].split(',')))))
               self.ch_Cfg[dig_chan+self.ANum]['AD'] = 'D'
               self.ch_Cfg[dig_chan+self.ANum]['Select'] = Gtk.CheckButton()
-              name_ent = Gtk.Entry()
-              name_ent.set_text(str(self.ch_Cfg[dig_chan+self.ANum]['Name']))
-              name_ent.connect('changed', self.name_change, name_ent)
-              name_ent.set_tooltip_text("Enter New Name")
-              self.ch_Cfg[dig_chan+self.ANum]['NameBox'] = name_ent
-              sc = Gtk.Label('Digital Channel')
-              self.ch_Cfg[dig_chan+self.ANum]['SBox'] = sc
           '''Start time'''
           day, month, year = str((rows[5 + self.ANum + self.DNum].split(',')[0])).split('/')
           hour, minute, temp = str((rows[5 + self.ANum + self.DNum].split(',')[1])).split(':')
@@ -5088,17 +5072,7 @@ class ImportUtility(Gtk.Dialog):
         x=1
         for analog_chan in range(self.ANum):
             self.ch_Cfg.append(dict(zip(analog_dict,(str(x),(str(rows[6]).split(',')[analog_chan]).replace('"',''),'','','',1.0,'','','','','A' ))))
-            self.ch_Cfg[analog_chan]['Select'] = Gtk.CheckButton()
-            name_ent = Gtk.Entry()
-            name_ent.set_text(str(self.ch_Cfg[analog_chan]['Name']))
-            name_ent.connect('changed', self.name_change, name_ent)
-            name_ent.set_tooltip_text("Enter New Name")
-            self.ch_Cfg[analog_chan]['NameBox'] = name_ent
-            sc = Gtk.Entry()
-            sc.set_tooltip_text("Change Tag Scale")
-            sc.set_text('1.0')
-            sc.connect('changed', self.check_num, sc)
-            self.ch_Cfg[analog_chan]['SBox'] = sc
+            self.ch_Cfg[analog_chan]['Select'] = False
             x+=1
         if self.DNum != 0:
             temp = (str(rows[6]).split(',')[-2])
@@ -5106,14 +5080,7 @@ class ImportUtility(Gtk.Dialog):
         for dig_chan in range(self.DNum):
             #self.AnalNames.append(str(temp).split(' ')[item])
             self.ch_Cfg.append(dict(zip(analog_dict, (str(x), str(temp).split(' ')[dig_chan], '', '', '', 1.0, '', '', '','','D'))))
-            self.ch_Cfg[dig_chan + self.ANum]['Select'] = Gtk.CheckButton()
-            name_ent = Gtk.Entry()
-            name_ent.set_text(str(self.ch_Cfg[dig_chan + self.ANum]['Name']))
-            name_ent.connect('changed', self.name_change, name_ent)
-            name_ent.set_tooltip_text("Enter New Name")
-            self.ch_Cfg[dig_chan + self.ANum]['NameBox'] = name_ent
-            sc = Gtk.Label('Digital Channel')
-            self.ch_Cfg[dig_chan + self.ANum]['SBox'] = sc
+            self.ch_Cfg[dig_chan + self.ANum]['Select'] = False
             x += 1
         '''Bring Analog data into list of lists in self.data'''
         a_data = [[] for _ in range(self.ANum)]  # list of lists for all of the data +1 for the time
@@ -5180,17 +5147,7 @@ class ImportUtility(Gtk.Dialog):
       x=1
       for analog_chan in range(self.ANum):
           self.ch_Cfg.append(dict(zip(analog_dict,(str(x),(str(rows[6]).split(',')[analog_chan]).replace('"',''),'','','',1.0,'','','','','A' ))))
-          self.ch_Cfg[analog_chan]['Select'] = Gtk.CheckButton()
-          name_ent = Gtk.Entry()
-          name_ent.set_text(str(self.ch_Cfg[analog_chan]['Name']))
-          name_ent.connect('changed', self.name_change, name_ent)
-          name_ent.set_tooltip_text("Enter New Name")
-          self.ch_Cfg[analog_chan]['NameBox'] = name_ent
-          sc = Gtk.Entry()
-          sc.set_tooltip_text("Change Tag Scale")
-          sc.set_text('1.0')
-          sc.connect('changed', self.check_num, sc)
-          self.ch_Cfg[analog_chan]['SBox'] = sc
+          self.ch_Cfg[analog_chan]['Select'] = False
           x+=1
       if self.DNum != 0:
           temp = (str(rows[6]).split(',')[-2])
@@ -5198,14 +5155,7 @@ class ImportUtility(Gtk.Dialog):
       for dig_chan in range(self.DNum):
           #self.AnalNames.append(str(temp).split(' ')[item])
           self.ch_Cfg.append(dict(zip(analog_dict, (str(x), str(temp).split(' ')[dig_chan], '', '', '', 1.0, '', '', '','','D'))))
-          self.ch_Cfg[dig_chan + self.ANum]['Select'] = Gtk.CheckButton()
-          name_ent = Gtk.Entry()
-          name_ent.set_text(str(self.ch_Cfg[dig_chan + self.ANum]['Name']))
-          name_ent.connect('changed', self.name_change, name_ent)
-          name_ent.set_tooltip_text("Enter New Name")
-          self.ch_Cfg[dig_chan + self.ANum]['NameBox'] = name_ent
-          sc = Gtk.Label('Digital Channel')
-          self.ch_Cfg[dig_chan + self.ANum]['SBox'] = sc
+          self.ch_Cfg[dig_chan + self.ANum]['Select'] = False
           x += 1
       '''Bring Analog data into list of lists in self.data'''
       a_data = [[] for _ in range(self.ANum)]  # list of lists for all of the data +1 for the time
@@ -5253,17 +5203,25 @@ class ImportUtility(Gtk.Dialog):
       return False
 
   def convert(self,*args):
-      found = 0
-      for item in range(len(self.ch_Cfg)):
-          if self.ch_Cfg[item]['Select'].get_active():
-              found += 1
-      if found == 0:
-          self.display_msg(msg='No Items Selected')
-      if self.requirements <2:
-          self.display_msg(msg='Verify File Selected and Export Location Selected')
-      if found >=1 and self.requirements >=2:
-          pass
-          #push to database
+    tags_selected_for_import = []
+    for row in self.liststore:
+    # Print values of all columns
+      if row[0]:
+        tags_selected_for_import.append(row[1])
+    found = 0
+    for item in range(len(self.ch_Cfg)):
+        if self.ch_Cfg[item]['Name'] in tags_selected_for_import:
+          self.ch_Cfg[item]['Select'] = True
+          found += 1
+    if found == 0:
+        self.display_msg(msg='No Items Selected')
+    self.requirements = 2
+    if self.requirements <2:
+        self.display_msg(msg='Verify File Selected and Export Location Selected')
+    if found >=1 and self.requirements >=2:
+      #print('importing',self.ch_Cfg)   #All self.ch_Cfg tags with select = True shoudl be imported
+      self.close_popup()
+      #push to database
 
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -5291,7 +5249,7 @@ class ImportUtility(Gtk.Dialog):
       self.add_style(self.treeview,['treeview'])
 
       #Add toggle button
-      connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
+      connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
       image = Gtk.Image(pixbuf=connection_icon)
       renderer_toggle = Gtk.CellRendererToggle()
       renderer_toggle.set_property('cell-background','gray')
@@ -5327,21 +5285,21 @@ class ImportUtility(Gtk.Dialog):
 
       #Add Scaler
       self.scale = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
-      self.scale.set_property("editable", True)
-      self.scale.set_property("xalign",0.5)
-      #self.scale.set_property("background",'white')
+      #self.scale.set_property("editable", True)                  #Makes text box editable
+      self.scale.set_property("xalign",0.5)                        #Centers text in Box
+      #self.scale.set_property("background",'white')              #changes box background to white
       self.scale.set_property("foreground",'black')
-      self.scale.connect('edited',self.change_num)
-      col = Gtk.TreeViewColumn('Scaler')
-      s_but = col.get_button() #Get reference to column header button
+      #self.scale.connect('edited',self.change_num)
+      self.scale_col = Gtk.TreeViewColumn('Scaler')
+      s_but = self.scale_col.get_button() #Get reference to column header button
       c = s_but.get_child()
       self.add_style(c,['treeview-header'])
-      self.treeview.append_column(col)
-      col.pack_start(self.scale, False)
-      col.set_expand(False)
-      col.set_alignment(0.5)
-      col.set_sort_column_id(2)
-      col.set_attributes(self.scale,text=2)
+      self.treeview.append_column(self.scale_col)
+      self.scale_col.pack_start(self.scale, False)
+      self.scale_col.set_expand(False)
+      self.scale_col.set_alignment(0.5)
+      self.scale_col.set_sort_column_id(2)
+      self.scale_col.set_attributes(self.scale,text=2)
 
       # make treeview searchable
       self.treeview.set_search_column(1)
@@ -5358,10 +5316,6 @@ class ImportUtility(Gtk.Dialog):
 
       self.add_import_rows()
       self.show_all()
-
-  def change_num(self, widget, path, text):
-    params = {'min':0.0,'max':100000.0,'type':float,'polarity':False,'name':'Scale','value':text}
-    self.open_numpad('',widget,params)
 
   def add_import_rows(self,*args):
     for item in range(len(self.ch_Cfg)):
@@ -5384,7 +5338,7 @@ class ImportUtility(Gtk.Dialog):
         path,column,cellx,celly = pthinfo
         treeview.grab_focus()
         treeview.set_cursor(path,column,0)
-        print(column.get_title())
+        column_title = (column.get_title())
         #update currently active display
         selection = treeview.get_selection()
         tree_model, tree_iter = selection.get_selected()
@@ -5392,9 +5346,12 @@ class ImportUtility(Gtk.Dialog):
         if tree_iter != None:
           #gathers the Connection column name and connection type in the row clicked on
           t_id = tree_model[tree_iter][1]
+          scale = tree_model[tree_iter][2]
           #checks if it is a toggle button click
           if column is self.tvcolumn_toggle:
             self.conx_connect_toggle('button',path,t_id)
+          if column is self.scale_col:
+            self.change_num(Gtk.CellRendererText(),path,scale)
 
       else:
         #unselect row in treeview
@@ -5411,6 +5368,11 @@ class ImportUtility(Gtk.Dialog):
       text = self.time_offset.get_text().strip()
       self.time_offset.set_text(''.join([i for i in text if i in '0123456789']))
 
+  def change_num(self, widget, path, text):
+    #ref_val is the parameter used by the numpad to set the value in the treeview
+    params = {'min':-100000.0,'max':100000.0,'type':float,'polarity':True,'name':'Scale','value':text,'ref_val':self.liststore[path]}
+    self.open_numpad('',widget,params)
+
   def open_numpad(self,button,widget_obj,params,*args):
     numpad = ValueEnter(self,widget_obj,params)
     response = numpad.run()
@@ -5423,35 +5385,6 @@ class ImportUtility(Gtk.Dialog):
   def name_check(self, widget, path, text):
     temp = ''.join([i for i in text if i in 'aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ1234567890_-()'])
     self.liststore[path][1] = temp
-
-  def check_num(self, sc, *args):
-      t = sc.get_text()
-      try:
-          if t.replace('.', '', 1).replace('-', '', 1).isdigit():
-              pass
-          else:
-              t = t[:-1]
-          sc.set_text(str(t))
-      except ValueError as e:
-          self.display_msg(msg='Enter Valid Number: ' + e)
-          sc.set_text(str(''))
-
-  def check_int(self, button,sc,n_rows, *args):
-      text = sc.get_text().strip()
-      n_text = (''.join([i for i in text if i in '0123456789']))
-      if n_text == '':
-          n_text = '1'
-      if int(n_text) > n_rows:
-          sc.set_text(str(n_rows))
-      else:
-          sc.set_text(n_text)
-
-  def name_change(self, name, *args):
-      n = name.get_text()
-      name.set_text(n)
-
-  def reset_value(self, button,e_row,n_rows, *args):
-      e_row.set_text(str(n_rows))
 
   def select_all(self, *args):
       for item in range(len(self.ch_Cfg)):
