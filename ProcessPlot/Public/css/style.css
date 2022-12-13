@@ -173,17 +173,22 @@
 
 .treeview{ 
   color: Black; 
-  background: rgb(192, 192, 192); 
+  background: rgb(110, 110, 110); 
   text-shadow: none; 
   box-shadow: none; 
+  border-bottom: 1px solid white;
 }
 .treeview:hover { 
-  background-color: #666666; 
-  color: red; 
+  background-color: rgb(247, 115, 115);
 }
 
 .treeview-header{
   color: Black; 
+}
+
+.treeview-toggle{
+  color: purple; 
+  background: blue; 
 }
 
 .spinbutton{ 

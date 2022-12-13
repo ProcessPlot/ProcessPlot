@@ -4704,9 +4704,9 @@ class ImportUtility(Gtk.Dialog):
     self.start_time = 0.0
     self.end_time = 0.0
     self.big_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    self.conversion = ['Comtrade', 'SEL']
-    self.filterlist = ["*.cfg","*.CEV"]
-    self.filter = {'Comtrade':'*.cfg'}
+    self.conversion = ['SEL','Comtrade']
+    self.filterlist = ["*.CEV","*.cfg"]
+    self.filter = {'SEL':'*.CEV'}
     
     self.build_window()
     self.content_area = self.get_content_area()
@@ -4972,7 +4972,7 @@ class ImportUtility(Gtk.Dialog):
     save_dialog.destroy()
 
   def comtrade_import(self, *args):
-      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
+      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select']
       try:
           with open(self.fn,'r') as f:
               rows = f.readlines()
@@ -5004,8 +5004,6 @@ class ImportUtility(Gtk.Dialog):
           second, ms = temp.split('.')
           ms = '0.' + ms
           t = (int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, 0)
-          #test = (self.ch_Cfg[0]['Select'])
-          #print(test.get_active())
       except:
           self.display_msg(msg='File Header Corrupted')
           self.start_time = '0.0'
@@ -5034,7 +5032,7 @@ class ImportUtility(Gtk.Dialog):
           self.display_msg(msg='Data File (.dat) Missing or not in cfg directory: ' + str(e))
 
   def sel_import(self, *args):
-      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
+      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select']
       try:
           with open(self.fn,'r') as f:
               rows = f.readlines()
@@ -5049,7 +5047,6 @@ class ImportUtility(Gtk.Dialog):
         self.start_time = time.mktime(t) + float(ms)  # seconds after POSIX epoch
         '''Config Data'''
         #REC_NUM, REF_NUM, NUM_CH_A, NUM_CH_D, FREQ, NFREQ, SAM_CYC_A, SAM_CYC_D, NUM_OF_CYC, PRIM_VAL, CTR_IA, CTR_IB, CTR_IC, CTR_IN, CTR_IG, PTR_VA, PTR_VB, PTR_VC, PTR_VS, EVENT, LOCATION, GROUP, IA_A, IB_A, IC_A, IN_A, IG_A, VA_V, VB_V, VC_V, VG_V, VS_V, VDC_V, WDG_C, BRG_C, AMB_C, OTH_C, na = str(rows[5]).split(',')
-        #rec_num, a_num, d_num, freqx, freqy, n_freq, acycles, samp_cycleD,numcycles,primvalue,na = str(rows[5]).split(',')
         rec_names = []
         rec_names = str(rows[4]).split(',')    
         rec_num = []
@@ -5119,7 +5116,7 @@ class ImportUtility(Gtk.Dialog):
           self.display_msg(msg='File Import Error: '+str(e))
 
   def sel_import_old(self, *args):
-      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select','NameBox','SBox']
+      analog_dict = ['CNum', 'Name', 'Phase', 'Cir', 'Unit', 'Scale', 'Off', 'Skew', 'Min', 'Max','AD','Select']
       try:
           with open(self.fn,'r') as f:
               rows = f.readlines()
@@ -5219,7 +5216,7 @@ class ImportUtility(Gtk.Dialog):
     if self.requirements <2:
         self.display_msg(msg='Verify File Selected and Export Location Selected')
     if found >=1 and self.requirements >=2:
-      #print('importing',self.ch_Cfg)   #All self.ch_Cfg tags with select = True shoudl be imported
+      #print('importing',self.ch_Cfg)   #All self.ch_Cfg tags with select = True should be imported
       self.close_popup()
       #push to database
 
@@ -5248,11 +5245,11 @@ class ImportUtility(Gtk.Dialog):
       self.treeview.set_rules_hint( True )
       self.add_style(self.treeview,['treeview'])
 
-      #Add toggle button
+      #Add toggle button header
       connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
       image = Gtk.Image(pixbuf=connection_icon)
       renderer_toggle = Gtk.CellRendererToggle()
-      renderer_toggle.set_property('cell-background','gray')
+      #renderer_toggle.set_property('cell-background','gray')
       self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=0)
       h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
       c = h_but.get_child()
@@ -5268,7 +5265,7 @@ class ImportUtility(Gtk.Dialog):
       self.c_name = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
       self.c_name.set_property("editable", True)
       self.c_name.set_property("xalign",0.5)
-      #self.c_name.set_property("background",'white')
+      #self.c_name.set_property("cell-background",'white')
       self.c_name.set_property("foreground",'black')
       self.c_name.connect('edited', self.name_check)
       col = Gtk.TreeViewColumn('Channel Name')
@@ -5327,9 +5324,9 @@ class ImportUtility(Gtk.Dialog):
 
   #########################Make new treeview functional
   #########################Build full import popup but don't fill it till after file is open
-
-  ########################################update the building of popup
-  #################
+  ######################### 
+  #########################update the building of popup
+  ######################### Verify comtrade import works
 
   def tree_item_clicked(self, treeview, event):
     pthinfo = treeview.get_path_at_pos(event.x, event.y)
@@ -5349,7 +5346,7 @@ class ImportUtility(Gtk.Dialog):
           scale = tree_model[tree_iter][2]
           #checks if it is a toggle button click
           if column is self.tvcolumn_toggle:
-            self.conx_connect_toggle('button',path,t_id)
+            self.select_toggle('button',path,t_id)
           if column is self.scale_col:
             self.change_num(Gtk.CellRendererText(),path,scale)
 
@@ -5358,10 +5355,44 @@ class ImportUtility(Gtk.Dialog):
         selection = treeview.get_selection()
         selection.unselect_all()
     elif event.button == 3: #right click
-      #no right click functions
-      pass
+      if pthinfo != None:
+        path,col,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,col,0)
+        rect = Gdk.Rectangle()
+        rect.x = event.x
+        rect.y = event.y + 10
+        rect.width = rect.height = 1
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        popover = Gtk.Popover(width_request = 200)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        if tree_iter is not None:
+          #gathers the Tag name/Connection column text in the row clicked on
+          t_id = tree_model[tree_iter][1]
+          scale = tree_model[tree_iter][2]
+          #popover to add display
+          select_btn = Gtk.ModelButton(label="Select All", name=t_id)
+          cb = lambda btn: self.select_all(t_id)
+          select_btn.connect("clicked", cb)
+          vbox.pack_start(select_btn, False, True, 10)
+          clear_btn = Gtk.ModelButton(label="Clear All", name=t_id)
+          cb = lambda btn:self.clear_all(t_id,tree_iter)
+          clear_btn.connect("clicked", cb)
+          vbox.pack_start(clear_btn, False, True, 10)
+        popover.add(vbox)
+        popover.set_position(Gtk.PositionType.RIGHT)
+        popover.set_relative_to(treeview)
+        popover.set_pointing_to(rect)
+        popover.show_all()
+        sc = popover.get_style_context()
+        sc.add_class('popover-bg')
+        sc.add_class('font-16')
+        return
+      else:
+        return
 
-  def conx_connect_toggle(self, widget, path,id):
+  def select_toggle(self, widget, path,id):
     self.liststore[path][0] = not self.liststore[path][0]
 
   def on_changed(self, *args):
@@ -5387,14 +5418,13 @@ class ImportUtility(Gtk.Dialog):
     self.liststore[path][1] = temp
 
   def select_all(self, *args):
-      for item in range(len(self.ch_Cfg)):
-          cb =  self.ch_Cfg[item]['Select']
-          cb.set_active(True)
+        for row in self.liststore:
+          print(row[0].get_iter())
+          #row[0].set_active(True)
 
   def clear_all(self, *args):
-      for item in range(len(self.ch_Cfg)):
-          cb =  self.ch_Cfg[item]['Select']
-          cb.set_active(False)
+        for row in self.liststore:
+          row[0].set_active(False)
 
   def close_popup(self, *args):
         self.destroy()
