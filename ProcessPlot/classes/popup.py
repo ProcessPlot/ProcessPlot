@@ -2554,7 +2554,17 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.insert_connection_row(None,params)
       self.get_available_connections()
     else:
-      print('connection creation failed')
+      #print('connection creation failed')
+      self.display_msg(msg='connection creation failed')
+
+  def display_msg(self,msg,*args):
+    popup = PopupMessage(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
 
   def update_connection(self,params,*args):
     conx_obj = self.app.link.get("connections").get(params['id'])
@@ -5220,6 +5230,22 @@ class ImportUtility(Gtk.Dialog):
       self.close_popup()
       #push to database
 
+  def create_connection(self,params,*args):
+    ##################
+    ######################## Dont pass in params just generate default name for new clocal onnection
+    ######################
+    #should be passing in description and connection_type as a dictionary
+    new_conx = self.app.link.new_connection({"id": params['id'],
+                            "connection_type": params['connection_type'],
+                            "description": params['description']
+                            })
+    conx_obj = self.app.link.get("connections").get(params['id'])
+    if conx_obj != None:
+      self.app.link.save_connection(conx_obj)
+    else:
+      #print('connection creation failed')
+      self.display_msg(msg='connection creation failed')
+
   def add_style(self, item,style):
     sc = item.get_style_context()
     for sty in style:
@@ -5323,9 +5349,9 @@ class ImportUtility(Gtk.Dialog):
     self.show_all()
 
   #########################Make new treeview functional
-  #########################Build full import popup but don't fill it till after file is open
   ######################### 
-  #########################update the building of popup
+  ######################### When ready to import I need to build local connection and then import all new tags (examples above)
+  #########################
   ######################### Verify comtrade import works
 
   def tree_item_clicked(self, treeview, event):
@@ -5418,13 +5444,14 @@ class ImportUtility(Gtk.Dialog):
     self.liststore[path][1] = temp
 
   def select_all(self, *args):
-        for row in self.liststore:
-          print(row[0].get_iter())
-          #row[0].set_active(True)
+      for row in range(len(self.liststore)):
+        path = Gtk.TreePath(row)
+        self.liststore[path][0] = (True)
 
   def clear_all(self, *args):
-        for row in self.liststore:
-          row[0].set_active(False)
+      for row in range(len(self.liststore)):
+        path = Gtk.TreePath(row)
+        self.liststore[path][0] = (False)
 
   def close_popup(self, *args):
         self.destroy()
