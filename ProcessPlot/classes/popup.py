@@ -1577,7 +1577,7 @@ class TagMainPopup(Gtk.Dialog):
 
   def create_tag(self,params,*args):
     if 'address' not in params:
-      params['address'] = '12'  # default address when not passed in because required to create connection
+      params['address'] = '12'  # default address when not passed in because required to create tag
     conx_obj = self.app.link.get('connections').get(params['connection_id'])
     conx_obj.new_tag({"id": params['id'],
                             "connection_id": params['connection_id'],
@@ -2576,7 +2576,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
           try:
             conx_obj.set(key,val)
           except KeyError as e:
-            print(e,key)
+            self.display_msg(msg="Connection Update Failed: {}, {}".format(e,key))
+            #print(e,key)
       self.app.link.save_connection(conx_obj)
 
   def add_connection_popup(self,button,bad_name,*args):
@@ -2619,7 +2620,7 @@ class AddConnectionPopup(Gtk.Dialog):
     self.parent = parent
     self.app = app
     self.params = params
-    self.conx_type = conx_type
+    self.conx_type = conx_type        #List of available connection types (Can use this to limit types of connections allowed to create)
     self.build_window()
     self.connect("response", self.on_response)
     self.result = {}
@@ -2853,7 +2854,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.result = {}
 
     self.content_area = self.get_content_area()
-    self.dialog_window = Gtk.Box(width_request=500,orientation=Gtk.Orientation.VERTICAL)
+    self.dialog_window = Gtk.Box(height_request=200,width_request=500,orientation=Gtk.Orientation.VERTICAL)
     self.content_area.add(self.dialog_window )
     ### - Title Bar- ###
     self.title_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,height_request=20,width_request=300)
@@ -2882,7 +2883,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     self.show_all()
 
   def build_window(self, *args):
-    self.set_default_size(500, 400)
+    self.set_default_size(500, 200)
     self.set_decorated(False)
     self.set_border_width(10)
     self.set_keep_above(True)
@@ -4702,6 +4703,7 @@ class ImportUtility(Gtk.Dialog):
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0)
     self.app = app
+    self.conx_type = self.app.link.get('connection_types')
     self.db_session = self.app.settings_db.session
     self.db_model = self.app.settings_db.models['chart']
     self.Tbl = self.db_model
@@ -4717,6 +4719,7 @@ class ImportUtility(Gtk.Dialog):
     self.conversion = ['SEL','Comtrade']
     self.filterlist = ["*.CEV","*.cfg"]
     self.filter = {'SEL':'*.CEV'}
+    self.new_conx = None
     
     self.build_window()
     self.content_area = self.get_content_area()
@@ -5226,14 +5229,38 @@ class ImportUtility(Gtk.Dialog):
     if self.requirements <2:
         self.display_msg(msg='Verify File Selected and Export Location Selected')
     if found >=1 and self.requirements >=2:
-      #print('importing',self.ch_Cfg)   #All self.ch_Cfg tags with select = True should be imported
+      self.add_connection_popup(None,None)
       self.close_popup()
-      #push to database
+      if self.new_conx == None:
+        self.display_msg(msg='No Tags Imported')
+      else:
+        for tag in self.ch_Cfg:
+          if tag['Select']:  #All self.ch_Cfg tags with select = True should be imported
+            #####################################Need to check if tag name has already been created
+            #####################################Actually push data from each tag to database
+            #####################################Handle boolean tags to be imported
+
+            params = {"id": tag['Name'],
+                                "connection_id": self.new_conx,
+                                "description": '',
+                                "datatype": 'FLOAT',
+                                "address": tag['CNum'],
+                    }
+            self.create_tag(params)
+
+  def add_connection_popup(self,button,bad_name,*args):
+    ######################## Dont pass in params just generate default name for new local connection
+    popup = AddConnectionPopup(self,None,self.app,['local'])
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      #results = (popup.get_result())
+      #self.check_duplicate_name(results)
+      return True
+    else:
+      return False
 
   def create_connection(self,params,*args):
-    ##################
-    ######################## Dont pass in params just generate default name for new clocal onnection
-    ######################
     #should be passing in description and connection_type as a dictionary
     new_conx = self.app.link.new_connection({"id": params['id'],
                             "connection_type": params['connection_type'],
@@ -5241,10 +5268,52 @@ class ImportUtility(Gtk.Dialog):
                             })
     conx_obj = self.app.link.get("connections").get(params['id'])
     if conx_obj != None:
+      self.new_conx = params['id']
       self.app.link.save_connection(conx_obj)
+      self.insert_connection_row(None,params)
+      self.get_available_connections()
     else:
       #print('connection creation failed')
-      self.display_msg(msg='connection creation failed')
+      self.display_msg(msg='Connection creation failed')
+
+  def insert_connection_row(self,button,params,*args):
+    pass
+
+  def open_settings_popup(self,conx_id,*args):
+    pass
+
+  def get_available_connections(self,*args):
+    conx_items = ['id', 'connection_type', 'description']
+    new_params = {}
+    self.connections_available = {}   #Clears out old list
+    self.conx_obj_available = {}   #Clears out old list
+    count = 0
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      for c in conx_items:
+        new_params[c] = getattr(conx_obj, c)
+      self.connections_available[count] = new_params
+      self.conx_obj_available[conx_id] = conx_obj   #Hold reference to all conx objects
+      new_params = {}
+      count += 1
+
+  def create_tag(self,params,*args):
+    if 'address' not in params:
+      params['address'] = '12'  # default address when not passed in because required to create tag
+    conx_obj = self.app.link.get('connections').get(params['connection_id'])
+    conx_obj.new_tag({"id": params['id'],
+                            "connection_id": params['connection_id'],
+                            "description": params['description'],
+                            "datatype": params['datatype'],
+                            "address": params['address'],
+    })
+    tag_obj = conx_obj.get('tags').get(params['id'])
+    if tag_obj != None:
+      self.app.link.save_tag(tag_obj)
+    params = self.get_tag_params(params['id'],params['connection_id'])
+    self.insert_tag_row(None,params)
+
+  def insert_tag_row(self,button,params,*args):
+    pass
 
   def add_style(self, item,style):
     sc = item.get_style_context()
@@ -5349,7 +5418,7 @@ class ImportUtility(Gtk.Dialog):
     self.show_all()
 
   #########################Make new treeview functional
-  ######################### 
+  ######################### It appears that logix and local connections are messed up in the database
   ######################### When ready to import I need to build local connection and then import all new tags (examples above)
   #########################
   ######################### Verify comtrade import works
