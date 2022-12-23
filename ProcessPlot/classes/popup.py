@@ -2298,8 +2298,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
     #Generate Columns
     columns = {1:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               2:{'name':'Driver Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               3:{'name':'Address','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               2:{'name':'Connection Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               3:{'name':'Description','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
               }
     for c in columns:
       col = Gtk.TreeViewColumn(columns[c]['name'])
@@ -4707,7 +4707,6 @@ class ImportUtility(Gtk.Dialog):
     self.db_session = self.app.settings_db.session
     self.db_model = self.app.settings_db.models['chart']
     self.Tbl = self.db_model
-    self.requirements = 0
     self.data = []
     self.ANum = 0
     self.DNum = 0
@@ -4959,7 +4958,6 @@ class ImportUtility(Gtk.Dialog):
             self.comtrade_import(self.fn)
         elif self.conv_type.get_active_text() == 'SEL':
             self.sel_import(self.fn)
-        self.requirements +=1
       open_dialog.destroy()
 
   def fileChooser_save(self,button,conx_sel,filt_pattern = ["*.xlsx"]):
@@ -4978,7 +4976,6 @@ class ImportUtility(Gtk.Dialog):
     if response == Gtk.ResponseType.OK:
         self.foldname = save_dialog.get_filename()
         self.export_entry.set_text(self.foldname)
-        self.requirements +=1
     else:
         # don't bother building the window
         self.destroy()
@@ -5214,21 +5211,24 @@ class ImportUtility(Gtk.Dialog):
 
   def convert(self,*args):
     tags_selected_for_import = []
+    duplicate_tag = []
     for row in self.liststore:
     # Print values of all columns
-      if row[0]:
-        tags_selected_for_import.append(row[1])
+      if row[0]:  #searches liststore for all rows with a checkmark and adds names to a list
+        if row[1] in tags_selected_for_import:  #Checks for duplicate tag names in import list
+          duplicate_tag.append(row[1])
+        else:
+          tags_selected_for_import.append(row[1])
+    if duplicate_tag:
+      self.display_msg(msg='Duplicate Tag Names Exist Items Selected Only First Tag Will Be Imported')
     found = 0
-    for item in range(len(self.ch_Cfg)):
+    for item in range(len(self.ch_Cfg)):  #Figure out which tags were selected
         if self.ch_Cfg[item]['Name'] in tags_selected_for_import:
           self.ch_Cfg[item]['Select'] = True
           found += 1
     if found == 0:
         self.display_msg(msg='No Items Selected')
-    self.requirements = 2
-    if self.requirements <2:
-        self.display_msg(msg='Verify File Selected and Export Location Selected')
-    if found >=1 and self.requirements >=2:
+    else:
       self.add_connection_popup(None,None)
       self.close_popup()
       if self.new_conx == None:
@@ -5239,6 +5239,7 @@ class ImportUtility(Gtk.Dialog):
             #####################################Need to check if tag name has already been created
             #####################################Actually push data from each tag to database
             #####################################Handle boolean tags to be imported
+            ##################### Seems like process link connection is setup only for local conx see lines 96-99
 
             params = {"id": tag['Name'],
                                 "connection_id": self.new_conx,
@@ -5311,6 +5312,17 @@ class ImportUtility(Gtk.Dialog):
       self.app.link.save_tag(tag_obj)
     params = self.get_tag_params(params['id'],params['connection_id'])
     self.insert_tag_row(None,params)
+
+  def get_tag_params(self,tag_id,conx_id):
+    new_params = {}
+    conx_obj = self.app.link.get("connections").get(conx_id)
+    if conx_obj != None:
+      tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
+      tag_obj = conx_obj.get('tags').get(tag_id)
+      if tag_obj != None:
+        for c in tag_items:
+          new_params[c] = getattr(tag_obj, c)
+        return new_params
 
   def insert_tag_row(self,button,params,*args):
     pass
@@ -5417,9 +5429,9 @@ class ImportUtility(Gtk.Dialog):
                                       ])
     self.show_all()
 
-  #########################Make new treeview functional
+  #########################
   ######################### It appears that logix and local connections are messed up in the database
-  ######################### When ready to import I need to build local connection and then import all new tags (examples above)
+  #########################
   #########################
   ######################### Verify comtrade import works
 
