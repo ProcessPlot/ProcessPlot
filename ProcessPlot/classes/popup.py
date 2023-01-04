@@ -140,9 +140,9 @@ class BaseSettingsPopoup(Gtk.Dialog):
 ################################ change styling of connect toggle button , add connect to conx database
 ################################ When deleting a connection the row stays in the connection specific table
 ################################ Need to update connection toggle buttons on regular basis and when building page
-################################ Add duplicate button on tag settings popup
+################################ Add button on tags row to include on legend besides pens
 ################################ Add ability to save data to config file and upload data back to connection from file (ConfigUtility)
-################################ Add file imports to Utility.py
+################################ 
 ################################ add pens to legend popout
 
 
@@ -4700,6 +4700,10 @@ class Export_ImportTagsPopup(Gtk.Dialog):
 
 
 class ImportUtility(Gtk.Dialog):
+  #####################################Need to check if tag name has already been created
+  #####################################Actually push data from each tag to database
+  #####################################Handle boolean tags to be imported
+
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0)
     self.app = app
@@ -5236,11 +5240,6 @@ class ImportUtility(Gtk.Dialog):
       else:
         for tag in self.ch_Cfg:
           if tag['Select']:  #All self.ch_Cfg tags with select = True should be imported
-            #####################################Need to check if tag name has already been created
-            #####################################Actually push data from each tag to database
-            #####################################Handle boolean tags to be imported
-            ##################### Seems like process link connection is setup only for local conx see lines 96-99
-
             params = {"id": tag['Name'],
                                 "connection_id": self.new_conx,
                                 "description": '',
@@ -5429,12 +5428,6 @@ class ImportUtility(Gtk.Dialog):
                                       ])
     self.show_all()
 
-  #########################
-  ######################### It appears that logix and local connections are messed up in the database
-  #########################
-  #########################
-  ######################### Verify comtrade import works
-
   def tree_item_clicked(self, treeview, event):
     pthinfo = treeview.get_path_at_pos(event.x, event.y)
     if event.button == 1: #left click
@@ -5536,3 +5529,117 @@ class ImportUtility(Gtk.Dialog):
 
   def close_popup(self, *args):
         self.destroy()
+
+  ######################### Verify comtrade import works
+
+class Legend(object):
+  ##################### collect all tags in the pen rows
+  ##################### decide which tags to display
+  ##################### build treeview for legend
+
+  def __init__(self,app,legend_tab,*args):
+    self.app = app    
+    self.legend_tab = legend_tab
+    self.connections_available = {}
+    self.tags_available = {}
+    self.get_available_connections()
+    self.get_available_tags('')
+    self.build_row()
+
+
+  def build_row(self,*args):
+
+    #Display Status
+    db_display_status = bool(True)
+    box= Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    p_buf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(PUBLIC_DIR, 'images/Check.png'), 20, -1, True)
+    image = Gtk.Image(pixbuf=p_buf)
+    wid =CheckBoxWidget(30,30,image,db_display_status)
+    self.display_status = wid.return_self()
+    sc = self.display_status.get_style_context()
+    sc.add_class('check-box')
+    box.set_center_widget(self.display_status)
+    self.legend_tab .pack_start(box,1,1,1)
+   
+  def open_numpad(self,button,widget_obj,params,*args):
+    numpad = ValueEnter(self,widget_obj,params)
+    response = numpad.run()
+    if response == Gtk.ResponseType.NO:
+      pass
+    else:
+      pass
+    numpad.destroy()
+  
+  def new_connection_selelcted(self, *args):
+    c_temp = self.conn_select.get_active_text()
+    self.tag_select.remove_all()
+    self.tag_select.append_text("")
+    if c_temp in self.tags_available.keys():
+      for key, val in self.tags_available[c_temp].items():
+        self.tag_select.append_text(val['id'])
+    self.tag_select.set_active(0)
+
+  def save_settings(self,button,*args):
+    self.update_db()
+
+  def update_db(self,*args):
+    pass
+
+  def update_pen_object(self,p_settings,*args):
+    self.app.charts[self.chart_id].pens[self.id]._chart_id = p_settings['chart_id']
+    self.app.charts[self.chart_id].pens[self.id]._tag_id = p_settings['tag_id']
+    self.app.charts[self.chart_id].pens[self.id]._connection_id = p_settings['connection_id']
+    self.app.charts[self.chart_id].pens[self.id]._visible = p_settings['visible']
+    self.app.charts[self.chart_id].pens[self.id]._weight = p_settings['weight']
+    self.app.charts[self.chart_id].pens[self.id]._color = p_settings['color']
+    self.app.charts[self.chart_id].pens[self.id]._scale_minimum = p_settings['scale_minimum']
+    self.app.charts[self.chart_id].pens[self.id]._scale_maximum = p_settings['scale_maximum']
+    self.app.charts[self.chart_id].pens[self.id]._scale_lock = p_settings['scale_lock']
+    self.app.charts[self.chart_id].pens[self.id]._scale_auto = p_settings['scale_auto']
+    p_obj = self.app.charts[self.chart_id].pens[self.id]
+
+    if p_settings['chart_id'] != self.chart_id:
+      #chart ID was changed so need to move pen object into other chart object
+      self.app.charts[p_settings['chart_id']].pens[self.id] = p_obj
+      del self.app.charts[self.chart_id].pens[self.id]
+  
+  def add_style(self, item,style):
+    sc = item.get_style_context()
+    for items in sc.list_classes():
+      #remove all default styles
+      sc.remove_class(items)
+    for sty in style:
+      #add new styles
+      sc.add_class(sty)
+
+  def get_available_connections(self,*args):
+
+    conx_items = ['id', 'connection_type', 'description']
+    new_params = {}
+    count = 1
+    self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      for c in conx_items:
+        new_params[c] = getattr(conx_obj, c)
+      self.connections_available[count] = new_params
+      new_params = {}
+      count += 1
+
+  def get_available_tags(self,c_id,*args):
+    self.tags_available = {}
+    new_params = {}
+    count = 1
+    self.conx_tags = {}
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      if conx_obj:
+        tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
+        for tag_id,tag_obj in conx_obj.get('tags').items():
+          for c in tag_items:
+            new_params[c] = getattr(tag_obj, c)
+          self.conx_tags[count] = new_params
+          new_params = {}
+          count += 1
+        self.tags_available[conx_id]= self.conx_tags
+        self.conx_tags = {}
+        count = 1
+

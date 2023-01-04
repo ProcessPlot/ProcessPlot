@@ -8,7 +8,7 @@ from classes.logger import *
 from classes.chart import ChartArea
 from classes.exceptions import *
 from classes.chart import *
-from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup, TimeSpanPopup, PopupConfirm, PopupMessage, ImportUtility
+from classes.popup import PenSettingsPopup, ConnectionsMainPopup, TagMainPopup, TimeSpanPopup, PopupConfirm, PopupMessage, ImportUtility, Legend
 from Public.widgets.checkbox import CheckBoxWidget
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
@@ -219,7 +219,7 @@ class MainWindow(Gtk.Window):
       self.notebook = Gtk.Notebook()
       self.settings_window.pack_start(self.notebook,0,0,1)
   
-      # Create Boxes
+      # Create Pages
       self.page1 = Gtk.Box()
       self.page1.set_border_width(10)
       self.legend_tab = Gtk.Box(width_request=settings_popout_width,orientation=Gtk.Orientation.VERTICAL)
@@ -232,6 +232,21 @@ class MainWindow(Gtk.Window):
       self.page2.add(self.settings_tab)
       self.notebook.append_page(self.page2, Gtk.Label("Settings"))
       
+      #Legend Data
+      ############## Need to gather pen data
+      ############## Need to gather tag data
+      self.legends_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,width_request=settings_popout_width,height_request = 800)
+      scroll = Gtk.ScrolledWindow(height_request = 800)
+      lbl = Gtk.Label(label = 'Tags')
+      sc = lbl.get_style_context()
+      sc.add_class('settings-description')
+      self.legends_data = Gtk.Box(width_request=settings_popout_width,orientation=Gtk.Orientation.VERTICAL,height_request = 800, spacing = 10)
+      self.legends_data.pack_start(lbl,0,0,1)
+      scroll.add(self.legends_data)
+      self.legends_box.add(scroll)
+      self.legend_tab.pack_start(self.legends_box,1,1,1)    
+      bx = Legend(self.app,self.legends_data)    #build legend box
+
       #Settings Data
 
       self.settings_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,width_request=settings_popout_width,height_request = 800)
