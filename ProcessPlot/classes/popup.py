@@ -2194,7 +2194,7 @@ class TagSettingsPopup(Gtk.Dialog):
 
 
 class ConnectionsMainPopup(Gtk.Dialog):
-
+  ################### get_conx_polling_status needs to be universal for all connections when calling method
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0) 
     self.unsaved_changes_present = False
@@ -4703,6 +4703,7 @@ class ImportUtility(Gtk.Dialog):
   #####################################Need to check if tag name has already been created
   #####################################Actually push data from each tag to database
   #####################################Handle boolean tags to be imported
+  ######################### Verify comtrade import works
 
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0)
@@ -5530,7 +5531,6 @@ class ImportUtility(Gtk.Dialog):
   def close_popup(self, *args):
         self.destroy()
 
-  ######################### Verify comtrade import works
 
 class Legend(object):
   ##################### collect all tags in the pen rows
@@ -5544,7 +5544,7 @@ class Legend(object):
     self.tags_available = {}
     self.get_available_connections()
     self.get_available_tags('')
-    self.build_row()
+    self.build_tree()
 
 
   def build_row(self,*args):
@@ -5559,8 +5559,121 @@ class Legend(object):
     sc = self.display_status.get_style_context()
     sc.add_class('check-box')
     box.set_center_widget(self.display_status)
-    self.legend_tab .pack_start(box,1,1,1)
-   
+    #self.legend_tab .pack_start(box,1,1,1)
+
+  def build_tree(self, *args):
+      #_____________________ Import list
+      self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf,str , str)
+      self.treeview = Gtk.TreeView(self.liststore)
+      #Watch for user clicks
+      self.treeview.connect('button-press-event' , self.tree_item_clicked)
+      self.treeview.set_rules_hint( True )
+      #self.add_style(self.treeview,['treeview'])
+
+      #Add color label header
+      color_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 25, 25)
+      image = Gtk.Image(pixbuf=color_icon)
+      self.color_label = Gtk.CellRendererPixbuf()                         # create a CellRenderers to render the data
+      self.color_settings = Gtk.TreeViewColumn('')
+      self.color_settings.set_max_width(30)
+      h_but = self.color_settings.get_button() #Get reference to column header button
+      c = h_but.get_child()
+      c.add(image)
+      c.show_all()  
+      self.treeview.append_column(self.color_settings)
+      self.color_settings.pack_end(self.color_label, False)
+      self.color_settings.set_attributes(self.color_label,pixbuf=0)
+      self.color_settings.set_max_width(30)
+
+      #Add Tag Name
+      self.c_name = Gtk.CellRendererText()                          # create a CellRenderers to render the data\
+      self.c_name.set_property("editable", True)                    #Allows item to be clicked on and edited
+      self.c_name.set_property("xalign",0.5)                        #Centers item 
+      #self.c_name.set_property("cell-background",'white')          # Sets background color
+      self.c_name.set_property("foreground",'black')
+      col = Gtk.TreeViewColumn('Tag')
+      c_but = col.get_button() #Get reference to column header button
+      c = c_but.get_child()
+      self.add_style(c,['treeview-header'])
+      self.treeview.append_column(col)
+      #col.set_expand(True)
+      col.set_min_width(200)
+      col.set_alignment(0.5)
+      col.pack_start(self.c_name, True)
+      col.set_sort_column_id(1)
+      col.set_attributes(self.c_name,text=1)
+
+      #Add Tag Value
+      self.scale = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
+      #self.scale.set_property("editable", True)                  #Makes text box editable
+      self.scale.set_property("xalign",0.5)                        #Centers text in Box
+      #self.scale.set_property("background",'white')              #changes box background to white
+      self.scale.set_property("foreground",'black')
+      #self.scale.connect('edited',self.change_num)
+      self.scale_col = Gtk.TreeViewColumn('Value')
+      s_but = self.scale_col.get_button() #Get reference to column header button
+      c = s_but.get_child()
+      self.add_style(c,['treeview-header'])
+      self.treeview.append_column(self.scale_col)
+      self.scale_col.pack_start(self.scale, False)
+      self.scale_col.set_expand(False)
+      self.scale_col.set_alignment(0.5)
+      self.scale_col.set_max_width(50)
+      self.scale_col.set_sort_column_id(2)
+      self.scale_col.set_attributes(self.scale,text=2)
+
+      # make treeview searchable
+      self.treeview.set_search_column(1)
+      # Allow drag and drop reordering of rows
+      self.treeview.set_reorderable(True)
+      #Add treeview to base window
+      scrolledwindow = Gtk.ScrolledWindow()
+      scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+      self.sc_box = Gtk.Box(orientation='vertical')
+      self.sc_box.set_vexpand(True)
+      scrolledwindow.add(self.sc_box)
+      self.legend_tab.pack_start(scrolledwindow, 1, 1, 0)
+      self.sc_box.add(self.treeview)
+      self.add_rows()
+      self.legend_tab.show_all()
+
+  def add_rows(self,*args):
+    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
+    for conx in self.tags_available:
+      print(conx)
+      for tag_num in self.tags_available[conx]:
+        print(self.tags_available[conx][tag_num])
+        self.liststore.append([ connection_icon,
+                                str(self.tags_available[conx][tag_num]['id']),
+                                str(self.tags_available[conx][tag_num]['datatype']),
+                                        ])
+    self.legend_tab.show_all()
+
+  def tree_item_clicked(self, treeview, event):
+    pthinfo = treeview.get_path_at_pos(event.x, event.y)
+    if event.button == 1: #left click
+      if pthinfo != None:
+        path,column,cellx,celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor(path,column,0)
+        column_title = (column.get_title())
+        #update currently active display
+        selection = treeview.get_selection()
+        tree_model, tree_iter = selection.get_selected()
+        #If selected column is delete icon then initiate delete of connection
+        if tree_iter != None:
+          #gathers the Connection column name and connection type in the row clicked on
+          t_id = tree_model[tree_iter][1]
+          scale = tree_model[tree_iter][2]
+          print('Clicked')
+
+      else:
+        #unselect row in treeview
+        selection = treeview.get_selection()
+        selection.unselect_all()
+    elif event.button == 3: #right click
+      pass
+
   def open_numpad(self,button,widget_obj,params,*args):
     numpad = ValueEnter(self,widget_obj,params)
     response = numpad.run()
@@ -5569,39 +5682,6 @@ class Legend(object):
     else:
       pass
     numpad.destroy()
-  
-  def new_connection_selelcted(self, *args):
-    c_temp = self.conn_select.get_active_text()
-    self.tag_select.remove_all()
-    self.tag_select.append_text("")
-    if c_temp in self.tags_available.keys():
-      for key, val in self.tags_available[c_temp].items():
-        self.tag_select.append_text(val['id'])
-    self.tag_select.set_active(0)
-
-  def save_settings(self,button,*args):
-    self.update_db()
-
-  def update_db(self,*args):
-    pass
-
-  def update_pen_object(self,p_settings,*args):
-    self.app.charts[self.chart_id].pens[self.id]._chart_id = p_settings['chart_id']
-    self.app.charts[self.chart_id].pens[self.id]._tag_id = p_settings['tag_id']
-    self.app.charts[self.chart_id].pens[self.id]._connection_id = p_settings['connection_id']
-    self.app.charts[self.chart_id].pens[self.id]._visible = p_settings['visible']
-    self.app.charts[self.chart_id].pens[self.id]._weight = p_settings['weight']
-    self.app.charts[self.chart_id].pens[self.id]._color = p_settings['color']
-    self.app.charts[self.chart_id].pens[self.id]._scale_minimum = p_settings['scale_minimum']
-    self.app.charts[self.chart_id].pens[self.id]._scale_maximum = p_settings['scale_maximum']
-    self.app.charts[self.chart_id].pens[self.id]._scale_lock = p_settings['scale_lock']
-    self.app.charts[self.chart_id].pens[self.id]._scale_auto = p_settings['scale_auto']
-    p_obj = self.app.charts[self.chart_id].pens[self.id]
-
-    if p_settings['chart_id'] != self.chart_id:
-      #chart ID was changed so need to move pen object into other chart object
-      self.app.charts[p_settings['chart_id']].pens[self.id] = p_obj
-      del self.app.charts[self.chart_id].pens[self.id]
   
   def add_style(self, item,style):
     sc = item.get_style_context()
