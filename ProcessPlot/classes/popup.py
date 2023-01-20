@@ -5536,16 +5536,27 @@ class Legend(object):
   ##################### collect all tags in the pen rows
   ##################### decide which tags to display
   ##################### build treeview for legend
+  ##################### create process to update value and pen color
+  ##################### figure out how to move through rows and update toggle button foreground colors to match pens
+
 
   def __init__(self,app,legend_tab,*args):
     self.app = app    
     self.legend_tab = legend_tab
     self.connections_available = {}
     self.tags_available = {}
+    self.pens_available = {}
+    self.pen_column_names = ['id', 'chart_id', 'tag_id', 'connection_id', 'visible', 
+                      'color', 'weight','scale_minimum','scale_maximum', 
+                      'scale_lock', 'scale_auto']
+    self.db_session = self.app.settings_db.session
+    self.db_model = self.app.settings_db.models['pen']
+    self.Tbl = self.db_model
+    self.get_available_pens()
     self.get_available_connections()
     self.get_available_tags('')
     self.build_tree()
-
+    self.update_pen_colors()
 
   def build_row(self,*args):
 
@@ -5563,7 +5574,7 @@ class Legend(object):
 
   def build_tree(self, *args):
       #_____________________ Import list
-      self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf,str , str)
+      self.liststore = Gtk.ListStore(bool,str , str)
       self.treeview = Gtk.TreeView(self.liststore)
       #Watch for user clicks
       self.treeview.connect('button-press-event' , self.tree_item_clicked)
@@ -5571,19 +5582,29 @@ class Legend(object):
       #self.add_style(self.treeview,['treeview'])
 
       #Add color label header
-      color_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 25, 25)
+      color_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
       image = Gtk.Image(pixbuf=color_icon)
-      self.color_label = Gtk.CellRendererPixbuf()                         # create a CellRenderers to render the data
-      self.color_settings = Gtk.TreeViewColumn('')
+      self.color_label = Gtk.CellRendererToggle()
+      self.color_label.set_property('cell-background','white')
+      self.color_settings = Gtk.TreeViewColumn('', self.color_label, active=0)
       self.color_settings.set_max_width(30)
       h_but = self.color_settings.get_button() #Get reference to column header button
       c = h_but.get_child()
       c.add(image)
       c.show_all()  
       self.treeview.append_column(self.color_settings)
-      self.color_settings.pack_end(self.color_label, False)
-      self.color_settings.set_attributes(self.color_label,pixbuf=0)
-      self.color_settings.set_max_width(30)
+
+      #Add toggle button
+      connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
+      image = Gtk.Image(pixbuf=connection_icon)
+      renderer_toggle = Gtk.CellRendererToggle()
+      renderer_toggle.set_property('cell-background','gray')
+      self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=0)
+      h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
+      c = h_but.get_child()
+      c.add(image)  #add image to column header button
+      c.show_all()
+
 
       #Add Tag Name
       self.c_name = Gtk.CellRendererText()                          # create a CellRenderers to render the data\
@@ -5638,16 +5659,28 @@ class Legend(object):
       self.legend_tab.show_all()
 
   def add_rows(self,*args):
-    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
+    # db_color = str('#0000FF') #example:#0000FF
+    # rgbcolor = Gdk.RGBA()
+    # rgbcolor.parse(db_color)
+    # rgbcolor.to_string()
+    # self.color_button = Gtk.ColorButton(width_request = 20)
+    # self.color_button.set_rgba (rgbcolor)
+    # sc = self.color_button.get_style_context()
+    # sc.add_class('ctrl-button')
+    ####Figure out how to get color button into row
+    #connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
     for conx in self.tags_available:
-      print(conx)
       for tag_num in self.tags_available[conx]:
-        print(self.tags_available[conx][tag_num])
-        self.liststore.append([ connection_icon,
+        self.liststore.append([ False,
                                 str(self.tags_available[conx][tag_num]['id']),
-                                str(self.tags_available[conx][tag_num]['datatype']),
+                                str(self.tags_available[conx][tag_num]['value']),
                                         ])
     self.legend_tab.show_all()
+
+  def update_pen_colors(self, *args):
+      for row in range(len(self.liststore)):
+        path = Gtk.TreePath(row)
+        self.liststore[path][0]= True
 
   def tree_item_clicked(self, treeview, event):
     pthinfo = treeview.get_path_at_pos(event.x, event.y)
@@ -5722,4 +5755,15 @@ class Legend(object):
         self.tags_available[conx_id]= self.conx_tags
         self.conx_tags = {}
         count = 1
+
+  def get_available_pens(self,*args):
+    params = {}
+    pen = {}
+    settings = self.db_session.query(self.Tbl).order_by(self.Tbl.id)
+    for pen_param in settings:
+      for c in self.pen_column_names:
+        pen[c] = getattr(pen_param, c)
+      params[pen['id']] = pen
+      pen = {}
+    self.pens_available = params
 
