@@ -178,6 +178,11 @@
   box-shadow: none; 
   border-bottom: 1px solid white;
 }
+
+.treeview-legend{ 
+  border: 2px solid black;
+}
+
 .treeview:hover { 
   background-color: rgb(247, 115, 115);
 }

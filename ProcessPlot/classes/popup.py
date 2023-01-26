@@ -5574,37 +5574,30 @@ class Legend(object):
 
   def build_tree(self, *args):
       #_____________________ Import list
-      self.liststore = Gtk.ListStore(bool,str , str)
+      def rendercolor(celllayout, cell, model, iter,*args):
+        if model.get_value(iter,3) == '#0000FF':
+          db_color = str(model.get_value(iter,3))
+          cell.set_property('background',db_color) 
+          
+      self.liststore = Gtk.ListStore(str, str, str, str)
       self.treeview = Gtk.TreeView(self.liststore)
       #Watch for user clicks
       self.treeview.connect('button-press-event' , self.tree_item_clicked)
       self.treeview.set_rules_hint( True )
-      #self.add_style(self.treeview,['treeview'])
+      self.treeview.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
 
       #Add color label header
       color_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
       image = Gtk.Image(pixbuf=color_icon)
-      self.color_label = Gtk.CellRendererToggle()
-      self.color_label.set_property('cell-background','white')
-      self.color_settings = Gtk.TreeViewColumn('', self.color_label, active=0)
-      self.color_settings.set_max_width(30)
-      h_but = self.color_settings.get_button() #Get reference to column header button
+      self.color_label = Gtk.CellRendererText()                 
+      col = Gtk.TreeViewColumn('', self.color_label)
+      col.set_max_width(30)
+      h_but = col.get_button() #Get reference to column header button
       c = h_but.get_child()
       c.add(image)
       c.show_all()  
-      self.treeview.append_column(self.color_settings)
-
-      #Add toggle button
-      connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
-      image = Gtk.Image(pixbuf=connection_icon)
-      renderer_toggle = Gtk.CellRendererToggle()
-      renderer_toggle.set_property('cell-background','gray')
-      self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=0)
-      h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
-      c = h_but.get_child()
-      c.add(image)  #add image to column header button
-      c.show_all()
-
+      self.treeview.append_column(col)
+      col.set_cell_data_func(self.color_label,rendercolor)
 
       #Add Tag Name
       self.c_name = Gtk.CellRendererText()                          # create a CellRenderers to render the data\
@@ -5643,6 +5636,17 @@ class Legend(object):
       self.scale_col.set_sort_column_id(2)
       self.scale_col.set_attributes(self.scale,text=2)
 
+      #Add Color Number (Hidden)
+      self.color_number = Gtk.CellRendererText()                          # create a CellRenderers to render the data\
+      self.color_number.set_property("editable", False)                    #Allows item to be clicked on and edited
+      self.color_number.set_property("xalign",0.5)                        #Centers item 
+      self.color_number.set_property("visible",False)                     #Makes Colum Invisible
+      col = Gtk.TreeViewColumn('')
+      self.treeview.append_column(col)
+      col.pack_start(self.color_number, True)
+      col.set_sort_column_id(3)
+      col.set_attributes(self.color_number,text=3)
+
       # make treeview searchable
       self.treeview.set_search_column(1)
       # Allow drag and drop reordering of rows
@@ -5659,28 +5663,21 @@ class Legend(object):
       self.legend_tab.show_all()
 
   def add_rows(self,*args):
-    # db_color = str('#0000FF') #example:#0000FF
-    # rgbcolor = Gdk.RGBA()
-    # rgbcolor.parse(db_color)
-    # rgbcolor.to_string()
-    # self.color_button = Gtk.ColorButton(width_request = 20)
-    # self.color_button.set_rgba (rgbcolor)
-    # sc = self.color_button.get_style_context()
-    # sc.add_class('ctrl-button')
-    ####Figure out how to get color button into row
-    #connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
     for conx in self.tags_available:
       for tag_num in self.tags_available[conx]:
-        self.liststore.append([ False,
+        self.liststore.append([ '',
                                 str(self.tags_available[conx][tag_num]['id']),
                                 str(self.tags_available[conx][tag_num]['value']),
+                                '#0000FF'
                                         ])
     self.legend_tab.show_all()
 
   def update_pen_colors(self, *args):
       for row in range(len(self.liststore)):
         path = Gtk.TreePath(row)
-        self.liststore[path][0]= True
+        #self.liststore[path][3]= '#24252A'
+      self.legend_tab.show_all()
+
 
   def tree_item_clicked(self, treeview, event):
     pthinfo = treeview.get_path_at_pos(event.x, event.y)
@@ -5693,7 +5690,7 @@ class Legend(object):
         #update currently active display
         selection = treeview.get_selection()
         tree_model, tree_iter = selection.get_selected()
-        #If selected column is delete icon then initiate delete of connection
+        #If selected column is icon then initiate action
         if tree_iter != None:
           #gathers the Connection column name and connection type in the row clicked on
           t_id = tree_model[tree_iter][1]
