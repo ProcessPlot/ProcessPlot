@@ -5534,10 +5534,10 @@ class ImportUtility(Gtk.Dialog):
 
 class Legend(object):
   ##################### collect all tags in the pen rows
-  ##################### decide which tags to display
-  ##################### build treeview for legend
-  ##################### create process to update value and pen color
-  ##################### figure out how to move through rows and update toggle button foreground colors to match pens
+  ##################### decide which tags to display have ability to disable in legend
+  ##################### click in tree to bring up pen popup
+  ##################### create process to update value
+  ##################### 
 
 
   def __init__(self,app,legend_tab,*args):
@@ -5575,9 +5575,9 @@ class Legend(object):
   def build_tree(self, *args):
       #_____________________ Import list
       def rendercolor(celllayout, cell, model, iter,*args):
-        if model.get_value(iter,3) == '#0000FF':
-          db_color = str(model.get_value(iter,3))
-          cell.set_property('background',db_color) 
+        #if model.get_value(iter,3) == '#0000FF':
+        db_color = str(model.get_value(iter,3))
+        cell.set_property('background',db_color) 
           
       self.liststore = Gtk.ListStore(str, str, str, str)
       self.treeview = Gtk.TreeView(self.liststore)
@@ -5665,19 +5665,21 @@ class Legend(object):
   def add_rows(self,*args):
     for conx in self.tags_available:
       for tag_num in self.tags_available[conx]:
+        color = self.get_pen_color(self.tags_available[conx][tag_num]['id'])
         self.liststore.append([ '',
                                 str(self.tags_available[conx][tag_num]['id']),
                                 str(self.tags_available[conx][tag_num]['value']),
-                                '#0000FF'
+                                color
                                         ])
     self.legend_tab.show_all()
 
   def update_pen_colors(self, *args):
+    #Run this method if colors are updated with legend open
       for row in range(len(self.liststore)):
         path = Gtk.TreePath(row)
-        #self.liststore[path][3]= '#24252A'
+        color = self.get_pen_color(self.liststore[path][1])
+        self.liststore[path][3]= color
       self.legend_tab.show_all()
-
 
   def tree_item_clicked(self, treeview, event):
     pthinfo = treeview.get_path_at_pos(event.x, event.y)
@@ -5763,4 +5765,11 @@ class Legend(object):
       params[pen['id']] = pen
       pen = {}
     self.pens_available = params
+
+  def get_pen_color(self,tag_id,*args):
+    entry = self.db_session.query(self.Tbl).filter(self.Tbl.tag_id == tag_id).first()
+    if entry:
+      return entry.color
+    else:
+      return '#b1b1b1'  #color gray
 
