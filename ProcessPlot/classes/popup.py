@@ -5536,7 +5536,7 @@ class Legend(object):
   ##################### collect all tags in the pen rows
   ##################### decide which tags to display have ability to disable in legend
   ##################### click in tree to bring up pen popup
-  ##################### create process to update value
+  #####################
   ##################### 
 
 
@@ -5581,15 +5581,17 @@ class Legend(object):
           
       self.liststore = Gtk.ListStore(str, str, str, str)
       self.treeview = Gtk.TreeView(self.liststore)
-      #Watch for user clicks
-      self.treeview.connect('button-press-event' , self.tree_item_clicked)
+      #self.treeview.connect('button-press-event' , self.tree_item_clicked)             #Watch for user clicks
+      sel = self.treeview.get_selection()                                               #Treeview not selectable
+      sel.set_mode(Gtk.SelectionMode.NONE)                                               #Treeview not selectable
       self.treeview.set_rules_hint( True )
       self.treeview.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
 
       #Add color label header
       color_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/stop.png', 30, 30)
       image = Gtk.Image(pixbuf=color_icon)
-      self.color_label = Gtk.CellRendererText()                 
+      self.color_label = Gtk.CellRendererText()   
+      self.color_label.set_property("editable", False)                
       col = Gtk.TreeViewColumn('', self.color_label)
       col.set_max_width(30)
       h_but = col.get_button() #Get reference to column header button
@@ -5601,7 +5603,7 @@ class Legend(object):
 
       #Add Tag Name
       self.c_name = Gtk.CellRendererText()                          # create a CellRenderers to render the data\
-      self.c_name.set_property("editable", True)                    #Allows item to be clicked on and edited
+      self.c_name.set_property("editable", False)                    #Allows item to be clicked on and edited
       self.c_name.set_property("xalign",0.5)                        #Centers item 
       #self.c_name.set_property("cell-background",'white')          # Sets background color
       self.c_name.set_property("foreground",'black')
@@ -5619,7 +5621,7 @@ class Legend(object):
 
       #Add Tag Value
       self.scale = Gtk.CellRendererText()                         # create a CellRenderers to render the data\
-      #self.scale.set_property("editable", True)                  #Makes text box editable
+      self.scale.set_property("editable", False)                  #Makes text box editable
       self.scale.set_property("xalign",0.5)                        #Centers text in Box
       #self.scale.set_property("background",'white')              #changes box background to white
       self.scale.set_property("foreground",'black')
