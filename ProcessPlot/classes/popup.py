@@ -143,7 +143,7 @@ class BaseSettingsPopoup(Gtk.Dialog):
 ################################ Add button on tags row to include on legend besides pens
 ################################ Add ability to save data to config file and upload data back to connection from file (ConfigUtility)
 ################################ 
-################################ add pens to legend popout
+################################
 
 
 
@@ -2457,7 +2457,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tree_model, tree_iter = selection.get_selected()
 
   def conx_connect_toggle(self, widget, path,id):
-    self.liststore[path][0] = not self.liststore[path][0]
+    self.liststore[path][0] = not self.liststore[path][0]   #Sets toggle button
+    ###################NEED TO BUILD CONNECTION STARTING HERE ########################
     poll = self.conx_obj_available[id].polling  #check current polling status
     self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
