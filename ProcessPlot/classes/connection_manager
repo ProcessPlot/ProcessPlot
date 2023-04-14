@@ -71,11 +71,11 @@ class ConxManager():
 
 '''con_man = ConxManager()
 con_man.add_con({"id": f"Fred",
-                                 "connection_type": "modbusTCP",
-                                 "description": "fred's connection",
-                                 "host": '192.168.20.25',
-                                 'pollrate': 0.1,
-                                 })
+                "connection_type": "modbusTCP",
+                "description": "fred's connection",
+                "host": '192.168.20.25',
+                'pollrate': 0.1,
+                })
 con_man.new_tag('Fred', {"id": f"PanelAmps", "description": f"Blah Blah","value":0,"address": 99 })
 con_man.new_tag('Fred', {"id": f"PanelVolts", "description": f"Blah Blah","value":0,"address": 149 })
 con_man.connect('Fred')

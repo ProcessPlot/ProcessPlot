@@ -35,6 +35,7 @@ import gi, os, json, datetime, time
 from pycomm3 import parse_connection_path
 
 from ProcessLink.process_link import process_link
+from classes.connection_manager import ConxManager
 from numpy import maximum, nonzero
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -2459,6 +2460,9 @@ class ConnectionsMainPopup(Gtk.Dialog):
   def conx_connect_toggle(self, widget, path,id):
     self.liststore[path][0] = not self.liststore[path][0]   #Sets toggle button
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
+    params = self.get_connection_params(id)
+    print('polling',id,self.connections_available)
+    print('polling2',params)
     poll = self.conx_obj_available[id].polling  #check current polling status
     self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
