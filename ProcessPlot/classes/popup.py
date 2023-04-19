@@ -2202,6 +2202,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.unsaved_conn_rows = {}
     self.conn_column_names = ['id', 'connection_type', 'description']
     self.connections_available = {}
+    self.tags_available = {}
     self.conx_obj_available = {}
     self.app = app
     self.conx_type = self.app.link.get('connection_types')
@@ -2209,6 +2210,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.content_area = self.get_content_area()
     self.conn_filter_val = ''
     self.get_available_connections()
+    self.get_available_tags('')
     self.get_conx_polling_status('Turbine')
 
     self.dialog_window = Gtk.Box(width_request=800,orientation=Gtk.Orientation.VERTICAL)
@@ -2460,11 +2462,13 @@ class ConnectionsMainPopup(Gtk.Dialog):
   def conx_connect_toggle(self, widget, path,id):
     self.liststore[path][0] = not self.liststore[path][0]   #Sets toggle button
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
+    ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
     params = self.get_connection_params(id)
     print('polling',id,self.connections_available)
     print('polling2',params)
+    print('polling2',self.tags_available[id])
     poll = self.conx_obj_available[id].polling  #check current polling status
-    self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
+    #self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
   def save_settings(self,button,auto_close,*args):
     pass
@@ -2510,7 +2514,25 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.conx_obj_available[conx_id] = conx_obj   #Hold reference to all conx objects
       new_params = {}
       count += 1
-  
+
+  def get_available_tags(self,c_id,*args):
+    self.tags_available = {}
+    new_params = {}
+    count = 1
+    self.conx_tags = {}
+    for conx_id,conx_obj in self.app.link.get('connections').items():
+      if conx_obj:
+        tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
+        for tag_id,tag_obj in conx_obj.get('tags').items():
+          for c in tag_items:
+            new_params[c] = getattr(tag_obj, c)
+          self.conx_tags[count] = new_params
+          new_params = {}
+          count += 1
+        self.tags_available[conx_id]= self.conx_tags
+        self.conx_tags = {}
+        count = 1
+
   def get_conx_polling_status(self, id,*args):
     #This method uses the stored conx objects to access polling status of connections
     obj = self.conx_obj_available[id]

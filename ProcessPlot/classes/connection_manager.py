@@ -44,7 +44,13 @@ class ConxManager():
         self.tag_subs[conx_id]['tags'].append({"id": params.get('id'), "obj": t})
 
     def delete_tag(self,conx_id,tag_id):
-        pass
+        if not self.connections.get(conx_id):
+            raise Exception(f"Fuck! no connection named {conx_id}")
+        for i in range (len(self.tag_subs[conx_id]['tags'])):
+            if self.tag_subs[conx_id]['tags'][i]['id'] == tag_id:
+                del(self.tag_subs[conx_id]['tags'][i])
+        self.link.delete_tag(self.connections[conx_id].tags[tag_id],tag_id,conx_id)
+        #####################Need to update polling list or prevent while connection connected
 
     def connect(self, conx_id):
         if not self.connections.get(conx_id):
@@ -66,7 +72,7 @@ class ConxManager():
     
     def is_polling(self, conx_id):
         'return whether connection is connected and polling data'
-        pass
+        return self.connections[conx_id].polling
 
     def is_tag(self, conx_id):
         'return whether tag is added to connection'
@@ -93,4 +99,6 @@ con_man.connect('Fred')
 for x in range(20):
     print(con_man.get_data())
     time.sleep(0.5)
+con_man.delete_tag('Fred', "PanelVolts")
+print(con_man.get_data())
 '''
