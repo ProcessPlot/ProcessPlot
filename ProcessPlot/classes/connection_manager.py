@@ -46,6 +46,8 @@ class ConxManager():
     def delete_tag(self,conx_id,tag_id):
         if not self.connections.get(conx_id):
             raise Exception(f"Fuck! no connection named {conx_id}")
+        if not self.connections[conx_id].polling:
+            raise Exception(f"Can't delete tag while polling {conx_id}")
         for i in range (len(self.tag_subs[conx_id]['tags'])):
             if self.tag_subs[conx_id]['tags'][i]['id'] == tag_id:
                 del(self.tag_subs[conx_id]['tags'][i])
@@ -61,10 +63,11 @@ class ConxManager():
             self.tag_subs[sub]['connected'] = True
 
     def disconnect(self, conx_id):
-        pass        #Need to create the unsubscribe method and remove tag from internal database
+        '''Need to create the unsubscribe method'''
 
-        # if not self.connections.get(conx_id):
-        #     raise Exception(f"Fuck! no connection named {conx_id}")
+        if not self.connections.get(conx_id):
+             raise Exception(f"Fuck! no connection named {conx_id}")
+        self.tag_subs[conx_id]['connected'] = False
         # for sub in self.tag_subs:
         #     for t in self.tag_subs[sub]['tags']:
         #         self.link.unsubscribe(f"[{sub}]{t.get('id')}", sub, latest_only=False)
@@ -72,12 +75,19 @@ class ConxManager():
     
     def is_polling(self, conx_id):
         'return whether connection is connected and polling data'
-        return self.connections[conx_id].polling
+        if not self.connections.get(conx_id):
+            return False
+        else:
+            return self.connections[conx_id].polling
 
-    def is_tag(self, conx_id):
+    def is_tag(self, conx_id, tag_id):
         'return whether tag is added to connection'
-        pass
-
+        res = False
+        for i in range (len(self.tag_subs[conx_id]['tags'])):
+            if self.tag_subs[conx_id]['tags'][i]['id'] == tag_id:
+                res = True
+        return res
+                
     def get_data(self, *args):
         data = {}
         for sub in self.tag_subs:

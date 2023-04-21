@@ -2461,12 +2461,20 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def conx_connect_toggle(self, widget, path,id):
     self.liststore[path][0] = not self.liststore[path][0]   #Sets toggle button
+    if self.liststore[path][0]:                             #User clicked connect
+      conx_params = self.get_connection_params(id)
+      tags = self.tags_available[id]
+      print('polling',id)
+      print('polling2',conx_params)
+      print('polling3',tags)
+    else:                                                   #User clicked disconnect
+      pass
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
     ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
     params = self.get_connection_params(id)
-    print('polling',id,self.connections_available)
-    print('polling2',params)
-    print('polling2',self.tags_available[id])
+    #print('polling',id,self.connections_available)
+    #print('polling2',params)
+    #print('polling2',self.tags_available[id])
     poll = self.conx_obj_available[id].polling  #check current polling status
     #self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
