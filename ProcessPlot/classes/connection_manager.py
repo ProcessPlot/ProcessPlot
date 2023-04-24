@@ -68,10 +68,10 @@ class ConxManager():
         if not self.connections.get(conx_id):
              raise Exception(f"Fuck! no connection named {conx_id}")
         self.tag_subs[conx_id]['connected'] = False
-        # for sub in self.tag_subs:
-        #     for t in self.tag_subs[sub]['tags']:
-        #         self.link.unsubscribe(f"[{sub}]{t.get('id')}", sub, latest_only=False)
-        #     self.tag_subs[sub]['connected'] = True
+        for sub in self.tag_subs:
+            for t in self.tag_subs[sub]['tags']:
+                self.link.unsubscribe(f"[{sub}]{t.get('id')}", sub, latest_only=False)
+            self.tag_subs[sub]['connected'] = False
     
     def is_polling(self, conx_id):
         'return whether connection is connected and polling data'
