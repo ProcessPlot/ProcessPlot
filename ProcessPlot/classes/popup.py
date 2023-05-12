@@ -2278,18 +2278,26 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def build_base(self):
     self.connection_settings = []  
-    self.liststore = Gtk.ListStore(bool,str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
+    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf,bool,str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
     self.treeview.set_rules_hint( True )
     self.add_style(self.treeview,['treeview'])
+
+    #Add connection status
+    self.conx_status = Gtk.CellRendererPixbuf()
+    self.tvcolumn_conx_status= Gtk.TreeViewColumn('')
+    self.treeview.append_column(self.tvcolumn_conx_status)
+    self.tvcolumn_conx_status.pack_end(self.conx_status, False)
+    self.tvcolumn_conx_status.set_attributes(self.conx_status,pixbuf=0)
+    self.tvcolumn_conx_status.set_max_width(30)
 
     #Add toggle button
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
     image = Gtk.Image(pixbuf=connection_icon)
     renderer_toggle = Gtk.CellRendererToggle()
     renderer_toggle.set_property('cell-background','gray')
-    self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=0)
+    self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=1)
     h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
     c = h_but.get_child()
     c.add(image)  #add image to column header button
@@ -2322,14 +2330,14 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_settings = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_settings)
     self.tvcolumn_settings.pack_end(self.cell_settings, False)
-    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=4)
+    self.tvcolumn_settings.set_attributes(self.cell_settings,pixbuf=5)
     self.tvcolumn_settings.set_max_width(30)
     #Add delete button setup
     self.cell_delete = Gtk.CellRendererPixbuf()
     self.tvcolumn_delete = Gtk.TreeViewColumn('')
     self.treeview.append_column(self.tvcolumn_delete)
     self.tvcolumn_delete.pack_end(self.cell_delete, False)
-    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=5)
+    self.tvcolumn_delete.set_attributes(self.cell_delete,pixbuf=6)
     self.tvcolumn_delete.set_max_width(30)
 
     # make treeview searchable
@@ -2460,8 +2468,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tree_model, tree_iter = selection.get_selected()
 
   def conx_connect_toggle(self, widget, path,id):
-    self.liststore[path][0] = not self.liststore[path][0]   #Sets toggle button
-    if self.liststore[path][0]:                             #User clicked connect
+    self.liststore[path][1] = not self.liststore[path][1]   #Sets toggle button
+    if self.liststore[path][1]:                             #User clicked connect
       conx_params = self.get_connection_params(id)
       tags = self.tags_available[id]
       print('polling',id)
@@ -2485,9 +2493,11 @@ class ConnectionsMainPopup(Gtk.Dialog):
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
+    conx_status_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     for conx_num in self.connections_available:
       if filter == '' or filter == self.connections_available[conx_num]['id']:
-        self.liststore.append([ False,
+        self.liststore.append([ conx_status_icon,
+                                False,
                                 self.connections_available[conx_num]['id'],
                                 self.connections_available[conx_num]['connection_type'],
                                 self.connections_available[conx_num]['description'],
@@ -5570,13 +5580,13 @@ class ImportUtility(Gtk.Dialog):
 class Legend(object):
   ##################### collect all tags in the pen rows
   ##################### decide which tags to display have ability to disable in legend
-  ##################### click in tree to bring up pen popup
   #####################
   ##################### 
 
 
-  def __init__(self,app,legend_tab,*args):
-    self.app = app    
+  def __init__(self,app,legend_tab,parent,*args):
+    self.app = app
+    self.parent = parent    
     self.legend_tab = legend_tab
     self.connections_available = {}
     self.tags_available = {}
@@ -5616,7 +5626,7 @@ class Legend(object):
           
       self.liststore = Gtk.ListStore(str, str, str, str)
       self.treeview = Gtk.TreeView(self.liststore)
-      #self.treeview.connect('button-press-event' , self.tree_item_clicked)             #Watch for user clicks
+      self.treeview.connect('button-press-event' , self.tree_item_clicked)             #Watch for user clicks
       sel = self.treeview.get_selection()                                               #Treeview not selectable
       sel.set_mode(Gtk.SelectionMode.NONE)                                               #Treeview not selectable
       self.treeview.set_rules_hint( True )
@@ -5729,12 +5739,7 @@ class Legend(object):
         #update currently active display
         selection = treeview.get_selection()
         tree_model, tree_iter = selection.get_selected()
-        #If selected column is icon then initiate action
-        if tree_iter != None:
-          #gathers the Connection column name and connection type in the row clicked on
-          t_id = tree_model[tree_iter][1]
-          scale = tree_model[tree_iter][2]
-          print('Clicked')
+        self.open_pen_settings()
 
       else:
         #unselect row in treeview
@@ -5742,6 +5747,15 @@ class Legend(object):
         selection.unselect_all()
     elif event.button == 3: #right click
       pass
+
+  def open_pen_settings(self, args=[]):
+    popup = PenSettingsPopup(self.parent,self.app)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      return True
+    else:
+      return False
 
   def open_numpad(self,button,widget_obj,params,*args):
     numpad = ValueEnter(self,widget_obj,params)

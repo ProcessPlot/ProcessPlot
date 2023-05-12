@@ -245,7 +245,7 @@ class MainWindow(Gtk.Window):
       scroll.add(self.legends_data)
       self.legends_box.add(scroll)
       self.legend_tab.pack_start(self.legends_box,1,1,1)    
-      bx = Legend(self.app,self.legends_data)    #build legend box
+      bx = Legend(self.app,self.legends_data,self)    #build legend box
 
       #Settings Data
 
