@@ -2308,9 +2308,9 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_toggle.set_max_width(30)
 
     #Generate Columns
-    columns = {1:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               2:{'name':'Connection Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
-               3:{'name':'Description','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+    columns = {2:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               3:{'name':'Connection Type','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
+               4:{'name':'Description','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
               }
     for c in columns:
       col = Gtk.TreeViewColumn(columns[c]['name'])
@@ -2414,8 +2414,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
         #If selected column is delete icon then initiate delete of connection
         if tree_iter != None:
           #gathers the Connection column name and connection type in the row clicked on
-          c_id = tree_model[tree_iter][1]
-          c_type = tree_model[tree_iter][2]
+          c_id = tree_model[tree_iter][2]
+          c_type = tree_model[tree_iter][3]
           #checks if it is a delete or settings button click
           if column is self.tvcolumn_delete:
             self.confirm_delete('',c_id,tree_iter)
@@ -2442,8 +2442,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         if tree_iter is not None:
           #gathers the Tag name/Connection column text in the row clicked on
-          c_id = tree_model[tree_iter][1]
-          c_type = tree_model[tree_iter][2]
+          c_id = tree_model[tree_iter][2]
+          c_type = tree_model[tree_iter][3]
           #popover to add display
           edit_btn = Gtk.ModelButton(label="Edit", name=c_id)
           cb = lambda btn: self.open_settings_popup(c_id)
@@ -2468,10 +2468,12 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tree_model, tree_iter = selection.get_selected()
 
   def conx_connect_toggle(self, widget, path,id):
+    print('id',id)
     self.liststore[path][1] = not self.liststore[path][1]   #Sets toggle button
     if self.liststore[path][1]:                             #User clicked connect
       conx_params = self.get_connection_params(id)
       tags = self.tags_available[id]
+      self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link.png', 30, 30)
       print('polling',id)
       print('polling2',conx_params)
       print('polling3',tags)
@@ -2493,9 +2495,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
-    conx_status_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
+    conx_status_icon_on = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link.png', 30, 30)
+    conx_status_icon_off = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     for conx_num in self.connections_available:
       if filter == '' or filter == self.connections_available[conx_num]['id']:
+        conx_status = self.get_conx_polling_status(self.connections_available[conx_num]['id'])
+        if conx_status:
+          conx_status_icon = conx_status_icon_on
+        else:
+          conx_status_icon = conx_status_icon_off          
         self.liststore.append([ conx_status_icon,
                                 False,
                                 self.connections_available[conx_num]['id'],
@@ -2554,7 +2562,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
   def get_conx_polling_status(self, id,*args):
     #This method uses the stored conx objects to access polling status of connections
     obj = self.conx_obj_available[id]
-    print(id,obj.polling)
+    #print(id,obj.polling)
     return obj.polling
   
   def scroll_to_bottom(self, adjust):
