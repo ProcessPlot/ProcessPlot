@@ -1359,7 +1359,7 @@ class TagMainPopup(Gtk.Dialog):
             self.liststore.append([tag_icon,
                                   self.tags_available[tags][tag]['id'],
                                   self.tags_available[tags][tag]['connection_id'],
-                                  self.tags_available[tags][tag]['address'],
+                                  str(self.tags_available[tags][tag]['address']),
                                   self.tags_available[tags][tag]['description'],
                                   settings_icon,
                                   delete_icon
@@ -1962,7 +1962,6 @@ class TagSettingsPopup(Gtk.Dialog):
 
   def build_base(self,*args):
     row = 0
-
     #Tag name entry
     lbl = Gtk.Label('Tag Name')
     self.add_style(lbl,["Label","font-16",'font-bold'])
@@ -2150,7 +2149,7 @@ class TagSettingsPopup(Gtk.Dialog):
     else:
       self.result['bit'] = None
     if 'address' in self.params.keys():
-      self.result['address'] = self.tag_address.get_text()
+      self.result['address'] = str(self.tag_address.get_text())
     else:
       self.result['address'] = None
     if 'datatype' in self.params.keys():
@@ -2518,7 +2517,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
-    self.liststore.insert(0,[False,
+    conx_status_icon_on = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link.png', 30, 30)
+    conx_status_icon_off = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
+    conx_status = self.get_conx_polling_status(params['id'])
+    if conx_status:
+      conx_status_icon = conx_status_icon_on
+    else:
+      conx_status_icon = conx_status_icon_off 
+    self.liststore.insert(0,[conx_status_icon,
+                            False,
                             params['id'],
                             params['connection_type'],
                             params['description'],
@@ -2561,9 +2568,12 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def get_conx_polling_status(self, id,*args):
     #This method uses the stored conx objects to access polling status of connections
-    obj = self.conx_obj_available[id]
-    #print(id,obj.polling)
-    return obj.polling
+    if id in self.conx_obj_available:
+      obj = self.conx_obj_available[id]
+      return obj.polling
+    else:
+      #Connection doesn't exist
+      return False
   
   def scroll_to_bottom(self, adjust):
     max = adjust.get_upper()
