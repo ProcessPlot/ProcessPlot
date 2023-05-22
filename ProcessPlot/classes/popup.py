@@ -2024,8 +2024,8 @@ class TagSettingsPopup(Gtk.Dialog):
 
     #Bit
     if 'bit' in self.params.keys():
-      db_tag_bit = str(self.params['baudrate'])
-      lbl = Gtk.Label('Baudrate')
+      db_tag_bit = str(self.params['bit'])
+      lbl = Gtk.Label('Bit')
       self.add_style(lbl,["Label","font-16",'font-bold'])
       self.grid.attach(lbl,0,row,1,1) 
       self.tag_bit = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
