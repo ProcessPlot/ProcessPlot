@@ -2277,7 +2277,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def build_base(self):
     self.connection_settings = []  
-    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf,bool,str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
+    self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf,str , str, str, GdkPixbuf.Pixbuf,GdkPixbuf.Pixbuf)
     self.treeview = Gtk.TreeView(self.liststore)
     self.treeview.connect('button-press-event' , self.tree_item_clicked)
     self.treeview.set_rules_hint( True )
@@ -2291,20 +2291,28 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tvcolumn_conx_status.set_attributes(self.conx_status,pixbuf=0)
     self.tvcolumn_conx_status.set_max_width(30)
 
-    #Add toggle button
-    connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
-    image = Gtk.Image(pixbuf=connection_icon)
-    renderer_toggle = Gtk.CellRendererToggle()
-    renderer_toggle.set_property('cell-background','gray')
-    self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=1)
-    h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
-    c = h_but.get_child()
-    c.add(image)  #add image to column header button
-    c.show_all()
+    #Add connection btton
+    self.conx_button = Gtk.CellRendererPixbuf()
+    self.tvcolumn_conx_button= Gtk.TreeViewColumn('')
+    self.treeview.append_column(self.tvcolumn_conx_button)
+    self.tvcolumn_conx_button.pack_end(self.conx_button, False)
+    self.tvcolumn_conx_button.set_attributes(self.conx_button,pixbuf=1)
+    self.tvcolumn_conx_button.set_max_width(30)
+
+    # #Add toggle button
+    # connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 25, 25)
+    # image = Gtk.Image(pixbuf=connection_icon)
+    # renderer_toggle = Gtk.CellRendererToggle()
+    # renderer_toggle.set_property('cell-background','gray')
+    # self.tvcolumn_toggle = Gtk.TreeViewColumn('', renderer_toggle, active=1)
+    # h_but = self.tvcolumn_toggle.get_button() #Get reference to column header button
+    # c = h_but.get_child()
+    # c.add(image)  #add image to column header button
+    # c.show_all()
 
     #renderer_toggle.connect("toggled", self.conx_connect_toggle)
-    self.treeview.append_column(self.tvcolumn_toggle)
-    self.tvcolumn_toggle.set_max_width(30)
+    #self.treeview.append_column(self.tvcolumn_toggle)
+    #self.tvcolumn_toggle.set_max_width(30)
 
     #Generate Columns
     columns = {2:{'name':'Name','cell':Gtk.CellRendererText(),'width':-1,'expand':True,'type':'text'},
@@ -2420,8 +2428,10 @@ class ConnectionsMainPopup(Gtk.Dialog):
             self.confirm_delete('',c_id,tree_iter)
           elif column is self.tvcolumn_settings:
             self.open_settings_popup(c_id)
-          elif column is self.tvcolumn_toggle:
-            self.conx_connect_toggle('button',path,c_id)
+          # elif column is self.tvcolumn_toggle:
+          #   self.confirm_connect('button',path,c_id)
+          elif column is self.tvcolumn_conx_button:
+            self.confirm_connect('button',path,c_id)
       else:
         #unselect row in treeview
         selection = treeview.get_selection()
@@ -2468,11 +2478,11 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def conx_connect_toggle(self, widget, path,id):
     print('id',id)
-    self.liststore[path][1] = not self.liststore[path][1]   #Sets toggle button
+    #self.liststore[path][1] = not self.liststore[path][1]   #Sets toggle button
     if self.liststore[path][1]:                             #User clicked connect
       conx_params = self.get_connection_params(id)
       tags = self.tags_available[id]
-      self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link.png', 30, 30)
+      self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
       print('polling',id)
       print('polling2',conx_params)
       print('polling3',tags)
@@ -2480,6 +2490,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
       pass
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
     ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
+    #####################CONNECTION NEEDS TO BE CREATED IN CONNECTION METHOD SO IT CAN BE HELD ONTO BY THE CONNECTION OBJECT
     params = self.get_connection_params(id)
     #print('polling',id,self.connections_available)
     #print('polling2',params)
@@ -2492,9 +2503,10 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def add_conx_rows(self,filter,*args):
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
+    connection_button = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect_button.png', 30, 30)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
-    conx_status_icon_on = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link.png', 30, 30)
+    conx_status_icon_on = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
     conx_status_icon_off = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     for conx_num in self.connections_available:
       if filter == '' or filter == self.connections_available[conx_num]['id']:
@@ -2504,7 +2516,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
         else:
           conx_status_icon = conx_status_icon_off          
         self.liststore.append([ conx_status_icon,
-                                False,
+                                connection_button,
                                 self.connections_available[conx_num]['id'],
                                 self.connections_available[conx_num]['connection_type'],
                                 self.connections_available[conx_num]['description'],
@@ -2515,9 +2527,10 @@ class ConnectionsMainPopup(Gtk.Dialog):
 
   def insert_connection_row(self,button,params,*args):
     connection_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect.png', 30, 30)
+    connection_button = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Connect_button.png', 30, 30)
     settings_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/settings.png', 30, 30)
     delete_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Delete.png', 30, 30)
-    conx_status_icon_on = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link.png', 30, 30)
+    conx_status_icon_on = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
     conx_status_icon_off = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     conx_status = self.get_conx_polling_status(params['id'])
     if conx_status:
@@ -2525,7 +2538,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     else:
       conx_status_icon = conx_status_icon_off 
     self.liststore.insert(0,[conx_status_icon,
-                            False,
+                            connection_button,
                             params['id'],
                             params['connection_type'],
                             params['description'],
@@ -2596,6 +2609,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
       self.liststore.remove(tree_iter)
       self.get_available_connections()
       return True
+    else:
+      return False
+
+  def confirm_connect(self, button,path,conx_id,msg="Start Connection?", args=[]):
+    popup = PopupConfirm(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      self.conx_connect_toggle(button, path,conx_id)
     else:
       return False
 
