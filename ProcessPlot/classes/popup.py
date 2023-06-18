@@ -2482,20 +2482,25 @@ class ConnectionsMainPopup(Gtk.Dialog):
     if self.liststore[path][1]:                             #User clicked connect
       conx_params = self.get_connection_params(id)
       tags = self.tags_available[id]
-      self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
-      print('polling',id)
-      print('polling2',conx_params)
-      print('polling3',tags)
-    else:                                                   #User clicked disconnect
-      pass
+      if not self.conx_obj_available[id].polling:
+        self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
+        # print('polling',id)
+        # print('polling2',conx_params)
+        # print('polling3',tags)
+        poll = self.conx_obj_available[id].polling 
+        self.conx_obj_available[id].connect_connection(id,conx_params,tags)
+      else:
+        print('disconnect')
+        self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
+        self.conx_obj_available[id].disconnect_connection(id,conx_params,tags)
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
     ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
     #####################CONNECTION NEEDS TO BE CREATED IN CONNECTION METHOD SO IT CAN BE HELD ONTO BY THE CONNECTION OBJECT
-    params = self.get_connection_params(id)
+    #params = self.get_connection_params(id)
     #print('polling',id,self.connections_available)
     #print('polling2',params)
     #print('polling2',self.tags_available[id])
-    poll = self.conx_obj_available[id].polling  #check current polling status
+    #poll = self.conx_obj_available[id].polling  #check current polling status
     #self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
   def save_settings(self,button,auto_close,*args):
