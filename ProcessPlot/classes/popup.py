@@ -33,9 +33,6 @@ from urllib.parse import non_hierarchical
 import gi, os, json, datetime, time
 
 from pycomm3 import parse_connection_path
-
-from ProcessLink.process_link import process_link
-from classes.connection_manager import ConxManager
 from numpy import maximum, nonzero
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -2428,10 +2425,11 @@ class ConnectionsMainPopup(Gtk.Dialog):
             self.confirm_delete('',c_id,tree_iter)
           elif column is self.tvcolumn_settings:
             self.open_settings_popup(c_id)
-          # elif column is self.tvcolumn_toggle:
-          #   self.confirm_connect('button',path,c_id)
           elif column is self.tvcolumn_conx_button:
-            self.confirm_connect('button',path,c_id)
+            if not self.conx_obj_available[c_id].polling:
+              self.confirm_connect('button',path,c_id)
+            else:
+              self.confirm_disconnect('button',path,c_id)
       else:
         #unselect row in treeview
         selection = treeview.get_selection()
@@ -2477,22 +2475,19 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tree_model, tree_iter = selection.get_selected()
 
   def conx_connect_toggle(self, widget, path,id):
-    print('id',id)
-    #self.liststore[path][1] = not self.liststore[path][1]   #Sets toggle button
-    if self.liststore[path][1]:                             #User clicked connect
-      conx_params = self.get_connection_params(id)
-      tags = self.tags_available[id]
-      if not self.conx_obj_available[id].polling:
+    print('connection toggle')
+    conx_params = self.get_connection_params(id)
+    tags = self.tags_available[id]
+    if not self.conx_obj_available[id].polling:
+      got_connected = self.conx_obj_available[id].connect_connection(id,conx_params,tags) #Sends you to connection method
+      if got_connected:
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
-        # print('polling',id)
-        # print('polling2',conx_params)
-        # print('polling3',tags)
-        poll = self.conx_obj_available[id].polling 
-        self.conx_obj_available[id].connect_connection(id,conx_params,tags)
       else:
-        print('disconnect')
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
-        self.conx_obj_available[id].disconnect_connection(id,conx_params,tags)
+    else:
+      print('disconnect')
+      #self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
+      self.conx_obj_available[id].disconnect_connection(id,conx_params,tags)
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
     ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
     #####################CONNECTION NEEDS TO BE CREATED IN CONNECTION METHOD SO IT CAN BE HELD ONTO BY THE CONNECTION OBJECT
@@ -2618,6 +2613,15 @@ class ConnectionsMainPopup(Gtk.Dialog):
       return False
 
   def confirm_connect(self, button,path,conx_id,msg="Start Connection?", args=[]):
+    popup = PopupConfirm(self, msg=msg)
+    response = popup.run()
+    popup.destroy()
+    if response == Gtk.ResponseType.YES:
+      self.conx_connect_toggle(button, path,conx_id)
+    else:
+      return False
+    
+  def confirm_disconnect(self, button,path,conx_id,msg="Disconnect?", args=[]):
     popup = PopupConfirm(self, msg=msg)
     response = popup.run()
     popup.destroy()
