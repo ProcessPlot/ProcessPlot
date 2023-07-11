@@ -2480,9 +2480,11 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tags = self.tags_available[id]
     if not self.conx_obj_available[id].polling:
       got_connected = self.conx_obj_available[id].connect_connection(id,conx_params,tags) #Sends you to connection method
+      time.sleep(2.0)
       if got_connected:
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
       else:
+        self.display_msg('Connection attempt Failed to {}'.format(id))
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     else:
       print('disconnect')
