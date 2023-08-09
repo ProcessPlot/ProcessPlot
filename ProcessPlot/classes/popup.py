@@ -2426,6 +2426,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
           elif column is self.tvcolumn_settings:
             self.open_settings_popup(c_id)
           elif column is self.tvcolumn_conx_button:
+            print('c_object',self.conx_obj_available[c_id].is_polling(c_id))
             if not self.conx_obj_available[c_id].polling:
               self.confirm_connect('button',path,c_id)
             else:
@@ -2480,6 +2481,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tags = self.tags_available[id]
     if not self.conx_obj_available[id].polling:
       got_connected = self.conx_obj_available[id].connect_connection(id,conx_params,tags) #Sends you to connection method
+      print('status',got_connected)
       time.sleep(2.0)
       if got_connected:
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
