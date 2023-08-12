@@ -2426,8 +2426,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
           elif column is self.tvcolumn_settings:
             self.open_settings_popup(c_id)
           elif column is self.tvcolumn_conx_button:
-            print('c_object',self.conx_obj_available[c_id].is_polling(c_id))
-            if not self.conx_obj_available[c_id].polling:
+            #print('c_object',self.conx_obj_available[c_id].is_polling(c_id))
+            if not self.conx_obj_available[c_id].is_polling(c_id):
               self.confirm_connect('button',path,c_id)
             else:
               self.confirm_disconnect('button',path,c_id)
@@ -2475,23 +2475,27 @@ class ConnectionsMainPopup(Gtk.Dialog):
     selection = treeview.get_selection()
     tree_model, tree_iter = selection.get_selected()
 
-  def conx_connect_toggle(self, widget, path,id):
+  def conx_connect_toggle(self, widget, path,conx_id):
     print('connection toggle')
-    conx_params = self.get_connection_params(id)
-    tags = self.tags_available[id]
-    if not self.conx_obj_available[id].polling:
-      got_connected = self.conx_obj_available[id].connect_connection(id,conx_params,tags) #Sends you to connection method
+    conx_params = self.get_connection_params(conx_id)
+    tags = self.tags_available[conx_id]
+    if not self.conx_obj_available[conx_id].is_polling(conx_id):
+      got_connected = self.conx_obj_available[conx_id].connect_connection(conx_id,conx_params,tags) #Sends you to connection method
       print('status',got_connected)
       time.sleep(2.0)
       if got_connected:
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
       else:
-        self.display_msg('Connection attempt Failed to {}'.format(id))
+        self.display_msg('Connection attempt Failed to {}'.format(conx_id))
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     else:
       print('disconnect')
       #self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
-      self.conx_obj_available[id].disconnect_connection(id,conx_params,tags)
+      disc = self.conx_obj_available[conx_id].disconnect_connection(conx_id,conx_params,tags)
+      if not disc:
+        self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
+      else:
+        self.display_msg('Disconnection Failed to {}'.format(conx_id))
     ###################NEED TO BUILD CONNECTION STARTING HERE ########################
     ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
     #####################CONNECTION NEEDS TO BE CREATED IN CONNECTION METHOD SO IT CAN BE HELD ONTO BY THE CONNECTION OBJECT
@@ -3197,7 +3201,6 @@ class ConnectionSettingsPopup(Gtk.Dialog):
       self.grid.attach(lbl,0,row,1,1) 
       self.parity = Gtk.ComboBoxText(width_request = 200,height_request = 30)#hexpand = True
       self.add_style(self.parity,["font-18","list-select","font-bold"])
-      process_link = None
       val = 0
       p_type = ['N','O','E']
       for item in p_type:
