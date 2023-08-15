@@ -2476,13 +2476,14 @@ class ConnectionsMainPopup(Gtk.Dialog):
     tree_model, tree_iter = selection.get_selected()
 
   def conx_connect_toggle(self, widget, path,conx_id):
-    print('connection toggle')
     conx_params = self.get_connection_params(conx_id)
     tags = self.tags_available[conx_id]
     if not self.conx_obj_available[conx_id].is_polling(conx_id):
-      got_connected = self.conx_obj_available[conx_id].connect_connection(conx_id,conx_params,tags) #Sends you to connection method
-      print('status',got_connected)
-      time.sleep(2.0)
+      self.conx_obj_available[conx_id].connect_connection(conx_id,conx_params,tags) #Sends you to connection method
+      time.sleep(4.0)
+
+      ################################Still have is polling method in connection manager to deal with
+      got_connected = self.conx_obj_available[conx_id].is_polling(conx_id)
       if got_connected:
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_on.png', 30, 30)
       else:
@@ -2490,21 +2491,11 @@ class ConnectionsMainPopup(Gtk.Dialog):
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
     else:
       print('disconnect')
-      #self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
       disc = self.conx_obj_available[conx_id].disconnect_connection(conx_id,conx_params,tags)
       if not disc:
         self.liststore[path][0] = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/link_off.png', 30, 30)
       else:
         self.display_msg('Disconnection Failed to {}'.format(conx_id))
-    ###################NEED TO BUILD CONNECTION STARTING HERE ########################
-    ###################NEED TO GATHER UP LIST OF CONX AND TAGS TO PASS TO THE CONNECTION MANAGER
-    #####################CONNECTION NEEDS TO BE CREATED IN CONNECTION METHOD SO IT CAN BE HELD ONTO BY THE CONNECTION OBJECT
-    #params = self.get_connection_params(id)
-    #print('polling',id,self.connections_available)
-    #print('polling2',params)
-    #print('polling2',self.tags_available[id])
-    #poll = self.conx_obj_available[id].polling  #check current polling status
-    #self.conx_obj_available[id].set_polling(not(poll)) #Initiate poll start
 
   def save_settings(self,button,auto_close,*args):
     pass
