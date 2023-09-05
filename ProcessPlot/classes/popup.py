@@ -1634,7 +1634,7 @@ class AddTagPopup(Gtk.Dialog):
     self.app = app
     self.params = params
     self.conx_type = conx_type
-    self.datatypes = ['INT','FLOAT','DINT','UINT','BOOLEAN','SINT']
+    self.datatypes = ['UINT','INT','REAL','DINT','UDINT','BOOL','SINT','USINT']
     self.build_window()
     self.connect("response", self.on_response)
     self.result = {}
@@ -1887,7 +1887,7 @@ class TagSettingsPopup(Gtk.Dialog):
                         )
     self.params = params
     self.app = app
-    self.datatypes = ['INT','FLOAT','DINT','UINT','BOOLEAN','SINT']
+    self.datatypes = ['UINT','INT','REAL','DINT','UDINT','BOOL','SINT','USINT']
     self.result = {}
     self.build_window()
 
