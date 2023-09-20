@@ -1888,6 +1888,7 @@ class TagSettingsPopup(Gtk.Dialog):
     self.params = params
     self.app = app
     self.datatypes = ['UINT','INT','REAL','DINT','UDINT','BOOL','SINT','USINT']
+    self.f_types = ['1','2','3','4']
     self.result = {}
     self.build_window()
 
@@ -2019,6 +2020,30 @@ class TagSettingsPopup(Gtk.Dialog):
       self.grid.attach(self.tag_address,1,row,2,1)
       row+=1 
 
+    #Modbus function code select
+    # 01-Read Only Coil , 02-R/W Coil, 03-R/W Holding Registers, 04-Read Holding Registers    
+    if 'func_type' in self.params.keys():
+      db_ft = str(self.params['func_type'])
+      lbl = Gtk.Label('Modbus Function Code')
+      self.add_style(lbl,["Label","font-16",'font-bold'])
+      self.grid.attach(lbl,0,row,1,1) 
+      self.function_type = Gtk.ComboBoxText(width_request = 200,height_request = 30,halign = Gtk.Align.CENTER)#hexpand = True
+      self.add_style(self.function_type,["font-18","list-select","font-bold"])
+      found = None
+      val = 0
+      for ft in self.f_types:
+        self.function_type.append_text(ft)
+        if ft == db_ft:
+            found = val
+        val+= 1
+      if found:
+        self.function_type.set_active(found)
+      else:
+        self.function_type.set_active(0)
+      self.grid.attach(self.function_type,1,row,2,1)
+      row+=1 
+
+
     #Bit
     if 'bit' in self.params.keys():
       db_tag_bit = str(self.params['bit'])
@@ -2149,6 +2174,10 @@ class TagSettingsPopup(Gtk.Dialog):
       self.result['address'] = str(self.tag_address.get_text())
     else:
       self.result['address'] = None
+    if 'func_type' in self.params.keys():
+      self.result['func_type'] = int(self.function_type.get_active_text())
+    else:
+      self.result['func_type'] = 4
     if 'datatype' in self.params.keys():
       self.result['datatype'] = self.tag_datatype.get_active_text()
     else:
