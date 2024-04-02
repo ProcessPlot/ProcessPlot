@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import declarative_base, relationship, backref
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.sql.schema import ForeignKey
+##$#from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy import ForeignKey, ForeignKeyConstraint
 from sqlalchemy.sql.sqltypes import BIGINT, Float, Numeric
 
 
@@ -100,36 +101,11 @@ class SettingsDb():
         self.__log.debug('Closing settings database session')
         self.session.close()
 
-'''
-class Connections(SettingsBase):
-    __tablename__ = 'connections'
-    id = Column(Integer, primary_key=True)
-    connection = Column(String)
-    connection_type_id = Column(Integer)
-    description = Column(String)
-
-class ConnectionType(SettingsBase):
-    __tablename__ = 'connection_type'
-    id = Column(Integer, primary_key=True)
-    connection_type = Column(String)
-    protcol = Column(String)
-    description = Column(String)
-
-class ModbusTCP_ConnectParams(SettingsBase):
-    __tablename__ = 'modbusTCP_ConnectParams'
-    id = Column(String, ForeignKey(Connections.id, ondelete='CASCADE'), primary_key=True)
-    host = Column(String)
-    port = Column(Integer)
-    stationID = Column(Integer)
-    pollrate = Column(Integer)
-    autoconnect = Column(Boolean)
-    status = Column(Boolean)
-    description = Column(String)
-'''
 ConnectionsBase = declarative_base()
 
 class ConnectionTable(ConnectionsBase): # this table holds all tag values being subscribed to
-  __tablename__ = 'connections'
+  ##$#__tablename__ = 'connections'
+  __tablename__ = 'connection-params-local'
   id = Column(Integer, primary_key=True)
   connection_type = Column(Integer, nullable=False)
   description = Column(String)
@@ -140,7 +116,6 @@ class ConnectionParamsModbusRTU(ConnectionsBase):
   id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
   pollrate = Column(Float, default=0.5)
   auto_connect = Column(Boolean, default=False)
-  status = Column(Integer) #what is this?
   port = Column(String)
   station_id = Column(Integer, default=1)
   baudrate = Column(Integer, default=9600)
@@ -149,6 +124,8 @@ class ConnectionParamsModbusRTU(ConnectionsBase):
   parity = Column(String, default='N')
   byte_size = Column(Integer, default=8)
   retries = Column(Integer, default=3)
+  ##$#status = Column(Integer) #what is this?
+  status = Column(Boolean, default=False)
   
 class ConnectionParamsModbusTCP(ConnectionsBase):
   __tablename__= 'connection-params-modbusTCP'
@@ -156,10 +133,11 @@ class ConnectionParamsModbusTCP(ConnectionsBase):
   id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
   pollrate = Column(Float, default=0.5)
   auto_connect = Column(Boolean, default=False)
-  status = Column(Integer) #what is this?
   host = Column(String, default='127.0.0.1')
   port = Column(Integer, default=502)
   station_id = Column(Integer, default=1)
+  ##$#status = Column(Integer) #what is this?
+  status = Column(Boolean, default=False)
 
 class ConnectionParamsEthernetIP(ConnectionsBase):
   __tablename__= 'connection-params-ethernetIP'
@@ -167,9 +145,10 @@ class ConnectionParamsEthernetIP(ConnectionsBase):
   id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
   pollrate = Column(Float, default=0.5)
   auto_connect = Column(Boolean, default=False)
-  status = Column(Integer) #what is this?
   host = Column(String, default='127.0.0.1') #uses pycomm3 syntax for PLC path
   port = Column(Integer, default=44818)
+  ##$#status = Column(Integer) #what is this?
+  status = Column(Boolean, default=False)
 
 class ConnectionParamsOPC(ConnectionsBase):
   __tablename__= 'connection-params-opc'
@@ -177,8 +156,9 @@ class ConnectionParamsOPC(ConnectionsBase):
   id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
   pollrate = Column(Float, default=0.5)
   auto_connect = Column(Boolean, default=False)
-  status = Column(Integer) #what is this?
   host = Column(String, default='opc.tcp://127.0.0.1:49320') #uses pyopc url syntax for path
+  ##$#status = Column(Integer) #what is this?
+  status = Column(Boolean, default=False)
 
 class ConnectionParamsGrbl(ConnectionsBase):
   __tablename__= 'connection-params-grbl'
@@ -186,39 +166,52 @@ class ConnectionParamsGrbl(ConnectionsBase):
   id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
   pollrate = Column(Float, default=0.5)
   auto_connect = Column(Boolean, default=False)
-  status = Column(Integer) #what is this?
   port = Column(String, default='/dev/ttyACM0')
+  ##$#status = Column(Integer) #what is this?
+  status = Column(Boolean, default=False)
 
-class ConnectionParamsLocal(ConnectionsBase):
-  __tablename__= 'connection-params-local'
-  relationship('ConnectionTable', backref=backref('children', passive_deletes=True))
-  id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
+##$#class ConnectionParamsLocal(ConnectionsBase):
+##$#  __tablename__= 'connection-params-local'
+##$#  relationship('ConnectionTable', backref=backref('children', passive_deletes=True))
+##$#  id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
 
 class TagTable(ConnectionsBase): # this table holds all tag values being subscribed to
-  __tablename__ = 'tags'
-  id = Column(String, primary_key=True)
-  connection_id = Column(String, ForeignKey(ConnectionTable.id))
+  ##$#__tablename__ = 'tags'
+  __tablename__ = 'tag-params-local'
+  id = Column(String, primary_key=True) #tag unique id is a combo of tag and connection ids
+  ##$#connection_id = Column(String, ForeignKey(ConnectionTable.id))
+  connection_id = Column(String, ForeignKey(ConnectionTable.id), primary_key=True)
   description = Column(String)
   datatype = Column(String)
   value = Column(String) # used for retenitive tags
 
-class TagParamsLocal(ConnectionsBase):
-  __tablename__= 'tag-params-local'
-  relationship('TagTable', backref=backref('children', passive_deletes=True))
-  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
-  address = Column(String, nullable=False)
+##$#class TagParamsLocal(ConnectionsBase):
+##$#  __tablename__= 'tag-params-local'
+##$#  relationship('TagTable', backref=backref('children', passive_deletes=True))
+##$#  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+##$#  address = Column(String, nullable=False)
 
 class TagParamsEthernetIP(ConnectionsBase):
-  __tablename__= 'tag-params-ethernetIP'
+  ##$#__tablename__= 'tag-params-ethernetIP'
+  __tablename__= 'tag-params-logix'
   relationship('TagTable', backref=backref('children', passive_deletes=True))
   id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  connection_id = Column(String, primary_key=True)
+  __table_args__ = (ForeignKeyConstraint([id, connection_id],
+                                          [TagTable.id, TagTable.connection_id], ondelete='CASCADE'),
+                    {})
   address = Column(String, nullable=False)
 
 class TagParamsModbus(ConnectionsBase):
   __tablename__= 'tag-params-modbus'
   relationship('TagTable', backref=backref('children', passive_deletes=True))
   id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  connection_id = Column(String, primary_key=True)
+  __table_args__ = (ForeignKeyConstraint([id, connection_id],
+                                          [TagTable.id, TagTable.connection_id], ondelete='CASCADE'),
+                    {})
   address = Column(Integer, nullable=False)
+  func_type = Column(Integer, nullable=False)
   bit = Column(Integer, default=0)
   word_swapped = Column(Boolean, default=False)
   byte_swapped = Column(Boolean, default=False)
@@ -227,12 +220,21 @@ class TagParamsOPC(ConnectionsBase):
   __tablename__= 'tag-params-opc'
   relationship('TagTable', backref=backref('children', passive_deletes=True))
   id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  connection_id = Column(String, primary_key=True)
+  __table_args__ = (ForeignKeyConstraint([id, connection_id],
+                                          [TagTable.id, TagTable.connection_id], ondelete='CASCADE'),
+                    {})
   node_id = Column(String, nullable=False)
 
 class TagParamsGrbl(ConnectionsBase):
   __tablename__= 'tag-params-grbl'
   relationship('TagTable', backref=backref('children', passive_deletes=True))
-  id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  ##$#id = Column(String, ForeignKey(TagTable.id, ondelete='CASCADE'), primary_key=True)
+  id = Column(String, primary_key=True)
+  connection_id = Column(String, primary_key=True)
+  __table_args__ = (ForeignKeyConstraint([id, connection_id],
+                                          [TagTable.id, TagTable.connection_id], ondelete='CASCADE'),
+                    {})
   address = Column(String, nullable=False)
 
 class ConnectionsDb():
@@ -243,15 +245,18 @@ class ConnectionsDb():
         main_dir = os.path.dirname(my_dir)
         engine = create_engine('sqlite:///'+ main_dir + "/data/connections.db") #should create a .db file next to main.py
         self.models = {
-                "connections": ConnectionTable,
-                "connection-params-ethernetIP":  ConnectionParamsEthernetIP,
+                ##$#"connections": ConnectionTable,
+                ##$#"connection-params-ethernetIP":  ConnectionParamsEthernetIP,
+                "connection-params-logix":    ConnectionParamsEthernetIP,
                 "connection-params-modbusRTU": ConnectionParamsModbusRTU,
                 "connection-params-modbusTCP": ConnectionParamsModbusTCP,
                 "connection-params-opc": ConnectionParamsOPC,
                 "connection-params-grbl": ConnectionParamsGrbl,
-                "connection-params-local": ConnectionParamsLocal,
-                "tags": TagTable,
-                "tag-params-local":  TagParamsLocal,
+                ##$#"connection-params-local": ConnectionParamsLocal,
+                "connection-params-local": ConnectionTable,
+                ##$#"tags": TagTable,
+                "tag-params-local":  TagTable,
+                ##$#"tag-params-local":  TagParamsLocal,
                 "tag-params-ethernetIP":  TagParamsEthernetIP,
                 "tag-params-modbus": TagParamsModbus,
                 "tag-params-opc": TagParamsOPC,

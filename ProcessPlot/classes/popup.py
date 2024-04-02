@@ -1398,6 +1398,7 @@ class TagMainPopup(Gtk.Dialog):
     count = 1
     self.conx_tags = {}
     for conx_id,conx_obj in self.app.link.get('connections').items():
+    ##$#for conx_id,conx_obj in self.app.connections_db.get('connections').items():
       tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
       for tag_id,tag_obj in conx_obj.get('tags').items():
         for c in tag_items:
