@@ -12,8 +12,12 @@ from sqlalchemy.sql.sqltypes import BIGINT, Float, Numeric
 # see videosbelow for help:
 # https://www.youtube.com/watch?v=jaKMm9njcJc&list=PL4iRawDSyRvVd1V7A45YtAGzDk6ljVPm1
 
+__all__ =["DatabaseError"]
 
-
+class DatabaseError(Exception):
+    """
+    raised on database errors
+    """
 
 SettingsBase = declarative_base()
 class AppSettings(SettingsBase):
@@ -239,29 +243,30 @@ class TagParamsGrbl(ConnectionsBase):
 
 class ConnectionsDb():
     __log = logging.getLogger("ProcessPlot.classes.database")
+    models = {
+            ##$#"connections": ConnectionTable,
+            ##$#"connection-params-ethernetIP":  ConnectionParamsEthernetIP,
+            "connection-params-logix":    ConnectionParamsEthernetIP,
+            "connection-params-modbusRTU": ConnectionParamsModbusRTU,
+            "connection-params-modbusTCP": ConnectionParamsModbusTCP,
+            "connection-params-opc": ConnectionParamsOPC,
+            "connection-params-grbl": ConnectionParamsGrbl,
+            ##$#"connection-params-local": ConnectionParamsLocal,
+            "connection-params-local": ConnectionTable,
+            ##$#"tags": TagTable,
+            "tag-params-local":  TagTable,
+            ##$#"tag-params-local":  TagParamsLocal,
+            "tag-params-ethernetIP":  TagParamsEthernetIP,
+            "tag-params-modbus": TagParamsModbus,
+            "tag-params-opc": TagParamsOPC,
+            "tag-params-grbl": TagParamsGrbl
+    }
     def __init__(self) -> None:
         super(ConnectionsDb, self).__init__()
         my_dir = os.path.dirname(__file__)
         main_dir = os.path.dirname(my_dir)
         engine = create_engine('sqlite:///'+ main_dir + "/data/connections.db") #should create a .db file next to main.py
-        self.models = {
-                ##$#"connections": ConnectionTable,
-                ##$#"connection-params-ethernetIP":  ConnectionParamsEthernetIP,
-                "connection-params-logix":    ConnectionParamsEthernetIP,
-                "connection-params-modbusRTU": ConnectionParamsModbusRTU,
-                "connection-params-modbusTCP": ConnectionParamsModbusTCP,
-                "connection-params-opc": ConnectionParamsOPC,
-                "connection-params-grbl": ConnectionParamsGrbl,
-                ##$#"connection-params-local": ConnectionParamsLocal,
-                "connection-params-local": ConnectionTable,
-                ##$#"tags": TagTable,
-                "tag-params-local":  TagTable,
-                ##$#"tag-params-local":  TagParamsLocal,
-                "tag-params-ethernetIP":  TagParamsEthernetIP,
-                "tag-params-modbus": TagParamsModbus,
-                "tag-params-opc": TagParamsOPC,
-                "tag-params-grbl": TagParamsGrbl
-        }
+
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.__log.debug('Opening database session for connections database')
