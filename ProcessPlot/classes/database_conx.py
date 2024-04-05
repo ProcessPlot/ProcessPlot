@@ -81,7 +81,7 @@ class Connection(APIClass):
 
     
 
-    def __init__(self, params: dict) -> None:
+    def __init__(self, manager: "database_manager",params: dict) -> None:
         super().__init__()
         self._tag_types = TAG_TYPES
         self.properties += ['id', 'connection_type', 'description', 'tags']
@@ -213,8 +213,8 @@ class LogixConnection(Connection):
             })
         return params
 
-    def __init__(self, params: dict) -> None:
-        super().__init__( params)
+    def __init__(self, manager: "database_manager",params: dict) -> None:
+        super().__init__(manager, params)
         self.properties += ['pollrate', 'auto_connect', 'host', 'port']
         self._connection_type = "logix"
         self.orm = ConnectionsDb.models["connection-params-logix"]
@@ -303,8 +303,8 @@ class ModbusTCPConnection(Connection):
             })
         return params
 
-    def __init__(self, params: dict) -> None:
-        super().__init__( params)
+    def __init__(self, manager: "database_manager",params: dict) -> None:
+        super().__init__(manager, params)
         self.properties += ['pollrate', 'auto_connect', 'host', 'port', 'station_id','status']
         self._connection_type = "modbusTCP"
         self.orm = ConnectionsDb.models["connection-params-modbusTCP"]

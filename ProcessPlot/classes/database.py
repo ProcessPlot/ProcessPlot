@@ -144,7 +144,7 @@ class ConnectionParamsModbusTCP(ConnectionsBase):
   status = Column(Boolean, default=False)
 
 class ConnectionParamsEthernetIP(ConnectionsBase):
-  __tablename__= 'connection-params-ethernetIP'
+  __tablename__= 'connection-params-logix'
   relationship('ConnectionTable', backref=backref('children', passive_deletes=True))
   id = Column(String, ForeignKey(ConnectionTable.id, ondelete='CASCADE'), primary_key=True)
   pollrate = Column(Float, default=0.5)
@@ -185,6 +185,7 @@ class TagTable(ConnectionsBase): # this table holds all tag values being subscri
   id = Column(String, primary_key=True) #tag unique id is a combo of tag and connection ids
   ##$#connection_id = Column(String, ForeignKey(ConnectionTable.id))
   connection_id = Column(String, ForeignKey(ConnectionTable.id), primary_key=True)
+  tag_type = Column(String, nullable=False)
   description = Column(String)
   datatype = Column(String)
   value = Column(String) # used for retenitive tags
@@ -256,7 +257,7 @@ class ConnectionsDb():
             ##$#"tags": TagTable,
             "tag-params-local":  TagTable,
             ##$#"tag-params-local":  TagParamsLocal,
-            "tag-params-ethernetIP":  TagParamsEthernetIP,
+            "tag-params-logix":  TagParamsEthernetIP,
             "tag-params-modbus": TagParamsModbus,
             "tag-params-opc": TagParamsOPC,
             "tag-params-grbl": TagParamsGrbl

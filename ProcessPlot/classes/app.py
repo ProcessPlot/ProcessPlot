@@ -49,22 +49,5 @@ class App(object):
       print(f"No code written yet, closing in {5-x} second(s)")
       time.sleep(1)
 
-  def load_db(self) -> bool:
-    """
-    load the settings db. return True if successful, else false
-    if db is already loaded, this should close down the existing one first.
-    this method only loads the db to the manager and gets the session
-    ready. User is to call loading connections, tags, etc.
-    """
-    self.connections_db.db_file = self._db_file
-    ##$#self.connections_db.open()
-    session = self.connections_db.session
-    orm = ConnectionsDb.models["connection-params-local"]
-    conns = session.query(orm).all()
-    print("CONNNNS",conns)
-    # for conn in conns:
-    #     params = CONNECTION_TYPES[conn.connection_type].get_params_from_db(session, conn.id)
-    #     conn_obj = self.new_connection(params)
-    #     conn_obj.load_tags_from_db(session)
-    # return True
+
 

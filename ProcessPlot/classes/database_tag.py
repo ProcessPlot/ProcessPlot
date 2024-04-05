@@ -128,7 +128,6 @@ class Tag(APIClass):
     def description(self, value: str) -> None:
         self._description = value
     
-
     @property
     def value(self) -> Any:
         return self._value
@@ -151,7 +150,6 @@ class Tag(APIClass):
                 'id': tag.id,
                 'connection_id': tag.connection_id,
                 'description': tag.description,
-                #####################corrected next three lines###########################################################################################################
                 'datatype': tag.datatype,
                 'tag_type':tag.tag_type,
                 'value': tag.value,
