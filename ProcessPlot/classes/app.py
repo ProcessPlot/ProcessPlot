@@ -1,6 +1,6 @@
 import logging, os, time
 import gi
-from ProcessLink.process_link import ProcessLink
+#from ProcessLink.process_link import ProcessLink
 from classes.ui import MainWindow
 from classes.database import DataDb, SettingsDb, ConnectionsDb
 from classes.ui import MainWindow
@@ -11,9 +11,9 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),  'Public')
 class App(object):
   __log = logging.getLogger('ProcessPlot.classes.app')
   def __init__(self):
-    self.link = ProcessLink()
-    self.link.set("db_file", "connections.db")
-    self.link.load_db()
+    #self.link = ProcessLink()
+    #self.link.set("db_file", "connections.db")
+    #self.link.load_db()
     
     self.data_db = DataDb()
     self.settings_db = SettingsDb()

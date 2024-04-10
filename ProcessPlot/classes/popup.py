@@ -457,7 +457,6 @@ class PenSettingsPopup(Gtk.Dialog):
     new_params = {}
     count = 1
     self.conx_tags = {}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
       for tag_id,tag_obj in conx_obj.get('tags').items():
@@ -475,7 +474,6 @@ class PenSettingsPopup(Gtk.Dialog):
     new_params = {}
     count = 1
     self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -975,7 +973,6 @@ class Pen_row(object):
     new_params = {}
     count = 1
     self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -988,7 +985,6 @@ class Pen_row(object):
     new_params = {}
     count = 1
     self.conx_tags = {}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       if conx_obj:
         tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
@@ -1240,7 +1236,6 @@ class TagMainPopup(Gtk.Dialog):
     new_tags = []
     existing_tags = []
     if tags:  #Are there any tags to import?
-      ##$#conx_obj = self.app.link.get('connections').get(conx_selected)
       conx_obj = self.app.db.get('connections').get(conx_selected)
       if conx_obj != None:
         for tag_id,tag_obj in conx_obj.get('tags').items():
@@ -1402,7 +1397,6 @@ class TagMainPopup(Gtk.Dialog):
     new_params = {}
     count = 1
     self.conx_tags = {}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
       for tag_id,tag_obj in conx_obj.get('tags').items():
@@ -1421,7 +1415,6 @@ class TagMainPopup(Gtk.Dialog):
     new_params = {}
     count = 1
     self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -1438,11 +1431,10 @@ class TagMainPopup(Gtk.Dialog):
     self.liststore.clear()
 
   def delete_row(self,t_id,c_id,*args):
-    ##$#conx_obj = self.app.link.get("connections").get(c_id)
     conx_obj = self.app.db.get("connections").get(c_id)
     if conx_obj != None:
       tag_obj = conx_obj.get('tags').get(t_id)
-      self.app.link.delete_tag(tag_obj,t_id,c_id)
+      self.app.db.delete_tag(tag_obj,t_id,c_id)
     self.show_all()
 
   def confirm_delete(self, button,tag_id,conx_id,tree_iter,msg="Are you sure you want to delete this tag?", args=[]):
@@ -1537,7 +1529,6 @@ class TagMainPopup(Gtk.Dialog):
 
   def get_tag_params(self,tag_id,conx_id):
     new_params = {}
-    ##$#conx_obj = self.app.link.get("connections").get(conx_id)
     conx_obj = self.app.db.get("connections").get(conx_id)
     if conx_obj != None:
       tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
@@ -1549,7 +1540,6 @@ class TagMainPopup(Gtk.Dialog):
 
   def check_duplicate_name(self,results,*args):
     dup = False
-    ##$#conx_obj = self.app.link.get('connections').get(results['connection_id'])
     conx_obj = self.app.db.get('connections').get(results['connection_id'])
     if conx_obj != None:
       for tag_id,tag_obj in conx_obj.get('tags').items():
@@ -1586,7 +1576,6 @@ class TagMainPopup(Gtk.Dialog):
   def create_tag(self,params,*args):
     if 'address' not in params:
       params['address'] = '12'  # default address when not passed in because required to create tag
-    ##$#conx_obj = self.app.link.get('connections').get(params['connection_id'])
     conx_obj = self.app.db.get('connections').get(params['connection_id'])
     conx_obj.new_tag({"id": params['id'],
                             "connection_id": params['connection_id'],
@@ -1596,12 +1585,11 @@ class TagMainPopup(Gtk.Dialog):
     })
     tag_obj = conx_obj.get('tags').get(params['id'])
     if tag_obj != None:
-      self.app.link.save_tag(tag_obj)
+      self.app.db.save_tag(tag_obj)
     params = self.get_tag_params(params['id'],params['connection_id'])
     self.insert_tag_row(None,params)
 
   def update_tag(self,params,*args):
-    ##$#conx_obj = self.app.link.get('connections').get(params['connection_id'])
     conx_obj = self.app.db.get('connections').get(params['connection_id'])
     if conx_obj != None:
       tag_obj = conx_obj.get('tags').get(params['id'])
@@ -1614,7 +1602,7 @@ class TagMainPopup(Gtk.Dialog):
               tag_obj.set(key,val)
             except KeyError as e:
               print(e,key)
-        self.app.link.save_tag(tag_obj)
+        self.app.db.save_tag(tag_obj)
 
   def insert_tag_row(self,button,params,*args):
     tag_icon = GdkPixbuf.Pixbuf.new_from_file_at_size('./ProcessPlot/Public/images/Tag.png', 25, 25)
@@ -1835,8 +1823,6 @@ class AddTagPopup(Gtk.Dialog):
       dup = True
     else:
       dup = False
-
-    ##$#conx_obj = self.app.link.get('connections').get(self.result['connection_id'])
     conx_obj = self.app.db.get('connections').get(self.result['connection_id'])
     if conx_obj != None:
       for tag_id,tag_obj in conx_obj.get('tags').items():
@@ -2204,7 +2190,6 @@ class TagSettingsPopup(Gtk.Dialog):
     else:
       self.result['byte_swapped'] = None
     ###Update tag value
-    ##$#conx_obj = self.app.link.get('connections').get(self.result['connection_id'])
     conx_obj = self.app.db.get('connections').get(self.result['connection_id'])
     if conx_obj != None:
       tag_obj = conx_obj.get('tags').get(self.result['id'])
@@ -2217,7 +2202,7 @@ class TagSettingsPopup(Gtk.Dialog):
               tag_obj.set(key,val)
             except KeyError as e:
               print(e,key)
-        self.app.link.save_tag(tag_obj)
+        self.app.db.save_tag(tag_obj)
     self.close_popup(False)
 
   def get_result(self):
@@ -2244,7 +2229,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.tags_available = {}
     self.conx_obj_available = {}
     self.app = app
-    ##$#self.conx_type = self.app.link.get('connection_types')
     self.conx_type = self.app.db.get('connection_types')
     self.build_window()
     self.content_area = self.get_content_area()
@@ -2596,7 +2580,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     self.connections_available = {}   #Clears out old list
     self.conx_obj_available = {}   #Clears out old list
     count = 0
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -2610,7 +2593,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
     new_params = {}
     count = 1
     self.conx_tags = {}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       if conx_obj:
         tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
@@ -2678,22 +2660,20 @@ class ConnectionsMainPopup(Gtk.Dialog):
       return False
 
   def delete_row(self,id,*args):
-    ##$#conx_obj = self.app.link.get("connections").get(id)
     conx_obj = self.app.db.get("connections").get(id)
     if conx_obj != None:
-      self.app.link.delete_connection(conx_obj,id)
+      self.app.db.delete_connection(conx_obj,id)
     self.show_all()
 
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
-    new_conx = self.app.link.new_connection({"id": params['id'],
+    new_conx = self.app.db.new_connection({"id": params['id'],
                             "connection_type": params['connection_type'],
                             "description": params['description']
                             })
-    ##$#conx_obj = self.app.link.get("connections").get(params['id'])
     conx_obj = self.app.db.get("connections").get(params['id'])
     if conx_obj != None:
-      self.app.link.save_connection(conx_obj)
+      self.app.db.save_connection(conx_obj)
       self.insert_connection_row(None,params)
       self.get_available_connections()
     else:
@@ -2710,7 +2690,6 @@ class ConnectionsMainPopup(Gtk.Dialog):
       return False
 
   def update_connection(self,params,*args):
-    ##$#conx_obj = self.app.link.get("connections").get(params['id'])
     conx_obj = self.app.db.get("connections").get(params['id'])
     if conx_obj != None:
       for key, val in params.items():
@@ -2722,7 +2701,7 @@ class ConnectionsMainPopup(Gtk.Dialog):
           except KeyError as e:
             self.display_msg(msg="Connection Update Failed: {}, {}".format(e,key))
             #print(e,key)
-      self.app.link.save_connection(conx_obj)
+      self.app.db.save_connection(conx_obj)
 
   def add_connection_popup(self,button,bad_name,*args):
     popup = AddConnectionPopup(self,bad_name,self.app,self.conx_type)
@@ -2736,10 +2715,8 @@ class ConnectionsMainPopup(Gtk.Dialog):
       return False
   
   def get_connection_params(self,conx_id):
-    ##$#conx_obj = self.app.link.get("connections").get(conx_id)
     conx_obj = self.app.db.get("connections").get(conx_id)
     if conx_obj != None:
-      ##$#return self.app.link.get_connection_params(conx_obj,conx_id)
       return self.app.db.get_connection_params(conx_obj,conx_id)
   
   def open_settings_popup(self,conx_id,*args):
@@ -2943,7 +2920,6 @@ class AddConnectionPopup(Gtk.Dialog):
       dup = True
     else:
       dup = False
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       if conx_id == self.result['id']:
         dup = True
@@ -3401,7 +3377,6 @@ class ConnectionSettingsPopup(Gtk.Dialog):
     else:
       self.result['retries'] = None
     ####Save values
-    ##$#conx_obj = self.app.link.get("connections").get(self.result['id'])
     conx_obj = self.app.db.get("connections").get(self.result['id'])
     if conx_obj != None:
       for key, val in self.result.items():
@@ -3412,7 +3387,7 @@ class ConnectionSettingsPopup(Gtk.Dialog):
             conx_obj.set(key,val)
           except KeyError as e:
             print(e,key)
-      self.app.link.save_connection(conx_obj)
+      self.app.db.save_connection(conx_obj)
       if auto_close:
         self.close_popup(False)
 
@@ -4829,7 +4804,6 @@ class Export_ImportTagsPopup(Gtk.Dialog):
     count = 1
     #self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
     self.connections_available = {}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -4856,7 +4830,6 @@ class ImportUtility(Gtk.Dialog):
   def __init__(self, parent,app):
     super().__init__(transient_for = parent,flags=0)
     self.app = app
-    ##$#self.conx_type = self.app.link.get('connection_types')
     self.conx_type = self.app.db.get('connection_types')
     self.db_session = self.app.settings_db.session
     self.db_model = self.app.settings_db.models['chart']
@@ -5412,15 +5385,14 @@ class ImportUtility(Gtk.Dialog):
 
   def create_connection(self,params,*args):
     #should be passing in description and connection_type as a dictionary
-    new_conx = self.app.link.new_connection({"id": params['id'],
+    new_conx = self.app.db.new_connection({"id": params['id'],
                             "connection_type": params['connection_type'],
                             "description": params['description']
                             })
-    ##$#conx_obj = self.app.link.get("connections").get(params['id'])
     conx_obj = self.app.db.get("connections").get(params['id'])
     if conx_obj != None:
       self.new_conx = params['id']
-      self.app.link.save_connection(conx_obj)
+      self.app.db.save_connection(conx_obj)
       self.insert_connection_row(None,params)
       self.get_available_connections()
     else:
@@ -5439,7 +5411,6 @@ class ImportUtility(Gtk.Dialog):
     self.connections_available = {}   #Clears out old list
     self.conx_obj_available = {}   #Clears out old list
     count = 0
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -5451,7 +5422,6 @@ class ImportUtility(Gtk.Dialog):
   def create_tag(self,params,*args):
     if 'address' not in params:
       params['address'] = '12'  # default address when not passed in because required to create tag
-    ##$#conx_obj = self.app.link.get('connections').get(params['connection_id'])
     conx_obj = self.app.db.get('connections').get(params['connection_id'])
     conx_obj.new_tag({"id": params['id'],
                             "connection_id": params['connection_id'],
@@ -5461,13 +5431,12 @@ class ImportUtility(Gtk.Dialog):
     })
     tag_obj = conx_obj.get('tags').get(params['id'])
     if tag_obj != None:
-      self.app.link.save_tag(tag_obj)
+      self.app.db.save_tag(tag_obj)
     params = self.get_tag_params(params['id'],params['connection_id'])
     self.insert_tag_row(None,params)
 
   def get_tag_params(self,tag_id,conx_id):
     new_params = {}
-    ##$#conx_obj = self.app.link.get("connections").get(conx_id)
     conx_obj = self.app.db.get("connections").get(conx_id)
     if conx_obj != None:
       tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
@@ -5889,7 +5858,6 @@ class Legend(object):
     new_params = {}
     count = 1
     self.connections_available = {0: {'id': '', 'connection_type': 0, 'description': ''}}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       for c in conx_items:
         new_params[c] = getattr(conx_obj, c)
@@ -5902,7 +5870,6 @@ class Legend(object):
     new_params = {}
     count = 1
     self.conx_tags = {}
-    ##$#for conx_id,conx_obj in self.app.link.get('connections').items():
     for conx_id,conx_obj in self.app.db.get('connections').items():
       if conx_obj:
         tag_items = conx_obj.return_tag_parameters()  #return list of tag parameters from the specific connection
